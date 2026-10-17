@@ -157,6 +157,60 @@
 
 ---
 
+## 8. Live end-to-end run (2026-10-18)
+
+**Setup:**
+- Backend `php artisan serve` on :8000 against the local MySQL `teethi` database. Backend `master` is at `c8a8092`.
+- Patient app (:8917) and dentist app (:8765) running as Flutter web debug builds. Admin dashboard (`ng serve`, :4200).
+- The three apps were on their `feat/timezone-contract` branches.
+- The machine's timezone is **Syria (UTC+3)**, while every dentist is in **Los Angeles (UTC−7)**, so the timezone contract was tested across a real 10-hour gap.
+- Seeded accounts: `patient@`, `dr.michael@` and `admin@teethi.test`. Run configs are in `.claude/launch.json` at the root.
+
+**Scenario:**
+1. Patient logs in, picks a treatment and Dr. Michael, and books Mon 19 Oct 09:00.
+2. Admin publishes a consent form.
+3. Dentist accepts, reschedules to 14:00 through the new open-slot picker, starts the visit, writes a clinical note and completes the visit.
+4. Patient sees the past visit and the report.
+5. Admin checks Appointments, Cities and Invoices, and does a password reset end to end.
+
+**Test data left in the local database:**
+- Appointment #1 (completed) and Invoice #1 (pending, pay-later).
+- Consent template "Patient Consent Form" v1 (active).
+- The seeded patient now has a date of birth (1996-10-18) and a verified phone (+13105550142).
+- The admin password was reset to the same seed value.
+
+### Verified working ✅
+- **Login** works in all three apps against the live API. CORS is fine for all origins.
+- **C3 pagination fix:** the patient app now requests `treatments?per_page=100`, `appointments?per_page=50` and so on.
+- **Timezone contract (decision #7), end to end:**
+  - On a UTC+3 device, the patient sees the dentist's slots as 09:00/10:00/11:00 Los Angeles time.
+  - The booking summary reads "19 Oct, 09:00 GMT-7".
+  - A time with no zone is rejected with a clear `422`. The old bug's payload (`09:00+03:00`) is rejected as unavailable.
+  - The slot's `starts_at` books and is stored as `16:00Z`.
+- **Same visit time in all three apps:**
+  - Patient home: "Tomorrow, 09:00 GMT-7".
+  - Dentist: "Mon 19 Oct, 09:00", then "14:00" after the reschedule.
+  - Admin: "10/19/26, 2:00 PM (America/Los_Angeles)", with request time labelled "your time".
+  - Admin Cities shows the timezone column.
+- **Dentist reschedule** through the new open-slot picker ("Times are Los Angeles time") worked. It stored `21:00Z` = 14:00 Los Angeles time.
+- **Visit documentation:** the clinical note and visit completion succeeded. The patient receives the report under `/patient/medical-reports`, and five `appointment_status_changed` notifications were generated.
+- **Admin:** publishing a document template works. Invoices list the pay-later invoice.
+- **H1 fix, end to end:** the admin forgot/reset flow sends the 6-digit code and gets a `200`, then lands on login.
+
+### New findings
+| # | Severity | Finding |
+|---|---|---|
+| E1 | **Critical** | **No patient can book from the app.** Booking requires a signed patient consent form on the server (`BookingService::missingRequirements`). **No consent template is seeded**, so every booking fails until an admin publishes one. Even then, the patient app's consent screen is mock (C4): it shows hardcoded forms ("Signed 12 Aug 2024") and never calls `POST /patient/consent-forms/{id}/sign`. The server requirement can therefore only be met outside the app. For this run, the template was published from the dashboard and the patient signed through the API. **Fix C4 and seed a consent template.** |
+| E2 | **High** | **A rescheduled visit can't be started.** Rescheduling sets the status to `rescheduled`, and `AppointmentStatusService` allows only `rescheduled → accepted / cancelled`. The dentist app still shows the visit as "Accepted" with a **Start visit** button, which always returns `409`. No app offers "accept / confirm the new time". For this run it was re-accepted through the API. **Decide** who confirms a rescheduled visit (the patient? automatically when the doctor reschedules?), then align the backend transitions and both apps. |
+| E3 | **High** | **Currency differs between apps.** The admin dashboard shows "100.00 **AED**" (hardcoded `COMMON.CURRENCY` in `TEETHi-Frontend/src/assets/i18n/en.json`, from the template the dashboard was built from). The patient app shows "$100" for the same invoice, and the business is US / Los Angeles. Choose one currency, ideally sent by the backend, and use it in every app. |
+| E4 | High | **Phone verification dead end in booking.** The "Before we book" step requires a verified mobile, but an account with no phone number gets "Add a phone number before requesting a verification code" and no field to add one. Separately, the six-box code entry didn't accept automated input (likely a tool limitation, but worth a manual check). |
+| E5 | Medium | **Patient name comes from different sources.** The patient app shows the account name ("Sample Patient"). The dentist app and the admin dashboard read `patient_profile.first_name/last_name`, which are empty for the seeded patient, so they show "Patient" and "#1". Make registration (and the seeder) fill the profile names, or define one display-name field. |
+| E6 | Medium | **No invoice exists until the patient pays.** `InvoiceService::findOrCreateForAppointment` runs only from `POST /patient/appointments/{id}/payment`. A completed visit where the patient never opens the payment step has no invoice, so the admin can't see or reconcile it. |
+| E7 | Medium | **M4 confirmed live:** the `409` came back in Laravel's debug format (`exception`, `file`, `trace`). The dentist app could only show "Something went wrong" instead of the server's message. |
+| E8 | Low | **Relative labels use the device's date, not the visit's zone:** the patient sees "Tomorrow" (two days away in Los Angeles), the dentist header shows "Sunday, 18 October" (Saturday in Los Angeles), and an in-progress Mon 19 Oct visit was tagged "Today". |
+| E9 | Low | **Booking requires browser geolocation** ("Confirm this address with my location") with no fallback. Desktop/web users who deny location can't book. |
+| E10 | Low | "Use profile" in the visit-address step silently does nothing when the profile has no address. Admin Cities column is labelled "State/Emirate" (template leftover). The patient bell badge shows 3 while the server has 5 unread (still mock, H4). The patient "Nearby" dentist tab was empty while "All" listed the dentist (cause not investigated). |
+
 ## 7. Docs consolidated in this folder
 
 See `docs/README.md` for the index and where each file came from.

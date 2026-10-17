@@ -1,0 +1,33 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "backend",
+      "runtimeExecutable": "C:/Users/ASUS/.config/herd-lite/bin/php.exe",
+      "runtimeArgs": ["artisan", "serve", "--host=127.0.0.1", "--port=8000"],
+      "cwd": "TEETHi-Backend",
+      "port": 8000
+    },
+    {
+      "name": "admin-dashboard",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["ng", "serve", "--port", "4200"],
+      "cwd": "TEETHi-Frontend",
+      "port": 4200
+    },
+    {
+      "name": "patient-app",
+      "runtimeExecutable": "flutter",
+      "runtimeArgs": ["run", "-d", "web-server", "--web-port", "8917"],
+      "cwd": "TEETHi-Patient-App",
+      "port": 8917
+    },
+    {
+      "name": "dentist-app",
+      "runtimeExecutable": "flutter",
+      "runtimeArgs": ["run", "-d", "web-server", "--web-port", "8765"],
+      "cwd": "TEETHI-Dentist-App",
+      "port": 8765
+    }
+  ]
+}
