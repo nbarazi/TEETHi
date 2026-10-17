@@ -53,6 +53,8 @@
 - The dentist app (`core/network/paginated.dart`) and the admin dashboard (`<app-pagination-bar>`) handle pagination correctly.
 
 ### C4. Patient consent forms are mock-only, so nothing is signed on the server
+> **Fixed on a branch (2026-10-18):** TEETHi-Patient-App `9ec2fa4` (`fix/consent-forms-wiring`), with the seeded template in TEETHi-Backend `ae17a8f`. Not merged.
+
 - `lib/screens/consent_screen.dart` reads `MockData.consentForms` and signs into the local `AppState`.
 - `GET /patient/consent-forms` and `POST …/sign` are never called.
 - Consent is a legal record the backend stores, the admin reviews and the plan treats as PHI. As things stand, no patient consent ever reaches the server.
@@ -200,7 +202,7 @@
 ### New findings
 | # | Severity | Finding |
 |---|---|---|
-| E1 | **Critical** | **No patient can book from the app.** Booking requires a signed patient consent form on the server (`BookingService::missingRequirements`). **No consent template is seeded**, so every booking fails until an admin publishes one. Even then, the patient app's consent screen is mock (C4): it shows hardcoded forms ("Signed 12 Aug 2024") and never calls `POST /patient/consent-forms/{id}/sign`. The server requirement can therefore only be met outside the app. For this run, the template was published from the dashboard and the patient signed through the API. **Fix C4 and seed a consent template.** |
+| E1 | **Critical**, *fixed on branches 2026-10-18* (backend `ae17a8f`, patient app `9ec2fa4`, not merged) | **No patient can book from the app.** Booking requires a signed patient consent form on the server (`BookingService::missingRequirements`). **No consent template is seeded**, so every booking fails until an admin publishes one. Even then, the patient app's consent screen is mock (C4): it shows hardcoded forms ("Signed 12 Aug 2024") and never calls `POST /patient/consent-forms/{id}/sign`. The server requirement can therefore only be met outside the app. For this run, the template was published from the dashboard and the patient signed through the API. **Fix C4 and seed a consent template.** |
 | E2 | **High** | **A rescheduled visit can't be started.** Rescheduling sets the status to `rescheduled`, and `AppointmentStatusService` allows only `rescheduled → accepted / cancelled`. The dentist app still shows the visit as "Accepted" with a **Start visit** button, which always returns `409`. No app offers "accept / confirm the new time". For this run it was re-accepted through the API. **Decide** who confirms a rescheduled visit (the patient? automatically when the doctor reschedules?), then align the backend transitions and both apps. |
 | E3 | **High** | **Currency differs between apps.** The admin dashboard shows "100.00 **AED**" (hardcoded `COMMON.CURRENCY` in `TEETHi-Frontend/src/assets/i18n/en.json`, from the template the dashboard was built from). The patient app shows "$100" for the same invoice, and the business is US / Los Angeles. Choose one currency, ideally sent by the backend, and use it in every app. |
 | E4 | High | **Phone verification dead end in booking.** The "Before we book" step requires a verified mobile, but an account with no phone number gets "Add a phone number before requesting a verification code" and no field to add one. Separately, the six-box code entry didn't accept automated input (likely a tool limitation, but worth a manual check). |

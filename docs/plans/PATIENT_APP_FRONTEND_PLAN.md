@@ -103,7 +103,13 @@ This document tells a Flutter engineer/agent **what exists in the Teethi backend
 - **`{dependent}` in every dependent route is a `PatientProfile` id.** Deleting a dependent (`DELETE`) is a hard delete with no confirmation step server-side — confirm in the UI before calling.
 - **Every booking/insurance/consent/medical-history/records endpoint that supports "on behalf of a dependent" does so via an optional `?patient_profile_id=`/`patient_profile_id` field** defaulting to the account holder's own profile when omitted (§7–§9) — the family-member switcher the app will need is one query param threaded through, not a separate set of endpoints per profile.
 
-**Verified**: _(fill in once wired)_
+**Verified (2026-10-18, consistency report E1/C4):** wired as `lib/features/consent/` (TEETHi-Patient-App `9ec2fa4` on `fix/consent-forms-wiring`).
+- `ConsentScreen` lists every page of `GET /patient/consent-forms` with the server's title, version, body and real `signed_at`. The sign screen posts `{ typed_name, agree: true }`. The mock `MockData.consentForms` and `AppState.signForm` are gone.
+- After signing, the home dashboard reloads, so `consent_pending` (booking gate, task strip, profile menu) updates at once.
+- Checked live: an admin published consent v2, the app showed "Version 2 · needs your signature", signing returned `201`, and the dashboard reported `consent_pending: false`.
+- Backend `ae17a8f` (`fix/seed-document-templates`) seeds an active patient consent form, so a fresh database no longer blocks booking.
+- Not done: signing on behalf of a dependent (`patient_profile_id`). This lands with the booking dependent picker (report H3).
+- Product note: the old mock had four patient forms (treatment, privacy, financial, nondiscrimination), but the backend allows one active version per template *type*, so only one patient consent form can be active at a time. If all four are required, the backend needs either more patient-facing types or a single combined form.
 
 ---
 
