@@ -2201,6 +2201,81 @@
                 }
             }
         },
+        "/v1/doctor/availability/open-slots": {
+            "get": {
+                "operationId": "doctor.availability.open-slots",
+                "summary": "The doctor's own open slots for one date and visit type, in the same\nshape as `GET /patient/availability`. Rescheduling accepts only an\nexact open slot start, so this is what the dentist app picks from\nand sends back (`starts_at` as `scheduled_at`). Not paginated, for\nthe same reason as the patient endpoint: one day's slots are few",
+                "tags": [
+                    "Availability"
+                ],
+                "parameters": [
+                    {
+                        "name": "visit_type",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/components/schemas/VisitType"
+                        }
+                    },
+                    {
+                        "name": "date",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "null"
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "description": "array_values(), not just Collection::values(): guarantees a\ntrue 0-indexed list, which Collection::values() alone doesn't\nstatically prove to PHPStan through this method-chain.",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
         "/v1/doctor/availability/{availability}": {
             "patch": {
                 "operationId": "doctor.availability.update",
@@ -11214,7 +11289,17 @@
                         "type": "string"
                     },
                     "scheduled_at": {
+                        "type": "string",
+                        "description": "`scheduled_at` stays the UTC instant (sorting, countdowns);\nevery app shows `scheduled_at_local`, the wall-clock time in\nthe visit's own zone (decision #7), never its device's zone."
+                    },
+                    "timezone": {
                         "type": "string"
+                    },
+                    "scheduled_at_local": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
                     },
                     "visit_address": {
                         "$ref": "#/components/schemas/AddressResource"
@@ -11290,6 +11375,8 @@
                     "request_mode",
                     "requested_at",
                     "scheduled_at",
+                    "timezone",
+                    "scheduled_at_local",
                     "visit_instructions",
                     "tooth_number",
                     "problem_description",
@@ -11393,6 +11480,9 @@
                             "null"
                         ]
                     },
+                    "timezone": {
+                        "type": "string"
+                    },
                     "is_available": {
                         "type": "boolean"
                     }
@@ -11401,6 +11491,7 @@
                     "id",
                     "name",
                     "state",
+                    "timezone",
                     "is_available"
                 ],
                 "title": "CityResource"
@@ -12954,7 +13045,8 @@
                 "properties": {
                     "scheduled_at": {
                         "type": "string",
-                        "format": "date-time"
+                        "format": "date-time",
+                        "pattern": "^\\d{4}-\\d{2}-\\d{2}[T ]\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?(Z|[+-]\\d{2}:?\\d{2})$"
                     },
                     "reason": {
                         "type": "string",
@@ -13256,7 +13348,8 @@
                             "string",
                             "null"
                         ],
-                        "format": "date-time"
+                        "format": "date-time",
+                        "pattern": "^\\d{4}-\\d{2}-\\d{2}[T ]\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?(Z|[+-]\\d{2}:?\\d{2})$"
                     },
                     "visit_instructions": {
                         "type": [
@@ -13363,6 +13456,7 @@
             },
             "StoreAvailabilityExceptionRequest": {
                 "type": "object",
+                "description": "`date` is a calendar date in the doctor's zone (decision #7), so \"today\n * or later\" is checked against the doctor's own today, not the server's\nUTC date.",
                 "properties": {
                     "date": {
                         "type": "string",
@@ -14682,6 +14776,9 @@
                             "null"
                         ],
                         "maxLength": 255
+                    },
+                    "timezone": {
+                        "type": "string"
                     },
                     "is_available": {
                         "type": "boolean"

@@ -590,7 +590,7 @@ Blocks reliable booking from any device not set to UTC. Client follow-ups are tr
   - Dashboard "today".
   - The `422` for a time with no zone.
 - [x] Update the availability and appointment shapes in the patient, dentist and admin plans.
-- [ ] Regenerate `api.json` and refresh `docs/api/openapi.json` (`php artisan scramble:export --path=../docs/api/openapi.json`). **Pending:** the local MySQL server (`MySQL80` service) was stopped on 2026-10-18, and `scramble:analyze` needs the database. Run both once it is up, together with `php artisan migrate` (this phase's `cities.timezone` migration and Phase 12's still-unapplied `service_radius_km` one).
+- [x] Regenerate `api.json` and refresh `docs/api/openapi.json`. **Verified (2026-10-18):** `php artisan migrate` applied `2026_10_18_000001_add_timezone_to_cities_table` to the local `teethi` database. That was the only pending migration; Phase 12's `service_radius_km` had already been applied. All 8 seeded cities now report `America/Los_Angeles`. `scramble:export` regenerated `api.json` (TEETHi-Backend `c8a8092` on `feat/timezone-contract`), and the same file was copied here. The spec now has 119 paths, including `GET /doctor/availability/open-slots`, and the `timezone`/`scheduled_at_local`/`starts_at` fields.
 
 Built 2026-10-18 on TEETHi-Backend branch `feat/timezone-contract` (`25a38b4`, plus `9253d74` for the exception-date check). **Not merged.**
 
