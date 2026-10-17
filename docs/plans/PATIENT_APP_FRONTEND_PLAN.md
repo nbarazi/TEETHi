@@ -88,7 +88,7 @@ This document tells a Flutter engineer/agent **what exists in the Teethi backend
   "title": "Mr.", "first_name": "Amina", "middle_name": null, "last_name": "K.", "suffix": null,
   "gender": "female", "blood_type": "o_positive",
   "date_of_birth": "1990-04-12", "profile_note": null, "bio": "Loves flossing.", "languages": ["en", "ar"],
-  "city": { "id": 3, "name": "Dubai", "state": "Dubai", "is_available": true },
+  "city": { "id": 3, "name": "Dubai", "state": "Dubai", "timezone": "Asia/Dubai", "is_available": true },
   "address": { "id": 5, "type": "home", "street": "...", "apartment": null, "note": null, "city": "Dubai", "state": "Dubai", "zip": "00000", "latitude": 25.2, "longitude": 55.3 },
   "profile_completed_at": "2026-09-15T00:00:00+00:00",
   "missing_fields": [],
@@ -176,7 +176,7 @@ Each item (`DocumentTemplateResource`, in the signed-flow shape):
   "id": 9, "name": "Dr. Sara M.", "bio": "...", "years_experience": 12,
   "average_rating": 4.6, "patients_treated_count": 320, "recommended_percentage": 94,
   "starting_fee": 120.0, "hours": "9:00 AM - 5:00 PM", "available_today": true,
-  "city": { "id": 3, "name": "Dubai", "state": "Dubai", "is_available": true },
+  "city": { "id": 3, "name": "Dubai", "state": "Dubai", "timezone": "Asia/Dubai", "is_available": true },
   "specializations": [ { "id": 2, "name": "Orthodontics" } ],
   "latitude": 25.2, "longitude": 55.3,
   "distance_km": 3.42
@@ -187,7 +187,7 @@ Each item (`DocumentTemplateResource`, in the signed-flow shape):
 { "id": 55, "reviewer_name": "Amina K.", "doctor_rating": 5, "would_recommend": true, "comment": "Great visit.", "created_at": "..." }
 ```
 - **`distance_km` is only present when the request included `latitude`/`longitude`.**
-- **`starting_fee`/`hours`/`available_today` are all computed, best-effort signals**, not guaranteed bookable facts: `starting_fee` is the cheapest catalog treatment this doctor has marked active expertise in (`null` if none), `hours` spans every active weekly availability slot regardless of day, and `available_today` is a coarse "has *some* slot template or one-off exception today" check — **not** the real per-slot availability the booking flow's calendar step needs. Always call `GET /patient/availability` (§7) for the actual bookable times once a specific doctor + date + visit type is chosen; don't try to derive real slots from the directory response.
+- **`starting_fee`/`hours`/`available_today` are all computed, best-effort signals**, not guaranteed bookable facts: `starting_fee` is the cheapest catalog treatment this doctor has marked active expertise in (`null` if none), `hours` spans every active weekly availability slot regardless of day, and `available_today` is a coarse "has *some* slot template or one-off exception today" check (today in the doctor's own zone since backend Phase 13, so it no longer flips to tomorrow at 4-5 pm in Los Angeles; `?available_today=1` filters the same way) — **not** the real per-slot availability the booking flow's calendar step needs. Always call `GET /patient/availability` (§7) for the actual bookable times once a specific doctor + date + visit type is chosen; don't try to derive real slots from the directory response.
 - **No PHI is in this response** — it's safe to cache/log/show in analytics unlike almost everything else in this document.
 
 **Verified**: _(fill in once wired)_
@@ -204,7 +204,23 @@ Each item (`DocumentTemplateResource`, in the signed-flow shape):
 | `GET /specializations` | `{ id, name }[]` |
 | `GET /treatments?quick_select=1` | The handful of treatments flagged for the home screen's "quick book" tiles |
 | `GET /treatments?treatment_category_id=` | Procedures under one category tab |
-| `GET /patient/availability?doctor_profile_id=&visit_type=&date=` | Real open slots for one doctor/date/visit type — `{ "data": [ { "start_time": "09:00:00", "end_time": "10:00:00" }, ... ] }`, not paginated |
+| `GET /patient/availability?doctor_profile_id=&visit_type=&date=` | Real open slots for one doctor/date/visit type, not paginated — shape below |
+
+**Availability slots** (timezone contract, backend Phase 13, decision #7). `data` is still a plain list; each slot gained `starts_at`, `ends_at` and `timezone`:
+```json
+{
+  "data": [
+    {
+      "start_time": "09:00:00", "end_time": "10:00:00",
+      "starts_at": "2026-11-02T09:00:00-08:00", "ends_at": "2026-11-02T10:00:00-08:00",
+      "timezone": "America/Los_Angeles"
+    }
+  ]
+}
+```
+- **`date` is a calendar date in the doctor's zone** (their city's `timezone`), not the device's. Send the date the patient picked as `YYYY-MM-DD`. A date before the doctor's own today is a `422` on `date` (`booking.date_in_past`); "today" is the doctor's, so at 6 pm in Los Angeles that date is still bookable even though UTC is already on the next day.
+- **`starts_at`/`ends_at` are exact instants** with the offset in force on that date, so daylight saving is already handled (e.g. `-07:00` on 2026-10-31, `-08:00` on 2026-11-01 in Los Angeles). **Send the chosen slot's `starts_at` back unchanged as `scheduled_at`.** Never rebuild a time from `start_time` plus the device's clock.
+- **`start_time`/`end_time` stay for display** (the Morning/Afternoon/Evening buckets in §7.2 item 3 can keep reading `start_time`). They are wall-clock times in `timezone`.
 
 `TreatmentResource`:
 ```json
@@ -235,7 +251,7 @@ The app's booking flow was designed against no real backend and makes assumption
 | `POST /patient/appointments` | Create a booking | see below |
 | `GET /patient/appointments?patient_profile_id=` | Paginated, newest `requested_at` first — this is both "Upcoming" and "Past" in the app; split client-side by `status`/`scheduled_at` (see note below) | — |
 | `GET /appointments/{id}` *(shared, no `/patient` prefix)* | One appointment's full detail | — |
-| `PATCH /appointments/{id}/reschedule` *(shared)* | | `{ scheduled_at, reason }` — `reason` required, ≤500 chars, matching the app's `ReasonSheet` |
+| `PATCH /appointments/{id}/reschedule` *(shared)* | | `{ scheduled_at, reason }` — `scheduled_at` is an open slot's `starts_at` (§7.1), sent unchanged; `reason` required, ≤500 chars, matching the app's `ReasonSheet` |
 | `PATCH /appointments/{id}/cancel` *(shared)* | | `{ reason }` — required, ≤500 chars |
 | `GET /patient/appointments/{id}/recommendations` | Post-visit "recommended next" procedures for a completed visit | — |
 | `POST /patient/appointments/{id}/payment` | Pay (or defer) — see §9 for the shape | |
@@ -249,7 +265,7 @@ The app's booking flow was designed against no real backend and makes assumption
   "visit_type": "at_home",
   "request_mode": "direct",
   "doctor_profile_id": 9,
-  "scheduled_at": "2026-09-20T10:00:00Z",
+  "scheduled_at": "2026-09-20T10:00:00+04:00",
   "visit_instructions": "Ring the doorbell twice.",
   "tooth_number": 14,
   "problem_description": "Sharp pain when chewing.",
@@ -265,6 +281,7 @@ The app's booking flow was designed against no real backend and makes assumption
 - **`visit_type`** (`at_home` / `emergency`, via `GET /enums`) is the routine-vs-emergency branch the app's `branch_step.dart` already captures — map it directly.
 - **`address.latitude`/`address.longitude` are required**, not optional, despite other address fields being nullable — the app's `AddressEditor` needs a way to resolve/confirm coordinates (geocoding or the device's current location, same `geolocator` package already used for the map) before submitting, not just free-text fields.
 - **Before this call ever succeeds, the account must clear three prerequisites** (`booking.missing_requirements` — a `422` with an `errors.missing_requirements` array of human-readable strings if not): phone verified (§2), the target profile's date of birth present (§3), and the current consent-form version signed for that profile (§5). Check/surface these proactively in the UI (the app's `confirm_step.dart` already has a pre-booking checklist screen — wire its three checks directly to these three facts) rather than only reacting to the 422.
+- **`scheduled_at` is the chosen slot's `starts_at` (§7.1), sent unchanged.** It must carry an offset or `Z`: a time with no zone (`2026-09-20T10:00:00`) is a `422` on `scheduled_at` (`booking.scheduled_at_needs_timezone`), never silently read as UTC. Any offset naming the same instant is accepted (`2026-09-20T06:00:00Z` books the same slot as `2026-09-20T10:00:00+04:00`), but a slot's clock time sent as UTC is a different instant and fails with `booking.slot_not_available`. Applies to reschedule too.
 - **A direct-mode `scheduled_at` is re-validated server-side against the doctor's real availability** — if the slot filled up between the app showing it and the user submitting, expect a `422` on `scheduled_at` (`booking.slot_not_available`) and re-fetch availability.
 - **`tooth_number` (1-32) and `problem_description` are both optional and independent of `visit_type`** — the emergency flow's `tooth_step.dart` maps directly onto them, but nothing stops sending them on a routine `at_home` booking too if the UI ever wants that. `tooth_number` outside 1-32 is a `422`.
 
@@ -279,7 +296,8 @@ The app's booking flow was designed against no real backend and makes assumption
   ],
   "patient_profile": { "id": 12, "first_name": "Amina", "...": "..." },
   "doctor_profile": { "id": 9, "first_name": "Sara", "...": "..." },
-  "requested_at": "...", "scheduled_at": "2026-09-20T10:00:00+00:00",
+  "requested_at": "...", "scheduled_at": "2026-09-20T06:00:00+00:00",
+  "timezone": "Asia/Dubai", "scheduled_at_local": "2026-09-20T10:00:00",
   "visit_address": { "street": "...", "...": "..." },
   "visit_instructions": "...",
   "tooth_number": 14, "problem_description": "Sharp pain when chewing.",
@@ -289,6 +307,7 @@ The app's booking flow was designed against no real backend and makes assumption
   "completed_at": null, "created_at": "...", "updated_at": "..."
 }
 ```
+- **`scheduled_at` is the UTC instant; show `scheduled_at_local`** (decision #7). `timezone` is the visit's IANA zone: the doctor's city, then the patient profile's city (an unclaimed open-pool request has no doctor), then the platform default. `scheduled_at_local` is `YYYY-MM-DDTHH:MM:SS` with no offset, in that zone — display it as-is (add the zone abbreviation when `timezone` differs from the device's), and keep `scheduled_at` for sorting and countdowns only. Both are `null`-safe: `scheduled_at_local` is `null` whenever `scheduled_at` is. Every endpoint that embeds `AppointmentResource` (list, detail, home dashboard's `upcoming_appointments`, booking/reschedule/cancel responses) carries both fields.
 - **`treatment` is the first-selected/"primary" treatment; `treatments` is the full set actually covered** — for a single-procedure booking they contain the same one item; render `treatments` (not just `treatment`) anywhere the UI should show everything covered by the visit (e.g. the confirm/summary screen, invoice line items). `treatment` is kept only because it's what every existing one-treatment display already reads.
 - **`status`** (`open`/`pending`/`accepted`/`in_progress`/`completed`/`rescheduled`/`cancelled`/`declined`, via `GET /enums` → `appointment_status`) is the single source of truth for "Upcoming" vs. "Past" in the Visits screen — treat anything not `completed`/`cancelled`/`declined` as upcoming, the rest as past (an `open`/unclaimed request should probably render as "finding a dentist..." rather than either bucket, a UI decision the current mock doesn't have to make since nothing is ever really pending).
 - **Cancel/reschedule return `409`** (`booking.invalid_transition`) if the appointment isn't in a state that allows it (e.g. already completed/cancelled) — the app's `ReasonSheet` should only be reachable from an appointment whose current `status` is `pending`/`accepted`/`rescheduled` in the first place, same "hide the button rather than let the error surface" pattern used throughout the admin plan.
@@ -569,7 +588,7 @@ There is no field indicating whether a completed visit has already been reviewed
 - [ ] Deregister on logout → `DELETE /device-tokens` or the `device_token` param on `POST /logout` (§2, §11.2)
 
 ### Timezone contract — backend decision #7 (2026-10-17)
-Waits on backend Phase 13. Fixes consistency report C1: today, a booking made from a device not set to UTC fails the slot check or lands in the wrong slot.
+Backend Phase 13 is built on TEETHi-Backend branch `feat/timezone-contract` (`25a38b4`, `9253d74`), not merged yet. The contract is in §7.1 (slots) and §7.3 (booking, `AppointmentResource`). Fixes consistency report C1: today, a booking made from a device not set to UTC fails the slot check or lands in the wrong slot.
 - [ ] Booking (`lib/screens/booking/confirm_step.dart`): send the chosen slot's `starts_at` unchanged as `scheduled_at`. Delete the code that builds a `DateTime` from `start_time` plus the device's zone and then calls `toUtc()`.
 - [ ] Any reschedule UI uses the same slot list and sends the slot's `starts_at`.
 - [ ] Availability `date`: keep sending the calendar date the patient picked. It now explicitly means a date in the doctor's zone.

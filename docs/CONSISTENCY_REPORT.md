@@ -26,7 +26,7 @@
 ## 2. Critical: breaks what a party needs
 
 ### C1. Booking time slots have no timezone contract (Backend ↔ Patient app ↔ Dentist app)
-> **Decided 2026-10-17:** one timezone per city, with exact instants on the wire (IMPLEMENTATION_PLAN decision #7). The work is tracked as backend **Phase 13** plus a "Timezone contract" section in each frontend plan. Not implemented yet.
+> **Decided 2026-10-17:** one timezone per city, with exact instants on the wire (IMPLEMENTATION_PLAN decision #7). The work is tracked as backend **Phase 13** plus a "Timezone contract" section in each frontend plan. **Backend built 2026-10-18** on TEETHi-Backend branch `feat/timezone-contract` (`25a38b4`, `9253d74`), not merged. Client work not started.
 
 - **Backend:** `config/app.php` uses `timezone = UTC`. Doctor availability is stored as wall-clock `HH:MM:SS` with no zone. `AvailabilityService::isSlotOpen()` checks that `scheduled_at->format('H:i:s')` exactly matches a slot's `start_time` (`app/Services/AvailabilityService.php:78`).
 - **Patient app:** the app builds the booking time as a *device-local* `DateTime` from the slot's `"09:00"`, then sends `scheduledAt.toUtc().toIso8601String()` (`lib/screens/booking/confirm_step.dart:46`, `appointments_remote_data_source.dart:42`).

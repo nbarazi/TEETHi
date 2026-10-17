@@ -381,10 +381,18 @@ A single **read-only** platform-wide appointment list. The admin dashboard canno
 Query params (`spatie/laravel-query-builder`, same convention as §4.7):
 - `?filter[status]=` — one `appointment_status` value (§5: `open`, `pending`, `accepted`, `in_progress`, `completed`, `rescheduled`, `cancelled`, `declined`)
 - `?filter[doctor_profile_id]=` , `?filter[patient_profile_id]=` — exact id match
-- `?filter[scheduled_from]=2026-01-01` , `?filter[scheduled_to]=2026-02-01` — **inclusive** `scheduled_at` range bounds; accepts any string `Carbon` can parse (`YYYY-MM-DD` or a full ISO timestamp). Send either, both, or neither.
+- `?filter[scheduled_from]=2026-01-01` , `?filter[scheduled_to]=2026-02-01` — **inclusive** `scheduled_at` range bounds; accepts any string `Carbon` can parse (`YYYY-MM-DD` or a full ISO timestamp). Send either, both, or neither. **The bounds are compared with the stored UTC `scheduled_at`**, so `2026-01-01` means midnight UTC, not midnight in the visit's zone (a 22:00 Los Angeles visit on 2026-01-01 is stored on 2026-01-02 UTC). Send a UTC `YYYY-MM-DD HH:MM:SS` bound if the screen needs local-day edges; a zone-aware filter is a backend follow-up (IMPLEMENTATION_PLAN Phase 13).
 - `?sort=` — `scheduled_at`, `requested_at`, or `created_at` (each with an optional `-` prefix). Default sort is `-requested_at` (newest requests first).
 
 Returns `AppointmentResource` (the same appointment shape used across all three apps). This list endpoint only eager-loads `treatment`/`patientProfile`/`doctorProfile`, so `insurance`/`visit_address` come back absent (not `null`) here — fetch the shared `GET /api/v1/appointments/{appointment}` (an admin token is authorized for any appointment) for the fuller detail view, which additionally loads `visitAddress` and `insurance` (an admin viewer is not subject to the doctor-viewer masking of `insurance`). `doctor_profile` is `null` on an `open`-status (open-pool) appointment that no doctor has claimed yet.
+
+**Visit times (timezone contract, backend Phase 13, decision #7).** Every `AppointmentResource` here and in §4.9 carries:
+```json
+{ "scheduled_at": "2026-11-03T06:00:00+00:00", "timezone": "America/Los_Angeles", "scheduled_at_local": "2026-11-02T22:00:00" }
+```
+- `scheduled_at` stays the UTC instant; use it for sorting only.
+- `timezone` is the visit's IANA zone: the doctor's city, then the patient profile's city (an unclaimed open-pool request), then the platform default.
+- **Show `scheduled_at_local`** (`YYYY-MM-DDTHH:MM:SS`, no offset, already in `timezone`) plus the zone, e.g. "Nov 2, 2026 10:00 PM (America/Los_Angeles)". Format it as a plain local date-time string; don't pass `scheduled_at` through the Angular `date` pipe, which shows the browser's zone. `scheduled_at_local` is `null` when `scheduled_at` is.
 
 ### 4.9 Patients directory (backend Phase 9) — `permission: view_patients` / `manage_patients`
 
@@ -394,7 +402,7 @@ Returns `AppointmentResource` (the same appointment shape used across all three 
 |---|---|---|
 | `GET /admin/patients` | Paginated directory. Filter: `?filter[first_name]=` / `?filter[last_name]=` (both **partial**, case-insensitive substring), `?filter[city_id]=` (exact), `?filter[is_account_holder]=1` / `=0`. Sort: `?sort=first_name` / `last_name` / `created_at` (± prefix; default `-created_at`). Each row eager-loads `city` and `manager` (so `account_status` is populated) | — |
 | `GET /admin/patients/{patient}` | One patient — eager-loads `city`, `address`, `manager`. **Writes a `phi_access_logs` row** (`action: viewed`, `resource_type: App\Models\PatientProfile`) | — |
-| `GET /admin/patients/{patient}/appointments` | That patient's appointments (paginated, `treatment` + `doctor_profile` loaded, newest `requested_at` first) — `AppointmentResource[]` | — |
+| `GET /admin/patients/{patient}/appointments` | That patient's appointments (paginated, `treatment` + `doctor_profile` loaded, newest `requested_at` first) — `AppointmentResource[]`, each with `timezone`/`scheduled_at_local` (§4.8) | — |
 | `GET /admin/patients/{patient}/medical-history` | The patient-reported `MedicalHistoryResource`, or `data: null` if they've never filled one in. **PHI-logged** (`resource_type: App\Models\MedicalHistory`) | — |
 | `GET /admin/patients/{patient}/prescriptions` | Paginated `PrescriptionResource[]`, newest `prescribed_at` first. **PHI-logged** (`resource_type: App\Models\Prescription`) | — |
 | `GET /admin/patients/{patient}/medical-reports` | Paginated `ClinicalNoteResource[]` — the doctor-authored clinical notes across **every** appointment this patient has had (this is what "medical reports" means here, as distinct from the patient-reported history above). **PHI-logged** (`resource_type: App\Models\ClinicalNote`) | — |
@@ -466,14 +474,15 @@ The city catalog is what gates which emirates/areas the platform serves (`is_ava
 | Method & path | Purpose | Body |
 |---|---|---|
 | `GET /admin/cities` | Paginated, ordered by `name`. `CityResource[]` | — |
-| `PATCH /admin/cities/{city}` | Update a city | `{ name?, state?, is_available? }` — all optional, send only what changed |
+| `PATCH /admin/cities/{city}` | Update a city | `{ name?, state?, timezone?, is_available? }` — all optional, send only what changed. `timezone` must be an IANA zone name (`America/Los_Angeles`, `Asia/Dubai`, `UTC`; Laravel `timezone:all`), case-sensitive; an offset like `-08:00` or an unknown name is a `422` on `timezone` |
 | `GET /admin/city-requests` | Paginated list of doctor-submitted city requests, newest first. `CityRequestResource[]` | — |
 
 - **`GET /admin/cities` here is the admin-gated one** (`permission: manage_cities`). There's also the unauthenticated-shared `GET /api/v1/cities` (§ no prefix) that every app uses to populate city dropdowns — same `CityResource`, but that one only returns `is_available: true` cities and needs no permission. Use the `/admin/` one for the management screen so deactivated cities are visible/editable.
 - **City requests are read-only from the dashboard.** There is no endpoint to approve/reject/annotate a `CityRequest` row — its `status` (`pending` → `notified`) is expected to flip as a side effect of the requested city actually being added/enabled via `PATCH /admin/cities/{city}`, not via a direct action on the request. Render the list as an informational queue: "these areas have been asked for."
-- `CityResource` has no `created_at`/`updated_at` — it's `{ id, name, state, is_available }` only.
+- `CityResource` has no `created_at`/`updated_at` — it's `{ id, name, state, timezone, is_available }` only.
+- **`timezone` (backend Phase 13, decision #7)** is the zone every doctor availability window and every visit in that city is read in. New cities default to `America/Los_Angeles`. Changing it re-reads existing doctors' weekly hours in the new zone (their stored `09:00` stays `09:00`, in the new zone), so treat an edit as a correction, not routine data entry.
 
-`CityResource`: `{ "id": 3, "name": "Dubai", "state": "Dubai", "is_available": true }`
+`CityResource`: `{ "id": 3, "name": "Dubai", "state": "Dubai", "timezone": "Asia/Dubai", "is_available": true }`
 `CityRequestResource`: `{ "id": 8, "city_name": "Hatta", "status": "pending", "notified_at": null, "created_at": "..." }`
 
 ### 4.12 PHI access audit log (backend Phase 9) — `permission: view_phi_access_logs`
@@ -734,7 +743,7 @@ GET /enums
 - Not click-tested against a live backend this pass (no admin session was available); route/guard resolution was confirmed to redirect cleanly to `/login` when unauthenticated. `ng build` clean; `ng test` **162/162** (7 new tests: `PhiAccessLogsService` plain-param request shapes incl. the `filter[]`-vs-plain-param distinction, `phi-access-logs-list` load/error/filter-refetch/export-error).
 
 ### Timezone contract — backend decision #7 (2026-10-17) (`manage_cities` / `view_appointments`)
-Waits on backend Phase 13. Fixes consistency report C1.
+Backend Phase 13 is built on TEETHi-Backend branch `feat/timezone-contract` (`25a38b4`, `9253d74`), not merged yet. The contract is in §4.8 (appointments) and §4.11 (cities). Fixes consistency report C1.
 - [ ] Cities (`features/cities/city-form.component`): show and edit `timezone` as an IANA zone picker on `PATCH /admin/cities/{city}`. Show it as a column in the list.
 - [ ] Appointments list (`appointments-list.component.html`) and the patient detail Appointments tab: show `scheduled_at_local` plus the zone, instead of the `date` pipe in the browser's zone. `requested_at` and other audit timestamps can stay in browser time, but label them as such.
 

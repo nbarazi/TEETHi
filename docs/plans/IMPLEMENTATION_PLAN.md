@@ -569,27 +569,48 @@ Verified: full Pest suite green (441 tests, +15 in `tests/Feature/Api/V1/Doctor/
 
 ### Phase 13 — Timezone contract (decision #7)
 Blocks reliable booking from any device not set to UTC. Client follow-ups are tracked in each frontend plan's "Timezone contract" section.
-- [ ] Migration: `cities.timezone` (IANA string, not null, default `America/Los_Angeles`). Seeder sets it for every city. Exposed on `CityResource`, and editable through `PATCH /admin/cities/{city}` with Laravel's `timezone:all` validation rule. Add a single config default for profiles with no city.
-- [ ] Zone resolution helpers: `DoctorProfile` returns its city's zone or the default. `Appointment` resolves the visit timezone (doctor's city, then the patient profile's city, then the default). Every other step below uses these helpers and nothing else.
-- [ ] `AvailabilityService`:
+- [x] Migration: `cities.timezone` (IANA string, not null, default `America/Los_Angeles`). Seeder sets it for every city. Exposed on `CityResource`, and editable through `PATCH /admin/cities/{city}` with Laravel's `timezone:all` validation rule. Add a single config default for profiles with no city.
+- [x] Zone resolution helpers: `DoctorProfile` returns its city's zone or the default. `Appointment` resolves the visit timezone (doctor's city, then the patient profile's city, then the default). Every other step below uses these helpers and nothing else.
+- [x] `AvailabilityService`:
   - `openSlots()` reads `date` as a calendar date in the doctor's zone, including `day_of_week` and the exception date.
   - Booked appointments' `scheduled_at` is converted to the doctor's zone before counting them by date and start time (today it uses the UTC date and the UTC `H:i:s`).
   - `isSlotOpen()` converts the incoming instant to the doctor's zone before matching.
   - Each slot gains `starts_at`/`ends_at` (ISO-8601 with the offset in force on that date). The response gains `timezone`. `start_time`/`end_time` stay for display.
-- [ ] `StoreAppointmentRequest` and `RescheduleAppointmentRequest`: `scheduled_at` must carry an offset or `Z`. Reject a time with no zone with `422`, so a client bug can't silently fall back to the server's UTC.
-- [ ] "Today" uses the doctor's zone instead of the server's UTC date:
+- [x] `StoreAppointmentRequest` and `RescheduleAppointmentRequest`: `scheduled_at` must carry an offset or `Z`. Reject a time with no zone with `422`, so a client bug can't silently fall back to the server's UTC.
+- [x] "Today" uses the doctor's zone instead of the server's UTC date:
   - Doctor dashboard's today's visits (`Doctor/DashboardController`, `whereDate('scheduled_at', Carbon::today())`).
   - Directory `available_today` (`Patient/ProviderController`, and `DoctorProfile`'s today and day-of-week checks).
-- [ ] `AppointmentResource`, and every composite that embeds appointments (patient and doctor dashboards, admin directory): add `timezone` and `scheduled_at_local` (`YYYY-MM-DDTHH:MM:SS`, no offset, in the visit zone; `null` when `scheduled_at` is `null`). `scheduled_at` stays UTC.
-- [ ] `GET /doctor/availability/open-slots?date=&visit_type=`: the doctor's own open slots, same shape as `GET /patient/availability`. Reschedule already requires an exact open slot start, but the dentist app has no way to list one, so its free date/time picker can only succeed by coincidence.
-- [ ] No change needed: `SendAppointmentReminders` uses an absolute window (`now()+23h…24h`), which is correct for UTC instants.
-- [ ] Tests in a non-UTC zone (`America/Los_Angeles`):
+- [x] `AppointmentResource`, and every composite that embeds appointments (patient and doctor dashboards, admin directory): add `timezone` and `scheduled_at_local` (`YYYY-MM-DDTHH:MM:SS`, no offset, in the visit zone; `null` when `scheduled_at` is `null`). `scheduled_at` stays UTC.
+- [x] `GET /doctor/availability/open-slots?date=&visit_type=`: the doctor's own open slots, same shape as `GET /patient/availability`. Reschedule already requires an exact open slot start, but the dentist app has no way to list one, so its free date/time picker can only succeed by coincidence.
+- [x] No change needed: `SendAppointmentReminders` uses an absolute window (`now()+23h…24h`), which is correct for UTC instants.
+- [x] Tests in a non-UTC zone (`America/Los_Angeles`):
   - Booking and rescheduling with a `starts_at` round trip.
   - A late-evening slot whose UTC date is the next day.
   - A daylight-saving date (2026-11-01).
   - Dashboard "today".
   - The `422` for a time with no zone.
-- [ ] Regenerate `api.json`, refresh `docs/api/openapi.json` (`php artisan scramble:export --path=../docs/api/openapi.json`), and update the availability and appointment shapes in the patient, dentist and admin plans.
+- [x] Update the availability and appointment shapes in the patient, dentist and admin plans.
+- [ ] Regenerate `api.json` and refresh `docs/api/openapi.json` (`php artisan scramble:export --path=../docs/api/openapi.json`). **Pending:** the local MySQL server (`MySQL80` service) was stopped on 2026-10-18, and `scramble:analyze` needs the database. Run both once it is up, together with `php artisan migrate` (this phase's `cities.timezone` migration and Phase 12's still-unapplied `service_radius_km` one).
+
+Built 2026-10-18 on TEETHi-Backend branch `feat/timezone-contract` (`25a38b4`, plus `9253d74` for the exception-date check). **Not merged.**
+
+Verified: full Pest suite green (471 tests, +30: `tests/Feature/Api/V1/TimezoneContractTest.php` and 3 city tests in `Admin/CityManagementTest.php`), `phpstan analyse` (level max) clean, `pint --test` clean. Every new test freezes the clock in Los Angeles and covers: the `starts_at` round trip for booking (patient availability → `POST /patient/appointments`) and for reschedule (`GET /doctor/availability/open-slots` → `PATCH /appointments/{id}/reschedule`); a 22:00 slot stored as 06:00 UTC on the next date that counts against its local date only; the 2026-11-01 daylight-saving change (`-07:00` on 10-31, `-08:00` on 11-01, stored as 17:00 UTC); the doctor dashboard's today and the directory's `available_today` at 18:00 local (already the next day in UTC); the visit zone fallbacks; and the `422` for a `scheduled_at` with no zone on both endpoints. A mutation check (putting back the UTC `whereDate` in the dashboard and booked counts, and removing the UTC mutator) failed 9 of these tests. The migration was checked up → rollback → up on a scratch SQLite database (column added with its default, existing rows backfilled, `CitySeeder` sets every city, rollback drops only the column), not on MySQL. `composer test` as a whole stops at its first step, `rector --dry-run`, which flags 141 files, 119 of them untouched by this branch, so it already fails on `master`; its other steps (Pint, PHPStan, Pest) were run one by one.
+
+**Design decisions made during implementation:**
+- **`data` stays a plain list, and each slot carries its own `timezone`** (with `starts_at`/`ends_at`) instead of wrapping the list in an object. The patient app already reads `data` as a list, so the change is additive and nothing breaks before the clients move to `starts_at`.
+- **`isSlotOpen()` compares instants, not clock strings.** The incoming time is converted to the doctor's zone only to find its local date; it must then equal one open slot's `starts_at` as an instant. Any offset naming the same moment is accepted (`…T17:00:00.000Z` books the `09:00-08:00` slot), and the ambiguous hour on the fall-back date can't match the wrong occurrence. Booked appointments are found by the local day's UTC bounds (`Appointment::scopeScheduledOnLocalDate()`, also used by the dashboard) and counted by local `H:i:s`, as specified.
+- **A real storage bug, found while writing the round-trip test:** Eloquent's `datetime` cast formats a value in its own offset, so `2026-11-02T09:00:00-08:00` was stored as `2026-11-02 09:00:00` (read back as 09:00 UTC). `Appointment` now has a `scheduled_at` set-mutator that converts any string or Carbon to UTC first. `BookingService` and the reschedule controller needed no change.
+- **`Appointment::visitTimezone()` reads two `HasOneThrough` relations, `doctorCity` and `patientCity`**, rather than `doctorProfile.city`. Eager-loading `doctorProfile` would have made `AppointmentResource` start rendering `doctor_profile` on endpoints that deliberately leave it out, so every list endpoint now eager-loads `doctorCity`/`patientCity` instead (no N+1, no shape change).
+- **The directory's `?available_today=1` groups cities by their current local date** (`DoctorProfile::scopeAvailableToday()`) and applies the existing `availableOn()` per group, since doctors in different zones can be on different dates at once. `ProviderController` eager-loads exceptions for UTC yesterday to tomorrow, and `isAvailableToday()` picks the one for the doctor's own date.
+- **Two more UTC "today" checks were moved to the doctor's zone, beyond the checklist's list** (decision #7 covers every "today" check): `GET /patient/availability`'s `date` (was `after_or_equal:today`, which rejected the doctor's own today from 4-5 pm in Los Angeles) and `POST /doctor/availability/exceptions`'s `date` (a doctor couldn't close the rest of their own day). Both now return `422 booking.date_in_past` against the doctor's local today. Date-of-birth and credential expiry checks still use the UTC date; they aren't visit times.
+- **The zone-required rule is a regex on `scheduled_at`** (`Appointment::SCHEDULED_AT_PATTERN`: ISO-8601 date-time ending in `Z` or `±HH:MM`/`±HHMM`) with its own message, `booking.scheduled_at_needs_timezone`. The slot check is skipped when `scheduled_at` already failed a rule, so a zoneless time gets only that one error.
+- **Tests:** factory cities default to `America/Los_Angeles`, the same as the migration and config, so the existing booking, reschedule and availability tests now build their slot times in Los Angeles rather than UTC. The new tests freeze the clock with a UTC instant (`losAngelesTime()`): Carbon keeps the test clock's zone for `now()`, and freezing with a Los Angeles Carbon made the app's `now()` run in Los Angeles, which hides exactly the UTC-server bugs this phase is about.
+
+**Follow-ups found, not fixed:**
+- `Admin\AppointmentController`'s `filter[scheduled_from]`/`filter[scheduled_to]` compare the raw string with the UTC `scheduled_at`, so a `YYYY-MM-DD` bound is a UTC date, not a local one (documented in the admin plan §4.8).
+- `AppointmentReminderNotification`'s payload carries only the UTC `scheduled_at`, not `timezone`/`scheduled_at_local`.
+- Open slots for today still include slots whose start has already passed; booking one then fails `after:now`.
+- On the spring-forward date, a window covering the skipped hour (02:00-03:00 local) yields a slot whose `starts_at` PHP shifts to 03:00, the same instant as the next slot. Harmless unless a doctor works at 2 am.
 
 ### Phase 10 — HIPAA hardening close-out
 - [ ] Reflection-based Pest test asserting encrypted casts on every flagged column (regression guard)
