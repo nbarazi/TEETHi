@@ -1,6 +1,6 @@
 # Teethi Admin Dashboard — Angular Frontend Implementation Plan
 
-> **Consolidated copy (2026-10-17).** This file merges the two diverged copies: the progress/"Verified" notes from `TEETHi-Frontend/docs/` plus the two backend contract updates that only existed in `TEETHi-Backend/docs/` (§2 OTP-code password reset; §4.9 managing-account email/phone fields). The dashboard's reset-password fix (`token` → `code`) is on branch `fix/password-reset-otp-code` in TEETHi-Frontend (commit `b2882f6`, not yet merged); see `docs/CONSISTENCY_REPORT.md` H1.
+> **Consolidated copy (2026-10-17).** This file merges the two diverged copies: the progress/"Verified" notes from `TEETHi-Frontend/docs/` plus the two backend contract updates that only existed in `TEETHi-Backend/docs/` (§2 OTP-code password reset; §4.9 managing-account email/phone fields). The dashboard's reset-password fix (`token` → `code`) is merged into TEETHi-Frontend `master` (`b2882f6`); see `docs/CONSISTENCY_REPORT.md` H1.
 
 This document tells an Angular engineer/agent **what exists in the Teethi backend today, exactly how to call it, and in what order to build the admin dashboard screens against it.** It intentionally contains no Angular/TypeScript code or framework guidance — that's an implementation detail left to whoever builds it. What follows is the API contract, the business rules behind it, and a phase-tracked scope.
 

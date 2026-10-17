@@ -41,7 +41,7 @@
 - The patient plan documents the endpoints (§8) but **has no phase checkbox for wiring them**, so the work isn't tracked anywhere.
 
 ### C3. Every patient-app list is silently capped at 15 items
-> **Fix in progress:** branch `fix/patient-pagination` in TEETHi-Patient-App (commit `82a0509`, not merged). It also fixes M8.
+> **Fixed (2026-10-17):** merged into TEETHi-Patient-App `master` (`82a0509`). It also fixes M8. Not yet exercised against a live backend.
 
 - The backend paginates every list endpoint (default `per_page=15`, decision #6).
 - The patient app never sends `page` or `per_page`; it reads only `data` from the first page (plan Phase 0 item "pagination helper — not started"). Effects:
@@ -61,7 +61,7 @@
 ## 3. High: wrong behaviour or contract drift
 
 ### H1. Admin dashboard password reset is broken (contract drift)
-> **Fix in progress:** branch `fix/password-reset-otp-code` in TEETHi-Frontend (commit `b2882f6`, not merged).
+> **Fixed (2026-10-17):** merged into TEETHi-Frontend `master` (`b2882f6`). Not yet exercised against a live backend.
 
 - On 2026-09-13 the backend switched to OTP codes: `POST /reset-password` requires `{ email, code (6 digits), … }` (`ResetPasswordRequest.php:29`).
 - The dashboard still sends `token` read from a `?token=` link (`views/pages/reset-password/reset-password.component.ts:66`). Every admin reset attempt will fail with `422`.
