@@ -1,0 +1,9 @@
+# This repo tracks only the shared TEETHi docs (docs/).
+# Each project below is its own git repo and is versioned separately.
+/TEETHi-Backend/
+/TEETHi-Frontend/
+/TEETHi-Patient-App/
+/TEETHI-Dentist-App/
+
+.DS_Store
+Thumbs.db
