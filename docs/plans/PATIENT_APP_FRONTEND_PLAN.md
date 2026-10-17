@@ -568,6 +568,14 @@ There is no field indicating whether a completed visit has already been reviewed
 - [ ] Integrate an FCM SDK (net-new dependency, native platform setup — not covered by this doc) and register the resulting token → `POST /device-tokens` (§11.2) right after login
 - [ ] Deregister on logout → `DELETE /device-tokens` or the `device_token` param on `POST /logout` (§2, §11.2)
 
+### Timezone contract — backend decision #7 (2026-10-17)
+Waits on backend Phase 13. Fixes consistency report C1: today, a booking made from a device not set to UTC fails the slot check or lands in the wrong slot.
+- [ ] Booking (`lib/screens/booking/confirm_step.dart`): send the chosen slot's `starts_at` unchanged as `scheduled_at`. Delete the code that builds a `DateTime` from `start_time` plus the device's zone and then calls `toUtc()`.
+- [ ] Any reschedule UI uses the same slot list and sends the slot's `starts_at`.
+- [ ] Availability `date`: keep sending the calendar date the patient picked. It now explicitly means a date in the doctor's zone.
+- [ ] Show visit times from `scheduled_at_local`, adding the zone abbreviation when `timezone` differs from the device's zone, never `scheduled_at.toLocal()`. Use `scheduled_at` (UTC) only for sorting and countdowns. This covers home (`home_screen.dart`), Visits (`visits_screen.dart`), the booking confirmation and record details.
+- [ ] Check: with the device set to UTC or a European zone, book the 09:00 slot of a Los Angeles dentist. It must show 09:00 in the patient app, the dentist app and the dashboard.
+
 ### Phase 10 — Polish & hardening
 - [ ] Loading/empty/error states for every list screen, using the Phase 0 envelope handling consistently
 - [ ] Confirm-before-destructive-action dialogs for every hard delete (dependents, insurance, payment methods — none of these are soft-deletable or undoable server-side)

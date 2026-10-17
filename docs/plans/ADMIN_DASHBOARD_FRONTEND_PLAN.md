@@ -733,6 +733,11 @@ GET /enums
 - Routed standalone at `/phi-access-logs` (single screen, no create/edit/delete — an insert-only, unfilterable-by-the-dashboard audit trail). Sidebar gained a flat **PHI Access Log** entry (icon `cilShieldAlt`, added to `icon-subset.ts`).
 - Not click-tested against a live backend this pass (no admin session was available); route/guard resolution was confirmed to redirect cleanly to `/login` when unauthenticated. `ng build` clean; `ng test` **162/162** (7 new tests: `PhiAccessLogsService` plain-param request shapes incl. the `filter[]`-vs-plain-param distinction, `phi-access-logs-list` load/error/filter-refetch/export-error).
 
+### Timezone contract — backend decision #7 (2026-10-17) (`manage_cities` / `view_appointments`)
+Waits on backend Phase 13. Fixes consistency report C1.
+- [ ] Cities (`features/cities/city-form.component`): show and edit `timezone` as an IANA zone picker on `PATCH /admin/cities/{city}`. Show it as a column in the list.
+- [ ] Appointments list (`appointments-list.component.html`) and the patient detail Appointments tab: show `scheduled_at_local` plus the zone, instead of the `date` pipe in the browser's zone. `requested_at` and other audit timestamps can stay in browser time, but label them as such.
+
 ### Phase 12 — Messaging visibility (optional, product call) — backend Phase 8, §4.13
 - [ ] Only if a support/dispute workflow needs it: a read-only conversation browser (`GET /api/v1/conversations` — an admin sees all), drilling into `GET /api/v1/conversations/{id}/messages`
 - [ ] No compose box — an admin `POST` to messages is `403` by policy

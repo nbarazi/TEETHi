@@ -26,12 +26,14 @@
 ## 2. Critical: breaks what a party needs
 
 ### C1. Booking time slots have no timezone contract (Backend ↔ Patient app ↔ Dentist app)
+> **Decided 2026-10-17:** one timezone per city, with exact instants on the wire (IMPLEMENTATION_PLAN decision #7). The work is tracked as backend **Phase 13** plus a "Timezone contract" section in each frontend plan. Not implemented yet.
+
 - **Backend:** `config/app.php` uses `timezone = UTC`. Doctor availability is stored as wall-clock `HH:MM:SS` with no zone. `AvailabilityService::isSlotOpen()` checks that `scheduled_at->format('H:i:s')` exactly matches a slot's `start_time` (`app/Services/AvailabilityService.php:78`).
 - **Patient app:** the app builds the booking time as a *device-local* `DateTime` from the slot's `"09:00"`, then sends `scheduledAt.toUtc().toIso8601String()` (`lib/screens/booking/confirm_step.dart:46`, `appointments_remote_data_source.dart:42`).
 - **Result:** on any device not set to UTC (the seed data is Los Angeles, UTC−7), the 09:00 slot reaches the backend as `16:00:00`. The backend then either rejects it with `422 slot_not_available` or **books a different slot** if 16:00 also exists. The weekday can also shift near midnight. The dentist app's reschedule has the same problem (`requests_repository_impl.dart:50`). The dentist and admin apps show times with `toLocal()` / the Angular `date` pipe, so the three parties can each see a different time for the same visit.
-- **None of the four plans defines a timezone.** **Decision needed:** pick one model and write it into IMPLEMENTATION_PLAN §2. Options:
-  - Slots are in the doctor's or city's local zone, a `timezone` column is added to the doctor or city, and `scheduled_at` is converted before matching.
-  - Clients send the slot's literal date and time with an explicit offset.
+- Until decision #7, none of the four plans defined a timezone.
+- **Related:** the dentist app's reschedule uses a free date/time picker (`request_dialogs.dart` `pickFutureDateTime`). `RescheduleAppointmentRequest`, however, accepts only an exact open slot start. Dentist reschedules therefore fail with `422` unless the picked time happens to match a slot, regardless of timezone. Phase 13 adds `GET /doctor/availability/open-slots` so the app can offer real slots.
+- Server-side "today" checks (doctor dashboard, directory `available_today`) also use the UTC date, so they flip to "tomorrow" at 5 pm in Los Angeles.
 - Backend tests didn't catch this because they build `scheduled_at` with server-side Carbon (UTC), so the wall-clock time and the UTC time are always the same there.
 
 ### C2. Patient medical history is hardcoded. Dentists never get real allergies or medications
@@ -137,7 +139,7 @@
 
 ## 6. Decisions needed to keep the four projects aligned
 
-1. **Timezone model for availability and `scheduled_at` (C1).** This blocks reliable booking. Add the decision to IMPLEMENTATION_PLAN §2 and update both apps.
+1. ~~**Timezone model for availability and `scheduled_at` (C1).**~~ **Decided 2026-10-17:** one timezone per city, with exact `starts_at` instants on the wire (IMPLEMENTATION_PLAN decision #7, backend Phase 13).
 2. ~~**Single source of truth for the plans.**~~ **Decided 2026-10-17: option (a).** The root `docs/` is canonical and the workspace root is now a docs-only git repo. Every per-repo copy has been replaced by a pointer, and the backend and frontend `AGENTS.md` point here. See `docs/README.md` for the rules.
 3. **Admin access to shared PHI routes (H6).** Add permissions, or document the exception.
 4. **Patient-plan gaps:** add phase checkboxes for **medical history (C2)** and **consent forms (C4)**, and a **dependent picker in booking (H3)**.
