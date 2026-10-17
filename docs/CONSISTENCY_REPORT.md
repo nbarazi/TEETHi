@@ -15,7 +15,7 @@
 | Project | Plan progress | Build / tests (run 2026-10-17) | What's left |
 |---|---|---|---|
 | **Backend** (Laravel 13) | 92 ✔ / 11 open. Phases 0–9 and 12 done | ✅ **441 Pest tests pass**, PHPStan (max) clean | Phase 10 HIPAA close-out (6 items). Phase 11 real payment gateway (deferred) |
-| **Admin dashboard** (Angular 21) | 53 ✔ / 7 open. Phases 0–11 done | ✅ `ng build` clean, **162/162 tests pass** | Phase 0 leftovers (429 handling, `/enums` cache). Optional Phase 12 (read-only messaging view). **Password reset is broken (§2 H1)** |
+| **Admin dashboard** (Angular 21) | 53 ✔ / 7 open. Phases 0–11 done | ✅ `ng build` clean, **174/174 tests pass** (162 before the H1 fix) | Phase 0 leftovers (429 handling, `/enums` cache). Optional Phase 12 (read-only messaging view). Password reset fixed (§3 H1), not yet tried against a live backend |
 | **Dentist app** (Flutter) | 45 ✔ / 8 open. Phases 0–10 built | ✅ **80/80 tests pass**. `flutter analyze`: 49 infos, 0 warnings/errors | Phase 11 polish and an end-to-end run. **Plan says "not yet verified against a live backend"** |
 | **Patient app** (Flutter) | 41 ✔ / 12 open. Phases 0–8 built | ⚠️ **1/1 test fails** (stale smoke test, see §4). `flutter analyze`: 38 infos, 0 warnings/errors | Phase 2b (insurance and payment-method management), Phase 9 (notifications, push), Phase 10 (polish). **Several mock-only screens remain (§2)** |
 

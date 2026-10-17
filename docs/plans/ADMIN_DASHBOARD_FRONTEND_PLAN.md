@@ -79,7 +79,7 @@ Some of these add an `errors` object (e.g. the booking "missing requirements" ga
 | Endpoint | Purpose | Auth required |
 |---|---|---|
 | `POST /login` | `{ email, password }` → `{ user: UserResource, token: string }` on success | No |
-| `POST /forgot-password` | `{ email }` → sends a 6-digit reset code by email (OTP-based as of 2026-09-16 — not a mail link) | No |
+| `POST /forgot-password` | `{ email }` → sends a 6-digit reset code by email (OTP-based as of 2026-09-13 — not a mail link) | No |
 | `POST /reset-password` | `{ email, code, password, password_confirmation }` | No |
 | `GET /me` | Returns the current `UserResource` | Yes |
 | `POST /logout` | Deletes the current token only | Yes |
