@@ -636,8 +636,8 @@ Verified: full Pest suite green (471 tests, +30: `tests/Feature/Api/V1/TimezoneC
   - Dashboard invoices show "$250.00" (previously "AED").
 - Visits booked before this change keep their old behaviour: appointment #2 still has no invoice until a payment is started.
 
-### Phase 10 — HIPAA hardening close-out ✅ complete (2026-10-19, branch `feat/phase-10-hardening`, not merged)
-Done 2026-10-19 on TEETHi-Backend `feat/phase-10-hardening` (553 Pest tests, PHPStan max and Pint clean). Two decisions apply: decision #12 (H6, admin access to shared routes) and decision #13 (H7, password reset responses).
+### Phase 10 — HIPAA hardening close-out ✅ complete (2026-10-19, merged)
+Done 2026-10-19, merged into TEETHi-Backend `master` at `32fe915` (553 Pest tests, PHPStan max and Pint clean). Two decisions apply: decision #12 (H6, admin access to shared routes) and decision #13 (H7, password reset responses).
 
 - [x] Reflection-based Pest test asserting encrypted casts on every flagged column (regression guard). `tests/Unit/EncryptedColumnsTest.php` covers 17 models. It also fails if an encrypted column exists that isn't listed. It found that `insurance_details.provider_name`, flagged in §4, was stored in plain text: it's now encrypted, and a migration encrypts existing rows.
 - [x] Audit `LogApiRequests` middleware output — scrub PHI from logged request/response bodies.

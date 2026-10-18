@@ -1,6 +1,6 @@
 # TEETHi — Cross-Project Status & Consistency Report
 
-**Last updated:** 2026-10-19, after backend Phase 10 (first written 2026-10-17) · **Scope:** TEETHi-Backend, TEETHi-Frontend (admin dashboard), TEETHi-Patient-App, TEETHI-Dentist-App
+**Last updated:** 2026-10-19, after merging backend Phase 10 (first written 2026-10-17) · **Scope:** TEETHi-Backend, TEETHi-Frontend (admin dashboard), TEETHi-Patient-App, TEETHI-Dentist-App
 
 **How this was checked**
 - **Static review (2026-10-17):**
@@ -18,16 +18,16 @@ IDs are stable across updates: C = critical, H = high, M = medium (from the stat
 
 | Project | Plan progress | Build / tests on `master` (2026-10-18) | What's left |
 |---|---|---|---|
-| **Backend** (Laravel 13) | Phases 0–9 and 12–14 done | ✅ **500 Pest tests pass** on `master`; **553** on `feat/phase-10-hardening`. PHPStan (max) and Pint clean | Phase 10 done on a branch (not merged). Phase 11 real payment gateway (deferred) |
+| **Backend** (Laravel 13) | Phases 0–10 and 12–14 done | ✅ **553 Pest tests pass**, PHPStan (max) and Pint clean | Phases 0–14 done except Phase 11, the real payment gateway (deferred). Production settings listed in §5 |
 | **Admin dashboard** (Angular 21) | Phases 0–11 done, plus the timezone and currency/name sections | ✅ `ng build` clean, **189/189 tests pass** | Phase 0 leftovers (429 handling, `/enums` cache). Optional Phase 12 (messaging view). Open: M6 (no appointment detail, placeholder home page) |
-| **Dentist app** (Flutter) | Phases 0–10 plus the timezone, reschedule and display-name sections | ✅ **100/100 tests pass**. `flutter analyze`: 49 infos, 0 warnings/errors | Phase 11 polish. Open: H4 (push), M9. E7 fixed by the backend's error envelope (on a branch) |
+| **Dentist app** (Flutter) | Phases 0–10 plus the timezone, reschedule and display-name sections | ✅ **100/100 tests pass**. `flutter analyze`: 49 infos, 0 warnings/errors | Phase 11 polish. Open: H4 (push), M9. E7 fixed by the backend's error envelope |
 | **Patient app** (Flutter) | Phases 0–8 plus timezone, consent, reschedule, medical history, currency and name | ✅ **45/45 tests pass**. `flutter analyze`: 38 infos, 0 warnings/errors | Phase 2b (insurance and payment-method screens, H5), Phase 9 (notifications, push, H4), Phase 10. Open: E9 |
 
 **Bottom line:**
 - **The core visit lifecycle now works end to end and is consistent in all three apps.** A patient books (consent is signed in the app), the dentist accepts and reschedules (both directions, rule A), then starts, documents and completes the visit. The patient receives the report, and the admin sees the appointment and the invoice. Every app shows the same visit time in the visit's own timezone.
 - **What's left, in order:**
   - **Patient-app mock screens:** H4, H5.
-  - **Merge** backend `feat/phase-10-hardening` (Phase 10, H6, H7, M4).
+  - **Dashboard roles:** grant the new `manage_appointments` / `view_messages` permissions where needed.
 
 ---
 
@@ -79,9 +79,9 @@ None open. C2 (mock medical history) is fixed; see §3.
 | E4 | No way to add a phone number while booking | "No number on file" → Add → number field → Send code → code entry. The backend now validates the phone format (`5ee82df`) | Patient app `badb8a9` | Live: added and verified a phone inside the step. The earlier "code boxes don't accept input" note was a test-tool limitation; key presses work |
 | E11 | The provider starting fee had no currency ("$80" hardcoded) | `ProviderResource.currency`; the dentist step and the dentist profile use `formatMoney()`. The last hardcoded `$` amounts (payment step, invoice detail, visits list) were also replaced. The branch step's fixed "From $95 / $165" copy remains | Backend `efb65c2`, patient app `c22338a` | Live API: providers return `currency: USD`. Tests cover the parsing and the fallback |
 | E12 | A parent's insurance could be attached to a child's visit | The insurance step shows the shared "Who is this visit for?" picker and lists only that person's policies. Switching the person drops the chosen policy. The backend rejects a policy that isn't the booked person's own | Backend `efb65c2`, patient app `c22338a` | Live API: booking Mia with the parent's policy → `422 insurance_id`. Three new backend tests. In the app: each person sees only their own policies; switching to Mia in Before we book shows "Choose a plan for Mia", which returns to the insurance step |
-| H6 | Any `role=admin` user could read visits and conversations and cancel visits through the shared routes | Decision #12: every policy checks the matching dashboard permission; new `manage_appointments` and `view_messages`, added by migration. Reschedule and cancel authorize before validating | Backend `c95808c` (*`feat/phase-10-hardening`, not merged*) | 12 tests in `AdminPermissionScopeTest`. Live: the Super Admin still reads visit #1 and the conversations |
-| H7 | "Forgot password" revealed whether an account exists | Decision #13: the same `200` and message for any email; reset with an unknown email answers like a wrong code | Backend `0fac63a` (*`feat/phase-10-hardening`, not merged*) | Live: known and unknown emails got the same message (local dev still returns the code for a real account, because `OTP_EXPOSE_IN_RESPONSE` is on) |
-| M4 / E7 | Errors came back in Laravel's debug format, so the dentist app showed "Something went wrong" instead of the server's `409` reason | `ApiExceptionRenderer`: every error is `{success: false, message, errors?}`; no class names, files or traces; a `409` keeps its reason | Backend `3fd2cd0` (*`feat/phase-10-hardening`, not merged*) | 9 tests in `ErrorEnvelopeTest`. Live: 404, 405 and a missing visit all came back in the envelope. Both apps already read `success: false` + `message` |
+| H6 | Any `role=admin` user could read visits and conversations and cancel visits through the shared routes | Decision #12: every policy checks the matching dashboard permission; new `manage_appointments` and `view_messages`, added by migration. Reschedule and cancel authorize before validating | Backend `c95808c` | 12 tests in `AdminPermissionScopeTest`. Live: the Super Admin still reads visit #1 and the conversations |
+| H7 | "Forgot password" revealed whether an account exists | Decision #13: the same `200` and message for any email; reset with an unknown email answers like a wrong code | Backend `0fac63a` | Live: known and unknown emails got the same message (local dev still returns the code for a real account, because `OTP_EXPOSE_IN_RESPONSE` is on) |
+| M4 / E7 | Errors came back in Laravel's debug format, so the dentist app showed "Something went wrong" instead of the server's `409` reason | `ApiExceptionRenderer`: every error is `{success: false, message, errors?}`; no class names, files or traces; a `409` keeps its reason | Backend `3fd2cd0` | 9 tests in `ErrorEnvelopeTest`. Live: 404, 405 and a missing visit all came back in the envelope. Both apps already read `success: false` + `message` |
 | M8 | Patient smoke test failed | Test now registers dependencies | Patient app `82a0509` | Suite passes |
 | C2 | Medical history was hardcoded ("Penicillin" for everyone), so dentists never got real allergies | Medical tab wired to `GET/PUT /patient/medical-history`, with an edit sheet | Patient app `64a2539` | Live: the patient saved Latex / Metformin 500mg, and the dentist's record showed the same |
 | E3 | The dashboard showed AED while the patient app showed $ | Decision #9: the backend sends `currency` (USD). Dashboard `money` pipe; patient app `formatMoney()` | Backend `7860aee`, dashboard `3df5016`, patient app `3d2a4b1` | Live: dashboard invoices "$250.00 / $100.00" |
@@ -130,7 +130,7 @@ None open. C2 (mock medical history) is fixed; see §3.
 3. **Product note:** the backend allows one active consent form per template type, while the old mock had four patient forms. Decide whether one combined form is enough.
 
 ### Suggested order of work
-1. **Merge** `feat/phase-10-hardening` and run the suites on `master`. Then grant `manage_appointments` / `view_messages` to the dashboard roles that need them.
+1. **Dashboard roles:** grant `manage_appointments` / `view_messages` to the roles that need them (Super Admins already have them). Set the production settings in §5 at deployment.
 2. **H4 / H5:** patient Phase 9 (notifications and push) and Phase 2b (insurance and payment methods). Dentist Phase 11.
 3. **Re-run the live end-to-end scenario** (§7) after each group.
 
@@ -156,7 +156,7 @@ Fast-forwarded: TEETHi-Patient-App `master` → `badb8a9` (`feat/booking-gaps`);
 - The dashboard and the dentist app didn't change.
 
 ### Phase 10 security pass (2026-10-19)
-Beyond H6, H7 and M4, the pass found and fixed the following. All are on `feat/phase-10-hardening` (not merged).
+Beyond H6, H7 and M4, the pass found and fixed the following. All are merged (backend `master` at `32fe915`).
 - **Clinical records could be hard-deleted:** removing a dependent cascaded away their visits, invoices, prescriptions and medical history. Such a dependent can no longer be removed (`409`).
 - **Booked treatments:** deleting one, or its category, crashed on a foreign key. It now returns `409` asking to deactivate instead.
 - **Message attachments** accepted any file type, so an HTML or SVG file would run script on the API's origin. They're now limited to images and PDFs, and every response carries `nosniff`.
@@ -172,6 +172,12 @@ Beyond H6, H7 and M4, the pass found and fixed the following. All are on `feat/p
 - `OTP_EXPOSE_IN_RESPONSE=false`
 - `CORS_ALLOWED_ORIGINS` set to the dashboard origin
 - a `SANCTUM_TOKEN_EXPIRATION` value (tokens otherwise last until logout)
+
+### Merge check (2026-10-19, backend Phase 10)
+`feat/phase-10-hardening` was fast-forwarded into backend `master` (`32fe915`, 8 commits).
+- 553 Pest tests pass; PHPStan and Pint are clean.
+- The local MySQL database already has both new migrations (no pending migrations).
+- The dashboard and both apps didn't change. The dashboard's role editor lists the two new permissions from the API.
 
 ## 6. Docs consolidated in this folder
 
