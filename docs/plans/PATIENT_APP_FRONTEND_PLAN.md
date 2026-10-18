@@ -625,6 +625,21 @@ Backend Phase 13 is built on TEETHi-Backend branch `feat/timezone-contract` (`25
 - The dentist app's record for Sample Patient then showed "Allergies: Latex, Medication: Metformin 500mg".
 - Not yet checked live: the Full name step with an empty name. The backend's `422` for that case is covered by tests.
 
+### Booking for a family member and adding a phone while booking (2026-10-18, consistency report H3 and E4)
+- [x] **H3:** "Before we book" asks "Who is this visit for?" (Me or each family member) when the account has dependents.
+  - The name, date-of-birth and consent checks follow the chosen profile. Name and date of birth save through `updateDependent`.
+  - Consent loads and signs with `patient_profile_id`.
+  - `POST /patient/appointments` sends `patient_profile_id`.
+  - The choice is part of the booking draft.
+- [x] **E4:** with no phone on file, the phone item reads "No number on file". **Add** opens a number field with **Send code** (`PUT /phone`), followed by the existing code entry.
+- [x] `Validators.isValidPhone` matches the backend's new format rule: an optional `+`, 7–15 digits, and only spaces, brackets, dots or dashes. TEETHi-Backend `5ee82df` on `fix/phone-format`.
+
+**Verified live (2026-10-18):** TEETHi-Patient-App `badb8a9` on `feat/booking-gaps`.
+- The seeded patient's phone was cleared, and a child, "Mia Patient", was added.
+- In the app: chose Mia, added her date of birth, added and verified a phone from inside the step, and signed Mia's consent ("Consent · Mia Patient", `201`).
+- The booking returned `201`. The dentist's Pending list shows #4 "Mia Patient", and invoice #4 ($100 USD) exists.
+- Not covered: insurance for a family member. The insurance step still lists all of the account's policies; the backend accepts any policy belonging to a profile the account manages.
+
 ### Phase 10 — Polish & hardening
 - [ ] Loading/empty/error states for every list screen, using the Phase 0 envelope handling consistently
 - [ ] Confirm-before-destructive-action dialogs for every hard delete (dependents, insurance, payment methods — none of these are soft-deletable or undoable server-side)

@@ -26,7 +26,7 @@ IDs are stable across updates: C = critical, H = high, M = medium (from the stat
 **Bottom line:**
 - **The core visit lifecycle now works end to end and is consistent in all three apps.** A patient books (consent is signed in the app), the dentist accepts and reschedules (both directions, rule A), then starts, documents and completes the visit. The patient receives the report, and the admin sees the appointment and the invoice. Every app shows the same visit time in the visit's own timezone.
 - **What's left, in order:**
-  - **Booking-flow gaps:** E4 (no field to add a phone number), H3 (no booking for family members).
+  - **Merge** `feat/booking-gaps` (patient app) and `fix/phone-format` (backend).
   - **Patient-app mock screens:** H4, H5.
   - **Backend hardening:** Phase 10, H6, H7, M4.
 
@@ -40,12 +40,10 @@ None open. C2 (mock medical history) is fixed; see §3.
 ### High
 | # | Projects | Issue |
 |---|---|---|
-| H3 | Patient | **Booking can't be made for a family member.** Dependents are in scope for v1 (decision #3), and the backend accepts `patient_profile_id` on bookings, consent, insurance and records. The patient booking flow has no profile picker, so every booking goes to the account holder. Consent can't be signed for a dependent either. |
 | H4 | Patient, Dentist | **Push notifications aren't delivered.** The backend sends notifications through `database` and `FcmChannel`. The dentist app's `NoopPushTokenSource` has no Firebase SDK or config behind it. The patient app has no device-token registration, and its notification feed and bell badge are still mock: the live run showed **3 while the server had 5 unread**. Patients never see status changes; a rescheduled visit only updated after a manual reload. |
 | H5 | Patient | **Payment and insurance screens show placeholders.** The payment step always shows "CareCredit card · Ending 4417" and sends `mock-token-<timestamp>`. "CareCredit" is a real brand. Saved payment methods are never listed. There's no insurance management screen (Phase 2b). |
 | H6 | Backend, Dashboard | **Shared routes bypass dashboard permissions.** `/appointments/{id}` (view, cancel, reschedule) and `/conversations*` are open to *any* `role=admin` user, so a billing-only staff member can read PHI and move visits through the API. **Decision needed:** gate these routes with permissions, or document the exception. |
 | H7 | Backend | **"Forgot password" reveals whether an account exists.** `ForgotPasswordRequest` uses `exists:users,email`, so an unknown email gets a `422`. Always return `200`. |
-| E4 | Patient | **Phone verification dead end in booking.** "Before we book" requires a verified mobile, but an account with no phone gets "Add a phone number…" and no field to add one. |
 
 ### Medium
 | # | Projects | Issue |
@@ -65,6 +63,8 @@ None open. C2 (mock medical history) is fixed; see §3.
 |---|---|---|
 | E8 | Patient, Dentist | **Relative labels use the device's date, not the visit's zone.** The patient sees "Tomorrow" for a visit two days away in Los Angeles; the dentist header shows the device's date. (The dentist's "Today" tag on an in-progress visit is fixed; it now reads "In progress".) |
 | E9 | Patient | **Booking requires browser geolocation** to confirm the address, with no fallback. |
+| E11 | Backend, Patient | **Provider starting fee has no `currency`.** The dentist directory's "from $80" comes from `ProviderResource`, which decision #9 missed, so the patient app still hardcodes `$` there. Add `currency` to `ProviderResource` and format it with `formatMoney()`. |
+| E12 | Patient | **Insurance isn't filtered by the patient being booked.** When booking for a family member, the insurance step still offers every policy on the account. The backend accepts any managed profile's policy, so nothing breaks, but the patient could attach the parent's policy to the child's visit. |
 | E10 | Patient, Dashboard | **Small UI issues:** "Use profile" in the visit-address step silently does nothing when the profile has no address. The dashboard's Cities column is labelled "State/Emirate". The patient's "Nearby" dentist tab was empty while "All" listed the dentist (cause not investigated). The consent list briefly shows the previous list before it reloads. |
 | M11 | Mobile apps | **Lint debt.** Info-level only: `withOpacity` deprecations, `prefer_initializing_formals`, `prefer_const`. |
 | M12 | All | **Housekeeping.** Merged feature branches (`fix/*`, `feat/*` from 2026-10-17/18) can be deleted. `TEETHi-Backend/.claude/worktrees/mystifying-rhodes-2e8412` is a stale worktree. Crash logs (`hs_err_pid*.log`, `flutter_01.log`) sit in the patient app's root. Unused CoreUI demo views remain in the dashboard. |
@@ -81,6 +81,8 @@ None open. C2 (mock medical history) is fixed; see §3.
 | E2 | A rescheduled visit could never be started | Decision #8 (rule A): a doctor's reschedule goes straight back to `accepted`; a patient's waits in the dentist's Pending list for Accept new time / Decline (decline cancels). Only `accepted` visits can be moved | Backend `8d9b4b9`, dentist app `c59e68a`, patient app `924abf8` | Live in all three apps, full status history checked |
 | H1 | Admin password reset sent `token`; the backend wants `code` | OTP code entry | Dashboard `b2882f6` | Live: code → `200` → login |
 | H2 | Two copies of the admin plan had diverged | Root `docs/` is the only copy; per-repo files are pointers | Root docs repo | — |
+| H3 | Bookings couldn't be made for family members | "Who is this visit for?" in Before we book; checks, consent and booking use the chosen profile's `patient_profile_id` | Patient app `badb8a9` (*branch `feat/booking-gaps`, not merged*) | Live: booked for child "Mia Patient" and signed her consent; the dentist sees "Mia Patient" |
+| E4 | No way to add a phone number while booking | "No number on file" → Add → number field → Send code → code entry. The backend now validates the phone format (`5ee82df`, *branch `fix/phone-format`, not merged*) | Patient app `badb8a9` | Live: added and verified a phone inside the step. The earlier "code boxes don't accept input" note was a test-tool limitation; key presses work |
 | M8 | Patient smoke test failed | Test now registers dependencies | Patient app `82a0509` | Suite passes |
 | C2 | Medical history was hardcoded ("Penicillin" for everyone), so dentists never got real allergies | Medical tab wired to `GET/PUT /patient/medical-history`, with an edit sheet | Patient app `64a2539` | Live: the patient saved Latex / Metformin 500mg, and the dentist's record showed the same |
 | E3 | The dashboard showed AED while the patient app showed $ | Decision #9: the backend sends `currency` (USD). Dashboard `money` pipe; patient app `formatMoney()` | Backend `7860aee`, dashboard `3df5016`, patient app `3d2a4b1` | Live: dashboard invoices "$250.00 / $100.00" |
@@ -128,7 +130,7 @@ None open. C2 (mock medical history) is fixed; see §3.
 4. **Product note:** the backend allows one active consent form per template type, while the old mock had four patient forms. Decide whether one combined form is enough.
 
 ### Suggested order of work
-1. **E4 and H3:** close the booking-flow gaps (phone entry, dependent picker).
+1. **Merge** the H3/E4 branches (`feat/booking-gaps`, `fix/phone-format`) and run the suites on `master`.
 2. **Backend Phase 10,** including H7, M4 and H6.
 3. **H4 / H5:** patient Phase 9 (notifications and push) and Phase 2b (insurance and payment methods). Dentist Phase 11.
 4. **Re-run the live end-to-end scenario** (§7) after each group.
@@ -172,6 +174,12 @@ See `docs/README.md` for the index and the rules for keeping docs here.
 5. The dentist chose Accept new time.
 6. The dentist's own move to 15:00 stayed Accepted, and the patient saw "Confirmed" after a reload.
 
+**Run 4, H3 and E4 (2026-10-18):**
+1. The seeded patient's phone was cleared, and child "Mia Patient" (no date of birth) was added.
+2. In the app's booking flow, Mia was chosen. Her date of birth was added in the step, a phone was added and verified, and her consent was signed.
+3. Booking #4 was created for her. The dentist's Pending list shows "Mia Patient", and invoice #4 exists.
+4. The phone was saved doubled by the test tool's typing, which led to the new backend format rule. The seeded patient's phone was then reset to `+13105550142`.
+
 **Run 3, after C2 and decisions #9–#11:**
 1. The patient filled in their medical history, and the dentist saw it.
 2. Booking #3 (Wed 21 Oct 10:00) returned `currency: USD` and `full_name`, and its invoice existed immediately.
@@ -179,6 +187,7 @@ See `docs/README.md` for the index and the rules for keeping docs here.
 
 **Test data left in the local database:**
 - Appointment #1 (completed, Invoice #1 pending pay-later), appointment #2 (accepted, Tue 20 Oct 15:00, no invoice because it was booked before decision #11), and appointment #3 (pending, Wed 21 Oct 10:00, Invoice #2 $250 pending).
+- Dependent "Mia Patient" (child, profile #10, date of birth 1996-10-08 from the test picker) with consent v2 signed, and her booking #4 (pending, Thu 22 Oct 11:00, invoice $100). The visit address street was doubled by the test tool.
 - The seeded patient's medical history: allergies "Latex", current medications "Metformin 500mg".
 - Migrations `2026_10_18_000002_backfill_patient_profile_names` applied; the seeded patient's profile is now "Sample" / "Patient".
 - Consent templates: patient consent v1 (superseded) and v2 (active), signed by the seeded patient; plus the seeded doctor business agreement and nondiscrimination notice.
