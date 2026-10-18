@@ -53,7 +53,7 @@
 - The dentist app (`core/network/paginated.dart`) and the admin dashboard (`<app-pagination-bar>`) handle pagination correctly.
 
 ### C4. Patient consent forms are mock-only, so nothing is signed on the server
-> **Fixed on a branch (2026-10-18):** TEETHi-Patient-App `9ec2fa4` (`fix/consent-forms-wiring`), with the seeded template in TEETHi-Backend `ae17a8f`. Not merged.
+> **Fixed (2026-10-18), merged to master:** TEETHi-Patient-App `9ec2fa4`, with the seeded template in TEETHi-Backend `ae17a8f`.
 
 - `lib/screens/consent_screen.dart` reads `MockData.consentForms` and signs into the local `AppState`.
 - `GET /patient/consent-forms` and `POST …/sign` are never called.
@@ -202,8 +202,8 @@
 ### New findings
 | # | Severity | Finding |
 |---|---|---|
-| E1 | **Critical**, *fixed on branches 2026-10-18* (backend `ae17a8f`, patient app `9ec2fa4`, not merged) | **No patient can book from the app.** Booking requires a signed patient consent form on the server (`BookingService::missingRequirements`). **No consent template is seeded**, so every booking fails until an admin publishes one. Even then, the patient app's consent screen is mock (C4): it shows hardcoded forms ("Signed 12 Aug 2024") and never calls `POST /patient/consent-forms/{id}/sign`. The server requirement can therefore only be met outside the app. For this run, the template was published from the dashboard and the patient signed through the API. **Fix C4 and seed a consent template.** |
-| E2 | **High**, *fixed on branches 2026-10-18* (rule A = IMPLEMENTATION_PLAN decision #8; backend `8d9b4b9`, dentist `c59e68a`, patient `924abf8`, all on `feat/reschedule-confirmation`, not merged; verified live) | **A rescheduled visit can't be started.** Rescheduling sets the status to `rescheduled`, and `AppointmentStatusService` allows only `rescheduled → accepted / cancelled`. The dentist app still shows the visit as "Accepted" with a **Start visit** button, which always returns `409`. No app offers "accept / confirm the new time". For this run it was re-accepted through the API. **Decide** who confirms a rescheduled visit (the patient? automatically when the doctor reschedules?), then align the backend transitions and both apps. |
+| E1 | **Critical**, *fixed and merged 2026-10-18* (backend `ae17a8f`, patient app `9ec2fa4`) | **No patient can book from the app.** Booking requires a signed patient consent form on the server (`BookingService::missingRequirements`). **No consent template is seeded**, so every booking fails until an admin publishes one. Even then, the patient app's consent screen is mock (C4): it shows hardcoded forms ("Signed 12 Aug 2024") and never calls `POST /patient/consent-forms/{id}/sign`. The server requirement can therefore only be met outside the app. For this run, the template was published from the dashboard and the patient signed through the API. **Fix C4 and seed a consent template.** |
+| E2 | **High**, *fixed and merged 2026-10-18* (rule A = IMPLEMENTATION_PLAN decision #8; backend `8d9b4b9`, dentist `c59e68a`, patient `924abf8`, merged to master; verified live) | **A rescheduled visit can't be started.** Rescheduling sets the status to `rescheduled`, and `AppointmentStatusService` allows only `rescheduled → accepted / cancelled`. The dentist app still shows the visit as "Accepted" with a **Start visit** button, which always returns `409`. No app offers "accept / confirm the new time". For this run it was re-accepted through the API. **Decide** who confirms a rescheduled visit (the patient? automatically when the doctor reschedules?), then align the backend transitions and both apps. |
 | E3 | **High** | **Currency differs between apps.** The admin dashboard shows "100.00 **AED**" (hardcoded `COMMON.CURRENCY` in `TEETHi-Frontend/src/assets/i18n/en.json`, from the template the dashboard was built from). The patient app shows "$100" for the same invoice, and the business is US / Los Angeles. Choose one currency, ideally sent by the backend, and use it in every app. |
 | E4 | High | **Phone verification dead end in booking.** The "Before we book" step requires a verified mobile, but an account with no phone number gets "Add a phone number before requesting a verification code" and no field to add one. Separately, the six-box code entry didn't accept automated input (likely a tool limitation, but worth a manual check). |
 | E5 | Medium | **Patient name comes from different sources.** The patient app shows the account name ("Sample Patient"). The dentist app and the admin dashboard read `patient_profile.first_name/last_name`, which are empty for the seeded patient, so they show "Patient" and "#1". Make registration (and the seeder) fill the profile names, or define one display-name field. |
@@ -212,6 +212,12 @@
 | E8 | Low | **Relative labels use the device's date, not the visit's zone:** the patient sees "Tomorrow" (two days away in Los Angeles), the dentist header shows "Sunday, 18 October" (Saturday in Los Angeles), and an in-progress Mon 19 Oct visit was tagged "Today". |
 | E9 | Low | **Booking requires browser geolocation** ("Confirm this address with my location") with no fallback. Desktop/web users who deny location can't book. |
 | E10 | Low | "Use profile" in the visit-address step silently does nothing when the profile has no address. Admin Cities column is labelled "State/Emirate" (template leftover). The patient bell badge shows 3 while the server has 5 unread (still mock, H4). The patient "Nearby" dentist tab was empty while "All" listed the dentist (cause not investigated). |
+
+### Merge check (2026-10-18)
+The E1/E2 branches are merged into `master` (backend `5383f6b`, patient app `812780a`, dentist app `c59e68a`).
+- Backend: 478 Pest tests pass, PHPStan and Pint are clean.
+- Patient app: 29 tests pass, 0 analyzer warnings or errors (38 info-level, the same as before).
+- Dentist app: 98 tests pass, 0 analyzer warnings or errors (49 info-level, the same as before).
 
 ## 7. Docs consolidated in this folder
 
