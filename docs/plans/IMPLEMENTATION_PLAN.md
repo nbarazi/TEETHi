@@ -616,7 +616,7 @@ Verified: full Pest suite green (471 tests, +30: `tests/Feature/Api/V1/TimezoneC
 - Open slots for today still include slots whose start has already passed; booking one then fails `after:now`.
 - On the spring-forward date, a window covering the skipped hour (02:00-03:00 local) yields a slot whose `starts_at` PHP shifts to 03:00, the same instant as the next slot. Harmless unless a doctor works at 2 am.
 
-### Phase 14 — Cross-app data agreements (decisions #9–#11) ✅ built 2026-10-18 (branch `feat/decisions-9-11`, not merged)
+### Phase 14 — Cross-app data agreements (decisions #9–#11) ✅ complete (2026-10-18, merged)
 - [x] #9: `config('app.currency')` (default `USD`) returned as `currency` on `TreatmentResource`, `InvoiceResource` and `AppointmentResource`
 - [x] #10: registration and the `User::created` hook pre-fill the account holder's profile names from the account name; a data migration backfills profiles that have no name
 - [x] #10: `PatientProfileResource.full_name`, falling back to the managing account's name for the account holder

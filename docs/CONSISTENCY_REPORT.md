@@ -1,6 +1,6 @@
 # TEETHi — Cross-Project Status & Consistency Report
 
-**Last updated:** 2026-10-18, after C2 and decisions #9–#11 (first written 2026-10-17) · **Scope:** TEETHi-Backend, TEETHi-Frontend (admin dashboard), TEETHi-Patient-App, TEETHI-Dentist-App
+**Last updated:** 2026-10-18, after merging C2 and decisions #9–#11 (first written 2026-10-17) · **Scope:** TEETHi-Backend, TEETHi-Frontend (admin dashboard), TEETHi-Patient-App, TEETHI-Dentist-App
 
 **How this was checked**
 - **Static review (2026-10-17):**
@@ -18,15 +18,14 @@ IDs are stable across updates: C = critical, H = high, M = medium (from the stat
 
 | Project | Plan progress | Build / tests on `master` (2026-10-18) | What's left |
 |---|---|---|---|
-| **Backend** (Laravel 13) | Phases 0–9, 12, 13 and 14 done (14 is on a branch) | ✅ `master`: 478 tests. `feat/decisions-9-11`: **491 tests pass**, PHPStan (max) and Pint clean | Phase 10 HIPAA close-out (6 items). Phase 11 real payment gateway (deferred). Open: H6, H7, M4 |
-| **Admin dashboard** (Angular 21) | Phases 0–11 done, plus the timezone and currency/name sections | ✅ `ng build` clean. `master`: 185 tests; `feat/decisions-9-11`: **189/189** | Phase 0 leftovers (429 handling, `/enums` cache). Optional Phase 12 (messaging view). Open: M6 (no appointment detail, placeholder home page) |
-| **Dentist app** (Flutter) | Phases 0–10 plus the timezone, reschedule and display-name sections | ✅ `master`: 98 tests; `feat/decisions-9-11`: **100/100**. `flutter analyze`: 49 infos, 0 warnings/errors | Phase 11 polish. Open: H4 (push), M4/E7 (generic error text), M9 |
-| **Patient app** (Flutter) | Phases 0–8 plus timezone, consent, reschedule, medical history, currency and name | ✅ `master`: 29 tests; `feat/decisions-9-11` (includes `fix/medical-history`): **36/36**. `flutter analyze`: 38 infos, 0 warnings/errors | Phase 2b (insurance and payment-method screens, H5), Phase 9 (notifications, push, H4), Phase 10. Open: H3, E4, E9 |
+| **Backend** (Laravel 13) | Phases 0–9 and 12–14 done | ✅ **491 Pest tests pass**, PHPStan (max) and Pint clean | Phase 10 HIPAA close-out (6 items). Phase 11 real payment gateway (deferred). Open: H6, H7, M4 |
+| **Admin dashboard** (Angular 21) | Phases 0–11 done, plus the timezone and currency/name sections | ✅ `ng build` clean, **189/189 tests pass** | Phase 0 leftovers (429 handling, `/enums` cache). Optional Phase 12 (messaging view). Open: M6 (no appointment detail, placeholder home page) |
+| **Dentist app** (Flutter) | Phases 0–10 plus the timezone, reschedule and display-name sections | ✅ **100/100 tests pass**. `flutter analyze`: 49 infos, 0 warnings/errors | Phase 11 polish. Open: H4 (push), M4/E7 (generic error text), M9 |
+| **Patient app** (Flutter) | Phases 0–8 plus timezone, consent, reschedule, medical history, currency and name | ✅ **36/36 tests pass**. `flutter analyze`: 38 infos, 0 warnings/errors | Phase 2b (insurance and payment-method screens, H5), Phase 9 (notifications, push, H4), Phase 10. Open: H3, E4, E9 |
 
 **Bottom line:**
 - **The core visit lifecycle now works end to end and is consistent in all three apps.** A patient books (consent is signed in the app), the dentist accepts and reschedules (both directions, rule A), then starts, documents and completes the visit. The patient receives the report, and the admin sees the appointment and the invoice. Every app shows the same visit time in the visit's own timezone.
 - **What's left, in order:**
-  - **Merge** the 2026-10-18 branches (C2 and decisions #9–#11, see §3).
   - **Booking-flow gaps:** E4 (no field to add a phone number), H3 (no booking for family members).
   - **Patient-app mock screens:** H4, H5.
   - **Backend hardening:** Phase 10, H6, H7, M4.
@@ -36,7 +35,7 @@ IDs are stable across updates: C = critical, H = high, M = medium (from the stat
 ## 2. Open issues
 
 ### Critical
-None open. C2 (mock medical history) is fixed on a branch; see §3.
+None open. C2 (mock medical history) is fixed; see §3.
 
 ### High
 | # | Projects | Issue |
@@ -68,7 +67,7 @@ None open. C2 (mock medical history) is fixed on a branch; see §3.
 | E9 | Patient | **Booking requires browser geolocation** to confirm the address, with no fallback. |
 | E10 | Patient, Dashboard | **Small UI issues:** "Use profile" in the visit-address step silently does nothing when the profile has no address. The dashboard's Cities column is labelled "State/Emirate". The patient's "Nearby" dentist tab was empty while "All" listed the dentist (cause not investigated). The consent list briefly shows the previous list before it reloads. |
 | M11 | Mobile apps | **Lint debt.** Info-level only: `withOpacity` deprecations, `prefer_initializing_formals`, `prefer_const`. |
-| M12 | All | **Housekeeping.** `TEETHi-Backend/.claude/worktrees/mystifying-rhodes-2e8412` is a stale worktree. Crash logs (`hs_err_pid*.log`, `flutter_01.log`) sit in the patient app's root. Unused CoreUI demo views remain in the dashboard. The E1/E2/timezone/pagination fix branches are merged and can be deleted. |
+| M12 | All | **Housekeeping.** Merged feature branches (`fix/*`, `feat/*` from 2026-10-17/18) can be deleted. `TEETHi-Backend/.claude/worktrees/mystifying-rhodes-2e8412` is a stale worktree. Crash logs (`hs_err_pid*.log`, `flutter_01.log`) sit in the patient app's root. Unused CoreUI demo views remain in the dashboard. |
 
 ---
 
@@ -83,10 +82,10 @@ None open. C2 (mock medical history) is fixed on a branch; see §3.
 | H1 | Admin password reset sent `token`; the backend wants `code` | OTP code entry | Dashboard `b2882f6` | Live: code → `200` → login |
 | H2 | Two copies of the admin plan had diverged | Root `docs/` is the only copy; per-repo files are pointers | Root docs repo | — |
 | M8 | Patient smoke test failed | Test now registers dependencies | Patient app `82a0509` | Suite passes |
-| C2 | Medical history was hardcoded ("Penicillin" for everyone), so dentists never got real allergies | Medical tab wired to `GET/PUT /patient/medical-history`, with an edit sheet | Patient app `64a2539` (*branch `fix/medical-history`, not merged*) | Live: the patient saved Latex / Metformin 500mg, and the dentist's record showed the same |
-| E3 | The dashboard showed AED while the patient app showed $ | Decision #9: the backend sends `currency` (USD). Dashboard `money` pipe; patient app `formatMoney()` | Backend `7860aee`, dashboard `3df5016`, patient app `3d2a4b1` (*branches `feat/decisions-9-11`, not merged*) | Live: dashboard invoices "$250.00 / $100.00" |
-| E5 | The dentist and admin saw "Patient" / "#1" | Decision #10: profile names pre-filled from the account name and backfilled; `full_name` used in every app; booking requires a name | Backend `422ceb4` / `7860aee`, dashboard `3df5016`, dentist app `b14a731`, patient app `3d2a4b1` (*branches, not merged*) | Live: "Sample Patient" in the dentist Pending list, the Patients tab and the dashboard Appointments list |
-| E6 | No invoice existed until the patient paid | Decision #11: invoice created at booking (direct requests) or when a dentist claims an open request; an unpaid invoice is cancelled with its visit | Backend `422ceb4` (*branch, not merged*) | Live: new booking #3's $250 invoice existed immediately; tests cover the claim, cancel and partly-paid cases |
+| C2 | Medical history was hardcoded ("Penicillin" for everyone), so dentists never got real allergies | Medical tab wired to `GET/PUT /patient/medical-history`, with an edit sheet | Patient app `64a2539` | Live: the patient saved Latex / Metformin 500mg, and the dentist's record showed the same |
+| E3 | The dashboard showed AED while the patient app showed $ | Decision #9: the backend sends `currency` (USD). Dashboard `money` pipe; patient app `formatMoney()` | Backend `7860aee`, dashboard `3df5016`, patient app `3d2a4b1` | Live: dashboard invoices "$250.00 / $100.00" |
+| E5 | The dentist and admin saw "Patient" / "#1" | Decision #10: profile names pre-filled from the account name and backfilled; `full_name` used in every app; booking requires a name | Backend `422ceb4` / `7860aee`, dashboard `3df5016`, dentist app `b14a731`, patient app `3d2a4b1` | Live: "Sample Patient" in the dentist Pending list, the Patients tab and the dashboard Appointments list |
+| E6 | No invoice existed until the patient paid | Decision #11: invoice created at booking (direct requests) or when a dentist claims an open request; an unpaid invoice is cancelled with its visit | Backend `422ceb4` | Live: new booking #3's $250 invoice existed immediately; tests cover the claim, cancel and partly-paid cases |
 
 ---
 
@@ -129,13 +128,19 @@ None open. C2 (mock medical history) is fixed on a branch; see §3.
 4. **Product note:** the backend allows one active consent form per template type, while the old mock had four patient forms. Decide whether one combined form is enough.
 
 ### Suggested order of work
-1. **Merge** `fix/medical-history` and the four `feat/decisions-9-11` branches, and run every suite on `master`.
-2. **E4 and H3:** close the booking-flow gaps (phone entry, dependent picker).
-3. **Backend Phase 10,** including H7, M4 and H6.
-4. **H4 / H5:** patient Phase 9 (notifications and push) and Phase 2b (insurance and payment methods). Dentist Phase 11.
-5. **Re-run the live end-to-end scenario** (§7) after each group.
+1. **E4 and H3:** close the booking-flow gaps (phone entry, dependent picker).
+2. **Backend Phase 10,** including H7, M4 and H6.
+3. **H4 / H5:** patient Phase 9 (notifications and push) and Phase 2b (insurance and payment methods). Dentist Phase 11.
+4. **Re-run the live end-to-end scenario** (§7) after each group.
 
 ---
+
+### Merge check (2026-10-18, C2 and decisions #9–#11)
+`feat/decisions-9-11` was fast-forwarded into `master` in all four repos (it includes `fix/medical-history` in the patient app). Commits: backend `7860aee`, dashboard `3df5016`, patient app `3d2a4b1`, dentist app `b14a731`.
+- Backend: 491 Pest tests pass; PHPStan and Pint are clean.
+- Dashboard: `ng build` is clean and 189/189 tests pass.
+- Patient app: 36/36 tests pass, 0 analyzer warnings or errors.
+- Dentist app: 100/100 tests pass, 0 analyzer warnings or errors.
 
 ## 6. Docs consolidated in this folder
 
