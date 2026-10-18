@@ -1,224 +1,178 @@
 # TEETHi — Cross-Project Status & Consistency Report
 
-**Date:** 2026-10-17 · **Scope:** TEETHi-Backend, TEETHi-Frontend (admin dashboard), TEETHi-Patient-App, TEETHI-Dentist-App
+**Last updated:** 2026-10-18 (first written 2026-10-17) · **Scope:** TEETHi-Backend, TEETHi-Frontend (admin dashboard), TEETHi-Patient-App, TEETHI-Dentist-App
 
 **How this was checked**
-- Ran each project's own test suite and static analysis on the current `master`.
-- Exported the backend's live route table (`php artisan route:list`, 165 routes) and matched every HTTP call in the three clients against it.
-- Matched every enum value, JSON key and permission slug the clients use against the backend's `app/Enums`, resources, requests and seeders.
-- Traced the shared business rules end to end through the code: booking time slots, tooth numbering, pagination, password reset, notifications and consent. Plan text alone was not taken as proof.
+- **Static review (2026-10-17):**
+  - Exported the backend's route table (165 routes) and matched every HTTP call in the three clients against it.
+  - Matched every enum value, JSON key and permission slug the clients use against the backend's enums, resources, requests and seeders.
+  - Traced the shared business rules through the code.
+- **Live end-to-end runs (2026-10-18), §7:** backend, patient app, dentist app and dashboard all running against one MySQL database, on a UTC+3 machine with Los Angeles dentists.
+- **Test suites:** every suite was re-run on each repo's merged `master` after the last fixes.
+
+IDs are stable across updates: C = critical, H = high, M = medium (from the static review), E = found in the live run. Fixed items move to §3 and keep their ID.
 
 ---
 
 ## 1. Status at a glance
 
-| Project | Plan progress | Build / tests (run 2026-10-17) | What's left |
+| Project | Plan progress | Build / tests on `master` (2026-10-18) | What's left |
 |---|---|---|---|
-| **Backend** (Laravel 13) | 92 ✔ / 11 open. Phases 0–9 and 12 done | ✅ **441 Pest tests pass**, PHPStan (max) clean | Phase 10 HIPAA close-out (6 items). Phase 11 real payment gateway (deferred) |
-| **Admin dashboard** (Angular 21) | 53 ✔ / 7 open. Phases 0–11 done | ✅ `ng build` clean, **174/174 tests pass** (162 before the H1 fix) | Phase 0 leftovers (429 handling, `/enums` cache). Optional Phase 12 (read-only messaging view). Password reset fixed (§3 H1), not yet tried against a live backend |
-| **Dentist app** (Flutter) | 45 ✔ / 8 open. Phases 0–10 built | ✅ **80/80 tests pass**. `flutter analyze`: 49 infos, 0 warnings/errors | Phase 11 polish and an end-to-end run. **Plan says "not yet verified against a live backend"** |
-| **Patient app** (Flutter) | 41 ✔ / 12 open. Phases 0–8 built | ⚠️ **1/1 test fails** (stale smoke test, see §4). `flutter analyze`: 38 infos, 0 warnings/errors | Phase 2b (insurance and payment-method management), Phase 9 (notifications, push), Phase 10 (polish). **Several mock-only screens remain (§2)** |
+| **Backend** (Laravel 13) | 102 ✔ / 11 open. Phases 0–9, 12 and 13 (timezones) done | ✅ **478 Pest tests pass**, PHPStan (max) and Pint clean | Phase 10 HIPAA close-out (6 items). Phase 11 real payment gateway (deferred). Open: H6, H7, E3 (currency source), E5, E6, M4 |
+| **Admin dashboard** (Angular 21) | 54 ✔ / 7 open. Phases 0–11 done, plus the timezone section | ✅ `ng build` clean, **185/185 tests pass** | Phase 0 leftovers (429 handling, `/enums` cache). Optional Phase 12 (messaging view). Open: E3 (AED), M6 (no appointment detail, placeholder home page) |
+| **Dentist app** (Flutter) | 48 ✔ / 8 open. Phases 0–10 plus the timezone and reschedule sections | ✅ **98/98 tests pass**. `flutter analyze`: 49 infos, 0 warnings/errors | Phase 11 polish. Open: H4 (push), M4/E7 (generic error text), M9 |
+| **Patient app** (Flutter) | 47 ✔ / 11 open. Phases 0–8 plus the timezone, consent and reschedule work | ✅ **29/29 tests pass**. `flutter analyze`: 38 infos, 0 warnings/errors | **C2 medical history still mock.** Phase 2b (insurance and payment-method screens, H5), Phase 9 (notifications, push, H4), Phase 10. Open: H3, E4, E9 |
 
-**Bottom line:** the backend is the most mature piece. It is fully tested, and all three clients only call endpoints that exist. The gaps are in **how the clients use the backend**. The biggest problems are an undefined timezone contract for bookings and patient-app screens that still show mock data the dentist and admin will never see.
-
----
-
-## 2. Critical: breaks what a party needs
-
-### C1. Booking time slots have no timezone contract (Backend ↔ Patient app ↔ Dentist app)
-> **Decided 2026-10-17:** one timezone per city, with exact instants on the wire (IMPLEMENTATION_PLAN decision #7). The work is tracked as backend **Phase 13** plus a "Timezone contract" section in each frontend plan. **Backend built 2026-10-18** on TEETHi-Backend branch `feat/timezone-contract` (`25a38b4`, `9253d74`), not merged. Client work not started.
-
-- **Backend:** `config/app.php` uses `timezone = UTC`. Doctor availability is stored as wall-clock `HH:MM:SS` with no zone. `AvailabilityService::isSlotOpen()` checks that `scheduled_at->format('H:i:s')` exactly matches a slot's `start_time` (`app/Services/AvailabilityService.php:78`).
-- **Patient app:** the app builds the booking time as a *device-local* `DateTime` from the slot's `"09:00"`, then sends `scheduledAt.toUtc().toIso8601String()` (`lib/screens/booking/confirm_step.dart:46`, `appointments_remote_data_source.dart:42`).
-- **Result:** on any device not set to UTC (the seed data is Los Angeles, UTC−7), the 09:00 slot reaches the backend as `16:00:00`. The backend then either rejects it with `422 slot_not_available` or **books a different slot** if 16:00 also exists. The weekday can also shift near midnight. The dentist app's reschedule has the same problem (`requests_repository_impl.dart:50`). The dentist and admin apps show times with `toLocal()` / the Angular `date` pipe, so the three parties can each see a different time for the same visit.
-- Until decision #7, none of the four plans defined a timezone.
-- **Related:** the dentist app's reschedule uses a free date/time picker (`request_dialogs.dart` `pickFutureDateTime`). `RescheduleAppointmentRequest`, however, accepts only an exact open slot start. Dentist reschedules therefore fail with `422` unless the picked time happens to match a slot, regardless of timezone. Phase 13 adds `GET /doctor/availability/open-slots` so the app can offer real slots.
-- Server-side "today" checks (doctor dashboard, directory `available_today`) also use the UTC date, so they flip to "tomorrow" at 5 pm in Los Angeles.
-- Backend tests didn't catch this because they build `scheduled_at` with server-side Carbon (UTC), so the wall-clock time and the UTC time are always the same there.
-
-### C2. Patient medical history is hardcoded. Dentists never get real allergies or medications
-- Profile → Medical tab shows fixed values for every patient (`Allergies: Penicillin`, `Medication: None`, `lib/features/profile/presentation/screens/profile_screen.dart:339-341`).
-- The patient app never calls `GET` or `PUT /patient/medical-history`.
-- The dentist app *does* read `medical_history` for each patient, so dentists will see empty data while patients see made-up data. This is a clinical-safety issue.
-- The patient plan documents the endpoints (§8) but **has no phase checkbox for wiring them**, so the work isn't tracked anywhere.
-
-### C3. Every patient-app list is silently capped at 15 items
-> **Fixed (2026-10-17):** merged into TEETHi-Patient-App `master` (`82a0509`). It also fixes M8. Not yet exercised against a live backend.
-
-- The backend paginates every list endpoint (default `per_page=15`, decision #6).
-- The patient app never sends `page` or `per_page`; it reads only `data` from the first page (plan Phase 0 item "pagination helper — not started"). Effects:
-  - **Booking catalog:** `GET /treatments` returns 15 of the **21 seeded treatments**, so 6 can't be booked.
-  - **Chat:** `GET /conversations/{id}/messages` is ordered oldest-first, so a thread with more than 15 messages opens on the *oldest* 15 and the newest are missing.
-  - Visits, dentist directory, records and conversations are also cut off after 15.
-- The dentist app (`core/network/paginated.dart`) and the admin dashboard (`<app-pagination-bar>`) handle pagination correctly.
-
-### C4. Patient consent forms are mock-only, so nothing is signed on the server
-> **Fixed (2026-10-18), merged to master:** TEETHi-Patient-App `9ec2fa4`, with the seeded template in TEETHi-Backend `ae17a8f`.
-
-- `lib/screens/consent_screen.dart` reads `MockData.consentForms` and signs into the local `AppState`.
-- `GET /patient/consent-forms` and `POST …/sign` are never called.
-- Consent is a legal record the backend stores, the admin reviews and the plan treats as PHI. As things stand, no patient consent ever reaches the server.
-- The patient plan documents this in §5 but **has no phase checkbox** for it.
+**Bottom line:**
+- **The core visit lifecycle now works end to end and is consistent in all three apps.** A patient books (consent is signed in the app), the dentist accepts and reschedules (both directions, rule A), then starts, documents and completes the visit. The patient receives the report, and the admin sees the appointment and the invoice. Every app shows the same visit time in the visit's own timezone.
+- **What's left, in order:**
+  - **Clinical safety:** C2, mock medical history.
+  - **Patient-app mock screens:** H4, H5.
+  - **Cross-app data agreements:** E3 currency, E5 patient name, E6 invoice timing.
+  - **Backend hardening:** Phase 10, H6, H7, M4.
 
 ---
 
-## 3. High: wrong behaviour or contract drift
+## 2. Open issues
 
-### H1. Admin dashboard password reset is broken (contract drift)
-> **Fixed (2026-10-17):** merged into TEETHi-Frontend `master` (`b2882f6`). Not yet exercised against a live backend.
+### Critical
+**C2. Patient medical history is hardcoded, so dentists never get real allergies or medications.**
+- Profile → Medical shows fixed values for every patient ("Allergies: Penicillin", "Medication: None", `lib/features/profile/presentation/screens/profile_screen.dart:340`).
+- The app never calls `GET` or `PUT /patient/medical-history`.
+- The dentist app *does* read `medical_history`. Dentists therefore see empty data while patients see made-up data. This is a clinical-safety issue.
+- The patient plan documents the endpoints (§8) but has no phase checkbox for wiring them. Add one.
 
-- On 2026-09-13 the backend switched to OTP codes: `POST /reset-password` requires `{ email, code (6 digits), … }` (`ResetPasswordRequest.php:29`).
-- The dashboard still sends `token` read from a `?token=` link (`views/pages/reset-password/reset-password.component.ts:66`). Every admin reset attempt will fail with `422`.
-- Both mobile apps were updated and send `code`.
-- **Root cause:** the change was recorded only in the backend's copy of the admin plan, so the frontend's copy never received it (see H2).
-
-### H2. The two copies of the admin plan had diverged
-- `TEETHi-Backend/docs/` had the newer API contract (OTP reset; patient email/phone fields on the admin directory) but showed only 1 of 62 items done.
-- `TEETHi-Frontend/docs/` had all the progress (53 done) but the old contract.
-- The consolidated copy in `docs/plans/` merges both, and it is now the only copy (§6, decision 2).
-
-### H3. Patient bookings can't be made for family members
-- Family and dependent profiles are a locked v1 decision (#3), and the backend supports `patient_profile_id` on bookings, consent, insurance and records.
-- The patient booking flow has no step for choosing a profile, so every booking goes to the account holder (`appointments_remote_data_source.dart:23`, a known simplification). Dependents can be created but can't be booked for.
-
-### H4. Push notifications aren't delivered on either mobile app
-- The backend sends notifications through `database` + `FcmChannel`.
-- The dentist app registers a token through `NoopPushTokenSource`: the plumbing is there, but there's no Firebase SDK or config.
-- The patient app has no device-token registration and **no in-app notification feed**: `notifications_screen.dart` is still mock (Phase 9).
-- Patients therefore never see appointment-status changes or reminders, while dentists only see them in-app.
-
-### H5. Patient payment and insurance screens still show placeholder data
-- The payment step always shows `CareCredit card · Ending 4417` and sends a `mock-token-<timestamp>` (`lib/screens/booking/payment_step.dart:23-59`, `record_detail_screen.dart:111-221`).
-- Saved methods (`/patient/payment-methods`) are never listed.
-- "CareCredit" is a real healthcare-credit brand used here as a label for `credit_card`. That's misleading.
-- Insurance can be added inside booking, but there's no screen to list, edit or delete it (Phase 2b open).
-- The gateway is a stub by design (Phase 11), but the UI shouldn't show a fake card.
-
-### H6. Shared routes bypass dashboard permissions (backend design point to confirm)
-- `/appointments/{id}` (view, **cancel**, **reschedule**) and `/conversations*` are allowed for *any* `role=admin` user (`AppointmentPolicy.php:17-27`). No `permission:` check applies.
-- So a staff member with only a billing role can read appointment details (PHI), read every patient–doctor message thread, and cancel or reschedule visits through the API, even though the dashboard UI doesn't offer that.
-- This conflicts with the spirit of decision #5 (dashboard RBAC) and with "minimum necessary" access.
-- **Decision needed:** gate these routes for admins behind `view_appointments` and a new `manage_appointments` / `view_messages` permission, or document the exception explicitly.
-
-### H7. "Forgot password" reveals whether an account exists
-- `ForgotPasswordRequest` uses `exists:users,email`, so an unknown email returns `422`.
-- The dashboard's neutral "if an account exists…" message is undone because it shows that `422` inline. The `422` comes from the backend, so it affects every client.
-- Fix on the backend: always return 200.
-
----
-
-## 4. Medium: differences between the projects
-
-| # | Area | Finding |
+### High
+| # | Projects | Issue |
 |---|---|---|
-| M1 | **Localization** | Backend (`lang/en`, `lang/ar`) and the admin dashboard (`en.json`, `ar.json`) support Arabic. Both mobile apps are English-only: no `flutter_localizations`, and `ApiClient.locale` is hardcoded to `'en'`. Decide whether patients and dentists need Arabic in v1. |
-| M2 | **Doctor photos** | There is no doctor photo upload endpoint and `ProviderResource` has no image, so the patient's dentist directory can only show placeholders. Doctors also never see patient photos (dentist plan §16, by design). Worth confirming with product, since a marketplace usually shows provider photos. |
-| M3 | **`GET /enums` usage** | Every backend enum is exposed through `/enums`, and the scan found **no invalid wire values** in any client. The admin dashboard still hardcodes labels (Phase 0 open), and the patient app uses `/enums` only in places. Labels can therefore differ between apps, especially in Arabic. |
-| M4 | **Error envelope** | 404, 405 and 500 still return Laravel's debug format, not `{success, message, data}` (backend Phase 10 open). Each client handles this ad hoc. Settle it before production. |
-| M5 | **429 rate-limit handling** | The patient app has `RateLimitFailure`. The admin dashboard has no 429 handling (Phase 0 open). |
-| M6 | **Admin coverage vs. scope** | The project scope (`AGENTS.md`) promises list **and detail** views for appointments. The dashboard has only an appointments list. The backend already allows admins to `GET /appointments/{id}`, so a detail view could be built today. The dashboard home page is a placeholder welcome card, and there is no KPI or summary endpoint. |
-| M7 | **Leftover patient-app mock code** | `lib/state/app_state.dart`, `lib/data/mock_data.dart` and `lib/models/models.dart` are still used by the booking steps, consent, notifications and parts of profile. The dentist app has removed all of its mocks. |
-| M8 | **Patient-app test is broken** | `test/widget_test.dart` builds the app without `configureDependencies()`, so it fails with `GetIt: AuthViewModel is not registered`. The app has no other tests; the dentist app has 80. |
-| M9 | **Dentist-app documentation is stale** | `docs/ARCHITECTURE.md` still says only auth is real and everything else is mock. The dentist plan still lists "Remove `MockDentistData`" as open, but no mock files remain. |
-| M10 | **Dentist-app git history** | All of Phases 0–10 is in **one commit**, so its plan can't be audited through `git log` the way the other repos can. |
-| M11 | **Lint debt** | Flutter `analyze` reports info-level issues only: 30 `withOpacity` deprecations, 27 `prefer_initializing_formals`, 18 `prefer_const`, and others. Neither app has warnings or errors. |
-| M12 | **Housekeeping** | `TEETHi-Backend/.claude/worktrees/mystifying-rhodes-2e8412`: its branch has nothing that isn't on `master`. `TEETHi-Patient-App/hs_err_pid*.log` and `flutter_01.log` are crash logs in the repo root. Old CoreUI demo views (`views/base`, `buttons`, `charts`, `forms`, `icons`, `theme`, `widgets`) are still in the dashboard but not routed. |
+| H3 | Patient | **Booking can't be made for a family member.** Dependents are in scope for v1 (decision #3), and the backend accepts `patient_profile_id` on bookings, consent, insurance and records. The patient booking flow has no profile picker, so every booking goes to the account holder. Consent can't be signed for a dependent either. |
+| H4 | Patient, Dentist | **Push notifications aren't delivered.** The backend sends notifications through `database` and `FcmChannel`. The dentist app's `NoopPushTokenSource` has no Firebase SDK or config behind it. The patient app has no device-token registration, and its notification feed and bell badge are still mock: the live run showed **3 while the server had 5 unread**. Patients never see status changes; a rescheduled visit only updated after a manual reload. |
+| H5 | Patient | **Payment and insurance screens show placeholders.** The payment step always shows "CareCredit card · Ending 4417" and sends `mock-token-<timestamp>`. "CareCredit" is a real brand. Saved payment methods are never listed. There's no insurance management screen (Phase 2b). |
+| H6 | Backend, Dashboard | **Shared routes bypass dashboard permissions.** `/appointments/{id}` (view, cancel, reschedule) and `/conversations*` are open to *any* `role=admin` user, so a billing-only staff member can read PHI and move visits through the API. **Decision needed:** gate these routes with permissions, or document the exception. |
+| H7 | Backend | **"Forgot password" reveals whether an account exists.** `ForgotPasswordRequest` uses `exists:users,email`, so an unknown email gets a `422`. Always return `200`. |
+| E3 | Dashboard, Backend | **Currency differs between apps.** The dashboard shows "100.00 **AED**" (`COMMON.CURRENCY` in `src/assets/i18n/en.json`, "درهم" in `ar.json`, left over from the template it was built from). The patient app shows "$100" for the same invoice, and the business is US / Los Angeles. Have the backend send one currency and use it everywhere. |
+| E4 | Patient | **Phone verification dead end in booking.** "Before we book" requires a verified mobile, but an account with no phone gets "Add a phone number…" and no field to add one. |
+
+### Medium
+| # | Projects | Issue |
+|---|---|---|
+| E5 | Backend, all apps | **The patient's name comes from different sources.** The patient app shows the account name ("Sample Patient"). The dentist app and the dashboard read `patient_profile.first_name/last_name`, which can be empty, giving "Patient" and "#1". The patient's own Profile also shows Name "—". Fill the profile names at registration (and in the seeder), or define one display-name field. |
+| E6 | Backend, Dashboard | **No invoice exists until the patient pays.** An invoice is only created by `POST /patient/appointments/{id}/payment`. A completed visit where the patient never opens the payment step is invisible to admin reconciliation. Consider creating the invoice at booking or at completion. |
+| M4 / E7 | Backend, all apps | **Error envelope.** `404`, `405`, `409` and `500` return Laravel's debug format, not `{success, message, data}` (backend Phase 10). Confirmed live: the dentist app showed "Something went wrong" instead of the server's `409` message. |
+| M1 | Mobile apps | **No Arabic on mobile.** The backend and the dashboard support Arabic; both mobile apps are English-only, with `ApiClient.locale` hardcoded to `'en'`. This is a product decision. |
+| M2 | Backend, Patient | **No doctor photos.** There's no doctor photo upload and no image on `ProviderResource`, so the dentist directory shows initials only. This is a product decision. |
+| M3 | Dashboard, Patient | **Hardcoded labels.** `GET /enums` exists, but the dashboard (Phase 0) and parts of the patient app hardcode labels, so wording can differ between apps, especially in Arabic. |
+| M5 | Dashboard | **No 429 handling.** The dashboard has no rate-limit (`429`) surface. |
+| M6 | Dashboard | **Missing appointment detail.** The scope promises list **and detail** views for appointments; there's only a list. The backend already serves `GET /appointments/{id}` to admins. The dashboard home page is still a placeholder. |
+| M7 | Patient | **Leftover mock state.** `lib/state/app_state.dart`, `lib/data/mock_data.dart` and `lib/models/models.dart` are still referenced by 29 files: the booking draft, notifications, the payment options and parts of profile. Consent no longer uses them. |
+| M9 | Docs | **Dentist architecture doc is out of date.** `docs/architecture/DENTIST_APP_ARCHITECTURE.md` still says only auth is real and everything else is mock. |
+| M10 | Dentist | **One-commit history.** Phases 0–10 of the dentist app are a single commit, so its plan can't be audited through git history. |
+
+### Low
+| # | Projects | Issue |
+|---|---|---|
+| E8 | Patient, Dentist | **Relative labels use the device's date, not the visit's zone.** The patient sees "Tomorrow" for a visit two days away in Los Angeles; the dentist header shows the device's date. (The dentist's "Today" tag on an in-progress visit is fixed; it now reads "In progress".) |
+| E9 | Patient | **Booking requires browser geolocation** to confirm the address, with no fallback. |
+| E10 | Patient, Dashboard | **Small UI issues:** "Use profile" in the visit-address step silently does nothing when the profile has no address. The dashboard's Cities column is labelled "State/Emirate". The patient's "Nearby" dentist tab was empty while "All" listed the dentist (cause not investigated). The consent list briefly shows the previous list before it reloads. |
+| M11 | Mobile apps | **Lint debt.** Info-level only: `withOpacity` deprecations, `prefer_initializing_formals`, `prefer_const`. |
+| M12 | All | **Housekeeping.** `TEETHi-Backend/.claude/worktrees/mystifying-rhodes-2e8412` is a stale worktree. Crash logs (`hs_err_pid*.log`, `flutter_01.log`) sit in the patient app's root. Unused CoreUI demo views remain in the dashboard. The E1/E2/timezone/pagination fix branches are merged and can be deleted. |
 
 ---
 
-## 5. Verified consistent ✅
+## 3. Resolved
 
-- **Endpoints:** every call in all three clients maps to an existing backend route and method (patient 42, dentist 52 + 9 via helpers, admin ≈40).
-- **Enum wire values:** all values used match `app/Enums`. Notification `type`s in the dentist inbox match the backend's 5 notification classes exactly.
-- **Tooth numbering:** Universal 1–32 everywhere. Backend validates `between:1,32`. The patient chart maps to Universal (`tooth_chart.dart:20`). The dentist app converts Universal ↔ quadrant labels (`core/utils/tooth_numbering.dart`).
-- **Dashboard permission slugs:** every slug the dashboard checks exists in the backend seeder (`manage_*`, `view_*`, `verify_legal_documents`). The only exception is a commented `view_my_feature` example.
-- **Password rules:** minimum 8 characters, client-side, in all three clients, matching `Password::defaults()`. Mobile reset uses the 6-digit `code`.
-- **Cancel and reschedule:** `reason` is required by the backend and sent by both mobile apps. The dentist app enforces "up to 3" recommendations, matching the backend's rank 1–3.
-- **Transport:** all three clients default to `http://127.0.0.1:8000/api/v1`, send `Authorization: Bearer` and `Accept-Language`, and clear the session on `401`.
-- **Money:** amounts are decimal strings on the wire, and the dashboard explicitly avoids converting them to numbers.
+| # | Was | Fix | Where (all merged to `master`) | Verified |
+|---|---|---|---|---|
+| C1 | Booking slots had no timezone contract: bookings from non-UTC devices failed or landed in the wrong slot | Decision #7: one IANA timezone per city; exact `starts_at` instants on the wire; `scheduled_at_local` for display; doctor open-slots endpoint | Backend Phase 13 (`25a38b4`, `9253d74`, `c8a8092`). Patient app `eabcbd5`, dentist app `1487519`, dashboard `9af49ca` | Live: a UTC+3 machine booked 09:00 Los Angeles time, and all three apps showed 09:00. The old payload is rejected |
+| C3 | Every patient-app list stopped at 15 items | Pagination helper (`getAll` / `getPage` / `getLatest`) | Patient app `82a0509` | Live: `treatments?per_page=100` and similar |
+| C4 / E1 | Consent screen was mock and no consent template was seeded, so **no patient could book from the app** | Seeder publishes a patient consent form (plus the doctor agreements). The consent screen is wired to `GET` / `POST …/sign` | Backend `ae17a8f`, patient app `9ec2fa4` | Live: an admin published v2, the app showed it as needing a signature, signing returned `201`, and `consent_pending` became false |
+| E2 | A rescheduled visit could never be started | Decision #8 (rule A): a doctor's reschedule goes straight back to `accepted`; a patient's waits in the dentist's Pending list for Accept new time / Decline (decline cancels). Only `accepted` visits can be moved | Backend `8d9b4b9`, dentist app `c59e68a`, patient app `924abf8` | Live in all three apps, full status history checked |
+| H1 | Admin password reset sent `token`; the backend wants `code` | OTP code entry | Dashboard `b2882f6` | Live: code → `200` → login |
+| H2 | Two copies of the admin plan had diverged | Root `docs/` is the only copy; per-repo files are pointers | Root docs repo | — |
+| M8 | Patient smoke test failed | Test now registers dependencies | Patient app `82a0509` | Suite passes |
 
 ---
 
-## 6. Decisions needed to keep the four projects aligned
+## 4. Verified consistent ✅
 
-1. ~~**Timezone model for availability and `scheduled_at` (C1).**~~ **Decided 2026-10-17:** one timezone per city, with exact `starts_at` instants on the wire (IMPLEMENTATION_PLAN decision #7, backend Phase 13).
-2. ~~**Single source of truth for the plans.**~~ **Decided 2026-10-17: option (a).** The root `docs/` is canonical and the workspace root is now a docs-only git repo. Every per-repo copy has been replaced by a pointer, and the backend and frontend `AGENTS.md` point here. See `docs/README.md` for the rules.
-3. **Admin access to shared PHI routes (H6).** Add permissions, or document the exception.
-4. **Patient-plan gaps:** add phase checkboxes for **medical history (C2)** and **consent forms (C4)**, and a **dependent picker in booking (H3)**.
-5. **Arabic on mobile (M1)** and **doctor photos (M2)**: product decisions.
-6. **Push notifications (H4):** set up a Firebase project and add the config to both apps. One shared setup covers both.
+- **Endpoints:** every client call maps to an existing backend route and method.
+- **Enum wire values:** every value matches `app/Enums`. Dentist inbox notification types match the backend's notification classes.
+- **Tooth numbering:** Universal 1–32 everywhere.
+- **Dashboard permission slugs:** every slug the dashboard checks exists in the backend seeder.
+- **Password rules:** minimum 8 characters, with 6-digit OTP reset codes, in all three clients.
+- **Cancel and reschedule:** a reason is required and sent. The "up to 3" recommendations limit matches.
+- **Transport:** all clients send Bearer auth and `Accept-Language`, and clear the session on `401`.
+- **Money:** amounts are decimal strings on the wire. Currency *display* differs (E3).
+- **Live (2026-10-18):**
+  - Login in all three apps.
+  - Visit time agrees in all three apps, in the visit's own zone.
+  - Consent signing and versioning.
+  - Rule A reschedule flow, in both directions.
+  - Clinical note → report reaches the patient.
+  - Status notifications are created.
+  - Invoices appear in the dashboard.
+  - Admin OTP reset.
+
+---
+
+## 5. Decisions
+
+**Locked** (recorded in `IMPLEMENTATION_PLAN.md` §2 or `docs/README.md`):
+- **Single source of truth for plans:** the root `docs/` (2026-10-17).
+- **#7 Timezones:** one timezone per city, with exact instants on the wire (2026-10-17).
+- **#8 Rescheduled visits:** a doctor's reschedule settles back to accepted; a patient's needs the doctor's acceptance (2026-10-18).
+
+**Still needed:**
+1. **H6:** admin access to the shared PHI routes. Add permissions, or document the exception.
+2. **E3:** the platform currency, and whether the backend sends it.
+3. **E5:** a single source for the patient's display name.
+4. **E6:** when an invoice is created (booking, completion, or first payment).
+5. **M1 / M2:** Arabic on mobile, and doctor photos (product decisions).
+6. **H4:** set up one Firebase project for both apps.
+7. **Product note:** the backend allows one active consent form per template type, while the old mock had four patient forms. Decide whether one combined form is enough.
 
 ### Suggested order of work
-1. C1 timezone contract (backend first, then both apps).
-2. H1 admin reset (`token` → `code`, with a code-entry field instead of reading the link).
-3. C3 patient pagination helper.
-4. C2 medical history, then C4 consent wiring in the patient app, then H3 dependent picker.
-5. Backend Phase 10, including H7 and M4.
-6. Patient Phase 9 and dentist Phase 11, including H4 push.
-7. An end-to-end run across all three apps against one live backend. **This has not been done for either mobile app.**
+1. **C2:** wire medical history in the patient app (clinical safety).
+2. **E3, E5, E6:** settle the cross-app data agreements, then make the small changes in each app.
+3. **E4 and H3:** close the booking-flow gaps (phone entry, dependent picker).
+4. **Backend Phase 10,** including H7, M4 and H6.
+5. **H4 / H5:** patient Phase 9 (notifications and push) and Phase 2b (insurance and payment methods). Dentist Phase 11.
+6. **Re-run the live end-to-end scenario** (§7) after each group.
 
 ---
 
-## 8. Live end-to-end run (2026-10-18)
+## 6. Docs consolidated in this folder
+
+See `docs/README.md` for the index and the rules for keeping docs here.
+
+---
+
+## 7. Live end-to-end runs (2026-10-18)
 
 **Setup:**
-- Backend `php artisan serve` on :8000 against the local MySQL `teethi` database. Backend `master` is at `c8a8092`.
-- Patient app (:8917) and dentist app (:8765) running as Flutter web debug builds. Admin dashboard (`ng serve`, :4200).
-- The three apps were on their `feat/timezone-contract` branches.
-- The machine's timezone is **Syria (UTC+3)**, while every dentist is in **Los Angeles (UTC−7)**, so the timezone contract was tested across a real 10-hour gap.
+- Backend `php artisan serve` on :8000 against the local MySQL `teethi` database.
+- Patient app (:8917) and dentist app (:8765) as Flutter web debug builds; dashboard (`ng serve`, :4200).
+- The machine's zone is Syria (UTC+3); every dentist is in Los Angeles (UTC−7).
 - Seeded accounts: `patient@`, `dr.michael@` and `admin@teethi.test`. Run configs are in `.claude/launch.json` at the root.
 
-**Scenario:**
-1. Patient logs in, picks a treatment and Dr. Michael, and books Mon 19 Oct 09:00.
-2. Admin publishes a consent form.
-3. Dentist accepts, reschedules to 14:00 through the new open-slot picker, starts the visit, writes a clinical note and completes the visit.
-4. Patient sees the past visit and the report.
-5. Admin checks Appointments, Cities and Invoices, and does a password reset end to end.
+**Run 1, the full visit lifecycle:**
+1. The patient books Mon 19 Oct 09:00. This needed a consent template published from the dashboard and a sign through the API; that blocker was E1.
+2. The dentist accepts, then reschedules to 14:00 through the open-slot picker.
+3. The visit couldn't be started (E2) until it was re-accepted through the API.
+4. The dentist documents and completes the visit.
+5. The patient sees the visit and the report.
+6. The dashboard checks pass: Appointments, Cities, Invoices, and an OTP password reset.
+
+**Run 2, after the E1/E2 fixes:**
+1. Consent v2 was published and then re-signed in the patient app.
+2. Visit #2 was booked for Tue 20 Oct 10:00.
+3. The dentist accepted it.
+4. The patient moved it to 12:00. The dentist's Pending tab showed "New time" with the reason; the patient saw "New time · awaiting dentist".
+5. The dentist chose Accept new time.
+6. The dentist's own move to 15:00 stayed Accepted, and the patient saw "Confirmed" after a reload.
 
 **Test data left in the local database:**
-- Appointment #1 (completed) and Invoice #1 (pending, pay-later).
-- Consent template "Patient Consent Form" v1 (active).
-- The seeded patient now has a date of birth (1996-10-18) and a verified phone (+13105550142).
+- Appointment #1 (completed, Invoice #1 pending pay-later) and appointment #2 (accepted, Tue 20 Oct 15:00).
+- Consent templates: patient consent v1 (superseded) and v2 (active), signed by the seeded patient; plus the seeded doctor business agreement and nondiscrimination notice.
+- The seeded patient has a date of birth (1996-10-18) and a verified phone (+13105550142).
 - The admin password was reset to the same seed value.
-
-### Verified working ✅
-- **Login** works in all three apps against the live API. CORS is fine for all origins.
-- **C3 pagination fix:** the patient app now requests `treatments?per_page=100`, `appointments?per_page=50` and so on.
-- **Timezone contract (decision #7), end to end:**
-  - On a UTC+3 device, the patient sees the dentist's slots as 09:00/10:00/11:00 Los Angeles time.
-  - The booking summary reads "19 Oct, 09:00 GMT-7".
-  - A time with no zone is rejected with a clear `422`. The old bug's payload (`09:00+03:00`) is rejected as unavailable.
-  - The slot's `starts_at` books and is stored as `16:00Z`.
-- **Same visit time in all three apps:**
-  - Patient home: "Tomorrow, 09:00 GMT-7".
-  - Dentist: "Mon 19 Oct, 09:00", then "14:00" after the reschedule.
-  - Admin: "10/19/26, 2:00 PM (America/Los_Angeles)", with request time labelled "your time".
-  - Admin Cities shows the timezone column.
-- **Dentist reschedule** through the new open-slot picker ("Times are Los Angeles time") worked. It stored `21:00Z` = 14:00 Los Angeles time.
-- **Visit documentation:** the clinical note and visit completion succeeded. The patient receives the report under `/patient/medical-reports`, and five `appointment_status_changed` notifications were generated.
-- **Admin:** publishing a document template works. Invoices list the pay-later invoice.
-- **H1 fix, end to end:** the admin forgot/reset flow sends the 6-digit code and gets a `200`, then lands on login.
-
-### New findings
-| # | Severity | Finding |
-|---|---|---|
-| E1 | **Critical**, *fixed and merged 2026-10-18* (backend `ae17a8f`, patient app `9ec2fa4`) | **No patient can book from the app.** Booking requires a signed patient consent form on the server (`BookingService::missingRequirements`). **No consent template is seeded**, so every booking fails until an admin publishes one. Even then, the patient app's consent screen is mock (C4): it shows hardcoded forms ("Signed 12 Aug 2024") and never calls `POST /patient/consent-forms/{id}/sign`. The server requirement can therefore only be met outside the app. For this run, the template was published from the dashboard and the patient signed through the API. **Fix C4 and seed a consent template.** |
-| E2 | **High**, *fixed and merged 2026-10-18* (rule A = IMPLEMENTATION_PLAN decision #8; backend `8d9b4b9`, dentist `c59e68a`, patient `924abf8`, merged to master; verified live) | **A rescheduled visit can't be started.** Rescheduling sets the status to `rescheduled`, and `AppointmentStatusService` allows only `rescheduled → accepted / cancelled`. The dentist app still shows the visit as "Accepted" with a **Start visit** button, which always returns `409`. No app offers "accept / confirm the new time". For this run it was re-accepted through the API. **Decide** who confirms a rescheduled visit (the patient? automatically when the doctor reschedules?), then align the backend transitions and both apps. |
-| E3 | **High** | **Currency differs between apps.** The admin dashboard shows "100.00 **AED**" (hardcoded `COMMON.CURRENCY` in `TEETHi-Frontend/src/assets/i18n/en.json`, from the template the dashboard was built from). The patient app shows "$100" for the same invoice, and the business is US / Los Angeles. Choose one currency, ideally sent by the backend, and use it in every app. |
-| E4 | High | **Phone verification dead end in booking.** The "Before we book" step requires a verified mobile, but an account with no phone number gets "Add a phone number before requesting a verification code" and no field to add one. Separately, the six-box code entry didn't accept automated input (likely a tool limitation, but worth a manual check). |
-| E5 | Medium | **Patient name comes from different sources.** The patient app shows the account name ("Sample Patient"). The dentist app and the admin dashboard read `patient_profile.first_name/last_name`, which are empty for the seeded patient, so they show "Patient" and "#1". Make registration (and the seeder) fill the profile names, or define one display-name field. |
-| E6 | Medium | **No invoice exists until the patient pays.** `InvoiceService::findOrCreateForAppointment` runs only from `POST /patient/appointments/{id}/payment`. A completed visit where the patient never opens the payment step has no invoice, so the admin can't see or reconcile it. |
-| E7 | Medium | **M4 confirmed live:** the `409` came back in Laravel's debug format (`exception`, `file`, `trace`). The dentist app could only show "Something went wrong" instead of the server's message. |
-| E8 | Low | **Relative labels use the device's date, not the visit's zone:** the patient sees "Tomorrow" (two days away in Los Angeles), the dentist header shows "Sunday, 18 October" (Saturday in Los Angeles), and an in-progress Mon 19 Oct visit was tagged "Today". |
-| E9 | Low | **Booking requires browser geolocation** ("Confirm this address with my location") with no fallback. Desktop/web users who deny location can't book. |
-| E10 | Low | "Use profile" in the visit-address step silently does nothing when the profile has no address. Admin Cities column is labelled "State/Emirate" (template leftover). The patient bell badge shows 3 while the server has 5 unread (still mock, H4). The patient "Nearby" dentist tab was empty while "All" listed the dentist (cause not investigated). |
-
-### Merge check (2026-10-18)
-The E1/E2 branches are merged into `master` (backend `5383f6b`, patient app `812780a`, dentist app `c59e68a`).
-- Backend: 478 Pest tests pass, PHPStan and Pint are clean.
-- Patient app: 29 tests pass, 0 analyzer warnings or errors (38 info-level, the same as before).
-- Dentist app: 98 tests pass, 0 analyzer warnings or errors (49 info-level, the same as before).
-
-## 7. Docs consolidated in this folder
-
-See `docs/README.md` for the index and where each file came from.
