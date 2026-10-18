@@ -1,6 +1,6 @@
 # TEETHi — Cross-Project Status & Consistency Report
 
-**Last updated:** 2026-10-18, after merging C2 and decisions #9–#11 (first written 2026-10-17) · **Scope:** TEETHi-Backend, TEETHi-Frontend (admin dashboard), TEETHi-Patient-App, TEETHI-Dentist-App
+**Last updated:** 2026-10-18, after fixing E11 and E12 (first written 2026-10-17) · **Scope:** TEETHi-Backend, TEETHi-Frontend (admin dashboard), TEETHi-Patient-App, TEETHI-Dentist-App
 
 **How this was checked**
 - **Static review (2026-10-17):**
@@ -18,10 +18,10 @@ IDs are stable across updates: C = critical, H = high, M = medium (from the stat
 
 | Project | Plan progress | Build / tests on `master` (2026-10-18) | What's left |
 |---|---|---|---|
-| **Backend** (Laravel 13) | Phases 0–9 and 12–14 done | ✅ **497 Pest tests pass**, PHPStan (max) and Pint clean | Phase 10 HIPAA close-out (6 items). Phase 11 real payment gateway (deferred). Open: H6, H7, M4 |
+| **Backend** (Laravel 13) | Phases 0–9 and 12–14 done | ✅ **497 Pest tests pass** (500 on `fix/e11-e12`), PHPStan (max) and Pint clean | Phase 10 HIPAA close-out (6 items). Phase 11 real payment gateway (deferred). Open: H6, H7, M4 |
 | **Admin dashboard** (Angular 21) | Phases 0–11 done, plus the timezone and currency/name sections | ✅ `ng build` clean, **189/189 tests pass** | Phase 0 leftovers (429 handling, `/enums` cache). Optional Phase 12 (messaging view). Open: M6 (no appointment detail, placeholder home page) |
 | **Dentist app** (Flutter) | Phases 0–10 plus the timezone, reschedule and display-name sections | ✅ **100/100 tests pass**. `flutter analyze`: 49 infos, 0 warnings/errors | Phase 11 polish. Open: H4 (push), M4/E7 (generic error text), M9 |
-| **Patient app** (Flutter) | Phases 0–8 plus timezone, consent, reschedule, medical history, currency and name | ✅ **41/41 tests pass**. `flutter analyze`: 38 infos, 0 warnings/errors | Phase 2b (insurance and payment-method screens, H5), Phase 9 (notifications, push, H4), Phase 10. Open: E9, E11, E12 |
+| **Patient app** (Flutter) | Phases 0–8 plus timezone, consent, reschedule, medical history, currency and name | ✅ **41/41 tests pass**. `flutter analyze`: 38 infos, 0 warnings/errors | Phase 2b (insurance and payment-method screens, H5), Phase 9 (notifications, push, H4), Phase 10. Open: E9. E11/E12 fixed on `fix/e11-e12` (45 tests) |
 
 **Bottom line:**
 - **The core visit lifecycle now works end to end and is consistent in all three apps.** A patient books (consent is signed in the app), the dentist accepts and reschedules (both directions, rule A), then starts, documents and completes the visit. The patient receives the report, and the admin sees the appointment and the invoice. Every app shows the same visit time in the visit's own timezone.
@@ -62,8 +62,6 @@ None open. C2 (mock medical history) is fixed; see §3.
 |---|---|---|
 | E8 | Patient, Dentist | **Relative labels use the device's date, not the visit's zone.** The patient sees "Tomorrow" for a visit two days away in Los Angeles; the dentist header shows the device's date. (The dentist's "Today" tag on an in-progress visit is fixed; it now reads "In progress".) |
 | E9 | Patient | **Booking requires browser geolocation** to confirm the address, with no fallback. |
-| E11 | Backend, Patient | **Provider starting fee has no `currency`.** The dentist directory's "from $80" comes from `ProviderResource`, which decision #9 missed, so the patient app still hardcodes `$` there. Add `currency` to `ProviderResource` and format it with `formatMoney()`. |
-| E12 | Patient | **Insurance isn't filtered by the patient being booked.** When booking for a family member, the insurance step still offers every policy on the account. The backend accepts any managed profile's policy, so nothing breaks, but the patient could attach the parent's policy to the child's visit. |
 | E10 | Patient, Dashboard | **Small UI issues:** "Use profile" in the visit-address step silently does nothing when the profile has no address. The dashboard's Cities column is labelled "State/Emirate". The patient's "Nearby" dentist tab was empty while "All" listed the dentist (cause not investigated). The consent list briefly shows the previous list before it reloads. |
 | M11 | Mobile apps | **Lint debt.** Info-level only: `withOpacity` deprecations, `prefer_initializing_formals`, `prefer_const`. |
 | M12 | All | **Housekeeping.** Merged feature branches (`fix/*`, `feat/*` from 2026-10-17/18) can be deleted. `TEETHi-Backend/.claude/worktrees/mystifying-rhodes-2e8412` is a stale worktree. Crash logs (`hs_err_pid*.log`, `flutter_01.log`) sit in the patient app's root. Unused CoreUI demo views remain in the dashboard. |
@@ -82,6 +80,8 @@ None open. C2 (mock medical history) is fixed; see §3.
 | H2 | Two copies of the admin plan had diverged | Root `docs/` is the only copy; per-repo files are pointers | Root docs repo | — |
 | H3 | Bookings couldn't be made for family members | "Who is this visit for?" in Before we book; checks, consent and booking use the chosen profile's `patient_profile_id` | Patient app `badb8a9` | Live: booked for child "Mia Patient" and signed her consent; the dentist sees "Mia Patient" |
 | E4 | No way to add a phone number while booking | "No number on file" → Add → number field → Send code → code entry. The backend now validates the phone format (`5ee82df`) | Patient app `badb8a9` | Live: added and verified a phone inside the step. The earlier "code boxes don't accept input" note was a test-tool limitation; key presses work |
+| E11 | The provider starting fee had no currency ("$80" hardcoded) | `ProviderResource.currency`; the dentist step and the dentist profile use `formatMoney()`. The last hardcoded `$` amounts (payment step, invoice detail, visits list) were also replaced. The branch step's fixed "From $95 / $165" copy remains | Backend `efb65c2`, patient app `c22338a` (*branches `fix/e11-e12`, not merged*) | Live API: providers return `currency: USD`. Tests cover the parsing and the fallback |
+| E12 | A parent's insurance could be attached to a child's visit | The insurance step shows the shared "Who is this visit for?" picker and lists only that person's policies. Switching the person drops the chosen policy. The backend rejects a policy that isn't the booked person's own | Backend `efb65c2`, patient app `c22338a` (*branches `fix/e11-e12`, not merged*) | Live API: booking Mia with the parent's policy → `422 insurance_id`. Three new backend tests. In-app flow not clicked through |
 | M8 | Patient smoke test failed | Test now registers dependencies | Patient app `82a0509` | Suite passes |
 | C2 | Medical history was hardcoded ("Penicillin" for everyone), so dentists never got real allergies | Medical tab wired to `GET/PUT /patient/medical-history`, with an edit sheet | Patient app `64a2539` | Live: the patient saved Latex / Metformin 500mg, and the dentist's record showed the same |
 | E3 | The dashboard showed AED while the patient app showed $ | Decision #9: the backend sends `currency` (USD). Dashboard `money` pipe; patient app `formatMoney()` | Backend `7860aee`, dashboard `3df5016`, patient app `3d2a4b1` | Live: dashboard invoices "$250.00 / $100.00" |
@@ -131,7 +131,7 @@ None open. C2 (mock medical history) is fixed; see §3.
 ### Suggested order of work
 1. **Backend Phase 10,** including H7, M4 and H6.
 2. **H4 / H5:** patient Phase 9 (notifications and push) and Phase 2b (insurance and payment methods). Dentist Phase 11.
-3. **E11 / E12:** provider fee currency, and insurance filtered by the booked profile.
+3. **Merge** `fix/e11-e12` (backend and patient app) and run the suites on `master`.
 4. **Re-run the live end-to-end scenario** (§7) after each group.
 
 ---
@@ -178,6 +178,11 @@ See `docs/README.md` for the index and the rules for keeping docs here.
 4. The patient moved it to 12:00. The dentist's Pending tab showed "New time" with the reason; the patient saw "New time · awaiting dentist".
 5. The dentist chose Accept new time.
 6. The dentist's own move to 15:00 stayed Accepted, and the patient saw "Confirmed" after a reload.
+
+**Run 5, E11 and E12 (2026-10-18), API only:**
+1. `GET /patient/providers` returned `currency: USD` beside `starting_fee`.
+2. Insurance policy #1 was added to the seeded patient's own profile.
+3. Booking child Mia (#10) with that policy returned `422` on `insurance_id`.
 
 **Run 4, H3 and E4 (2026-10-18):**
 1. The seeded patient's phone was cleared, and child "Mia Patient" (no date of birth) was added.

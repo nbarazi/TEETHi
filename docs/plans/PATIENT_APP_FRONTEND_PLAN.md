@@ -640,6 +640,20 @@ Backend Phase 13 is built on TEETHi-Backend branch `feat/timezone-contract` (`25
 - The booking returned `201`. The dentist's Pending list shows #4 "Mia Patient", and invoice #4 ($100 USD) exists.
 - Not covered: insurance for a family member. The insurance step still lists all of the account's policies; the backend accepts any policy belonging to a profile the account manages.
 
+### Provider fee currency and insurance per booked person (2026-10-18, consistency report E11 and E12)
+- [x] **E11:** `ProviderResource` now sends `currency`. The dentist step's fee and the dentist profile's "Consultations start from" use `formatMoney()`.
+  - The same pass removed the last hardcoded `$` amounts: procedures total, payment step, invoice detail and pay sheet, and the visits list's "outstanding".
+  - Still hardcoded: the branch step's "From $95" / "From $165" marketing copy. These are fixed figures, not API amounts.
+- [x] **E12:** "Who is this visit for?" is a shared `BookingPatientPicker`, shown on the insurance step and again in Before we book.
+  - The insurance step lists only the booked person's policies. A policy added there is saved to that person (`patient_profile_id`).
+  - Switching the person drops the chosen policy. Before we book then shows an "Insurance · Choose" item that jumps back to the insurance step.
+  - Backend: `POST /patient/appointments` rejects a policy that isn't the booked person's own (`422` on `insurance_id`). TEETHi-Backend `efb65c2`.
+
+**Verified (2026-10-18):** TEETHi-Patient-App `c22338a` on `fix/e11-e12`.
+- 45/45 tests pass, analyzer unchanged.
+- Live API: the provider list returns `currency: USD`. Booking child Mia (#10) with the parent's policy returned `422 insurance_id`.
+- The in-app flow was not clicked through.
+
 ### Phase 10 — Polish & hardening
 - [ ] Loading/empty/error states for every list screen, using the Phase 0 envelope handling consistently
 - [ ] Confirm-before-destructive-action dialogs for every hard delete (dependents, insurance, payment methods — none of these are soft-deletable or undoable server-side)

@@ -12938,6 +12938,10 @@
                             "null"
                         ]
                     },
+                    "currency": {
+                        "type": "string",
+                        "description": "Decision #9: every amount carries its currency (E11)."
+                    },
                     "hours": {
                         "type": [
                             "string",
@@ -12981,6 +12985,7 @@
                     "patients_treated_count",
                     "recommended_percentage",
                     "starting_fee",
+                    "currency",
                     "hours",
                     "available_today"
                 ],
@@ -15175,6 +15180,7 @@
                 "properties": {
                     "phone_number": {
                         "type": "string",
+                        "pattern": "^\\+?(?:[\\s().-]*\\d){7,15}[\\s().-]*$",
                         "maxLength": 32
                     }
                 },
