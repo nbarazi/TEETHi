@@ -31,6 +31,8 @@ These were open questions; each has a chosen answer that the plan below is writt
 | 9 | Currency | **One platform currency, sent by the backend.** `config('app.currency')` (ISO 4217, default `USD`) is returned as `currency` on every resource that carries a price (`TreatmentResource`, `InvoiceResource`, `AppointmentResource`), and every app formats amounts with it instead of a hardcoded symbol. It moves to `cities` only if a non-US city is ever added. Decided 2026-10-18 (`docs/CONSISTENCY_REPORT.md` E3: the dashboard showed AED while the patient app showed $ for the same invoice). | 14 |
 | 10 | Patient display name | **The patient profile's first and last name are the source, and booking requires them.** Registration pre-fills the account holder's profile from the account name (first word becomes `first_name`, the rest `last_name`), and a one-time data migration does the same for existing profiles with no name. `PatientProfileResource.full_name` falls back to the managing account's name for the account holder. The dentist app, the dashboard and the patient app all show `full_name`. `BookingService::missingRequirements()` adds `booking.name_missing`. Decided 2026-10-18 (E5: dentist and admin saw "Patient" / "#1"). | 1, 4, 14 |
 | 11 | When an invoice is created | **At booking** for a direct request, and **when a doctor claims** an open-pool request (an invoice always names its doctor, and `invoices.doctor_profile_id` is required). The pending invoice is built from the booked treatments' standard amounts. Cancelling or declining the visit cancels the invoice if nothing has been paid; a partly paid invoice is left for admin reconciliation. Payments and reconciliation are unchanged. Decided 2026-10-18 (E6: a visit the patient never paid had no invoice, so admin couldn't reconcile it). | 7, 14 |
+| 12 | Admin access to the routes shared with the apps | **Only staff with the matching dashboard permission.** Being `role=admin` grants nothing on its own. Reading a visit needs `view_appointments`. Cancelling it needs `manage_appointments` (new); admins never reschedule. Reading conversations needs `view_messages` (new); admins never post. Legal documents need `verify_legal_documents`, or `view_doctors` / `view_patients` matching the owner. Patient profiles, insurance and medical history need `view_patients` to read and `manage_patients` to change. Doctor profiles and expertise need `view_doctors` / `manage_doctors`. Super Admins keep everything. Decided 2026-10-19 (`docs/CONSISTENCY_REPORT.md` H6: a billing-only staff member could read PHI and cancel visits). | 5, 10 |
+| 13 | Password reset responses | **The same answer whether or not the email has an account.** "Forgot password" always returns `200` with one message. "Reset password" with an unknown email answers like a wrong code (`422`). Decided 2026-10-19 (H7: the endpoint revealed which emails have accounts). | 0, 10 |
 
 Other assumptions made without a dedicated question (revisit if wrong — see §7 Open Questions): one shared treatment catalog for both apps (not two audience-specific catalogs); `appointments.insurance_id` is a point-in-time snapshot reference, not a live one; admin authenticates through the same `/login` endpoint gated by `role:admin`, with dashboard RBAC (decision #5) providing the finer-grained access control within that gate rather than a separate auth surface.
 
@@ -634,14 +636,33 @@ Verified: full Pest suite green (471 tests, +30: `tests/Feature/Api/V1/TimezoneC
   - Dashboard invoices show "$250.00" (previously "AED").
 - Visits booked before this change keep their old behaviour: appointment #2 still has no invoice until a payment is started.
 
-### Phase 10 — HIPAA hardening close-out
-- [ ] Reflection-based Pest test asserting encrypted casts on every flagged column (regression guard)
-- [ ] Audit `LogApiRequests` middleware output — scrub PHI from logged request/response bodies
-- [ ] `POST /sessions/revoke-all` (log out all devices), extending the existing token-revocation pattern from `changePassword`/`resetPassword`
-- [x] Implement `withExceptions` in `bootstrap/app.php` — partially done (2026-09-16): `shouldRenderJsonWhen()` now forces every exception to render as JSON regardless of the request's `Accept` header, fixing a real production bug this uncovered (see Phase 12 addendum below) rather than the originally-scoped "clean JSON error envelope" wrapping. Every exception now reliably returns *some* JSON body, but 404/405/500 still render Laravel's raw `{message, exception, file, line, trace}` debug shape, not this app's own `{success, message, data}` envelope — wrapping those consistently is still open.
-- [ ] Verify every file-serving endpoint uses signed/temporary URLs, never a public path
-- [ ] Confirm soft-delete vs. hard-delete matrix (§4) is implemented consistently
-- [ ] Run a security review pass before production rollout
+### Phase 10 — HIPAA hardening close-out ✅ complete (2026-10-19, branch `feat/phase-10-hardening`, not merged)
+Done 2026-10-19 on TEETHi-Backend `feat/phase-10-hardening` (553 Pest tests, PHPStan max and Pint clean). Two decisions apply: decision #12 (H6, admin access to shared routes) and decision #13 (H7, password reset responses).
+
+- [x] Reflection-based Pest test asserting encrypted casts on every flagged column (regression guard). `tests/Unit/EncryptedColumnsTest.php` covers 17 models. It also fails if an encrypted column exists that isn't listed. It found that `insurance_details.provider_name`, flagged in §4, was stored in plain text: it's now encrypted, and a migration encrypts existing rows.
+- [x] Audit `LogApiRequests` middleware output — scrub PHI from logged request/response bodies.
+  - The middleware logged the full URL, including query values such as patient searches. It now logs the path and the names of query parameters only.
+  - It was registered but never attached to a route, and its `app.log_api_requests` setting didn't exist. It's now on v1 behind `LOG_API_REQUESTS`, off by default.
+  - The SMS fallback logged the full phone number and the code. It now masks the number, and never logs the code in production.
+  - Twilio failures logged the response body, which contains the recipient's number. They now log Twilio's error code only.
+- [x] `POST /sessions/revoke-all` (log out all devices), extending the existing token-revocation pattern from `changePassword`/`resetPassword`. Every other token is revoked; the caller stays signed in. Returns `revoked_sessions`.
+- [x] Implement `withExceptions` in `bootstrap/app.php` — completed 2026-10-19 (M4): `App\Http\ApiExceptionRenderer` renders every exception as `{success: false, message, errors?}`. Model class names, files, lines and traces never reach the client. A 500 adds a short `debug` block only with `APP_DEBUG=true`. A `409` keeps the server's own reason. `429` keeps `Retry-After`. Earlier partial step (2026-09-16): `shouldRenderJsonWhen()` now forces every exception to render as JSON regardless of the request's `Accept` header, fixing a real production bug this uncovered (see Phase 12 addendum below) rather than the originally-scoped "clean JSON error envelope" wrapping. Every exception now reliably returns *some* JSON body, but 404/405/500 still render Laravel's raw `{message, exception, file, line, trace}` debug shape, not this app's own `{success, message, data}` envelope — wrapping those consistently is still open.
+- [x] Verify every file-serving endpoint uses signed/temporary URLs, never a public path.
+  - All four uploads are stored on the private `local` disk under UUID names and returned only as 30-minute signed URLs: avatars, doctor credentials, insurance cards, message attachments.
+  - `FileStorageGuardTest` fails if code writes to the public disk or builds a permanent URL.
+  - Message attachments accepted any file type, and an HTML or SVG file would run script on the API's own origin. They're now limited to jpg, png, webp, heic and pdf.
+- [x] Confirm soft-delete vs. hard-delete matrix (§4) is implemented consistently.
+  - Insurance and messages soft-delete as planned.
+  - **Removing a dependent hard-deleted the profile.** The database cascade then deleted their appointments, invoices, prescriptions and medical history, against "no hard deletes for clinical records". A dependent with visits, prescriptions or invoices now can't be removed (`409`).
+  - Deleting a booked treatment, or a category holding one, crashed on a foreign key. It now returns `409` asking to deactivate instead.
+  - Payment methods, roles, availability slots, expertise and prescription templates hard-delete without touching clinical or billing rows. Prescriptions keep a null template.
+- [x] Run a security review pass before production rollout. Findings and fixes:
+  - **Fixed:** H6, H7 and M4.
+  - **Fixed:** a `nosniff` / `no-referrer` / `DENY` header middleware on every response, including signed file downloads.
+  - **Fixed:** reschedule and cancel now authorize before validating, so an outsider can't probe which slots are free.
+  - **Made configurable:** token lifetime (`SANCTUM_TOKEN_EXPIRATION`, unset means tokens last until logout) and CORS origins (`CORS_ALLOWED_ORIGINS`, default `*`).
+  - **Checked, no change needed:** codes expire and lock after the maximum number of attempts. Login is limited to 5 per minute, forgot/reset to 6, codes to 6. Registration can't create admins. Every action that loads a record by ID checks ownership or is a public directory. Private files use signed URLs.
+  - **For deployment:** set `APP_DEBUG=false`, `OTP_EXPOSE_IN_RESPONSE=false`, `CORS_ALLOWED_ORIGINS` to the dashboard origin, and a `SANCTUM_TOKEN_EXPIRATION`. Grant the new `manage_appointments` / `view_messages` permissions to the dashboard roles that need them.
 
 ### Phase 11 — Real payment gateway integration (deferred/optional)
 - [ ] Choose gateway (Stripe recommended for combined card + Apple Pay support)

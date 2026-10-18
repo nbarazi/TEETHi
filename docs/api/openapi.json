@@ -1169,6 +1169,65 @@
                 }
             }
         },
+        "/v1/sessions/revoke-all": {
+            "post": {
+                "operationId": "v1.sessions.revoke-all",
+                "summary": "Signs out every other device, the same token revocation\n`changePassword` and `resetPassword` use, but keeping the token\nthat made this request so the caller isn't logged out too",
+                "tags": [
+                    "Auth"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "null"
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "revoked_sessions": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "required": [
+                                                "revoked_sessions"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/v1/me": {
             "get": {
                 "operationId": "v1.me",
@@ -1784,7 +1843,8 @@
         "/v1/forgot-password": {
             "post": {
                 "operationId": "password.email",
-                "summary": "OTP-based, not Laravel's mail-link broker (\u00a7 decision: a 6-digit\ncode typed into the app matches how every other verification step\nalready works, and doesn't need a deep link / webview to consume\na token from). `ForgotPasswordRequest` already validates the email\nexists, so `first()` here should never actually be null \u2014 the\ncheck exists anyway to match every sibling \"look the user up by\n     * email\" method's own defensive shape (e.g. `resendVerificationEmail`)",
+                "description": "Known and unknown emails get the same `200` and message (H7), so the\nendpoint can't be used to find out who has an account. A code is\nonly issued, and only ever exposed in dev, for a real account.",
+                "summary": "OTP-based, not Laravel's mail-link broker (\u00a7 decision: a 6-digit\ncode typed into the app matches how every other verification step\nalready works, and doesn't need a deep link / webview to consume\na token from)",
                 "tags": [
                     "Auth"
                 ],
@@ -1804,81 +1864,78 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean"
-                                        },
-                                        "message": {
-                                            "anyOf": [
-                                                {
-                                                    "type": "null"
-                                                },
-                                                {
-                                                    "type": "array",
-                                                    "items": {}
-                                                },
-                                                {
-                                                    "type": "string"
-                                                }
-                                            ]
-                                        },
-                                        "data": {
-                                            "type": [
-                                                "object",
-                                                "null"
-                                            ],
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
                                             "properties": {
-                                                "otp_code": {
-                                                    "type": "string"
+                                                "success": {
+                                                    "type": "boolean"
+                                                },
+                                                "message": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "null"
+                                                        },
+                                                        {
+                                                            "type": "array",
+                                                            "items": {}
+                                                        },
+                                                        {
+                                                            "type": "string"
+                                                        }
+                                                    ]
+                                                },
+                                                "data": {
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ],
+                                                    "properties": {
+                                                        "otp_code": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "otp_code"
+                                                    ]
                                                 }
                                             },
                                             "required": [
-                                                "otp_code"
+                                                "success",
+                                                "message",
+                                                "data"
                                             ]
-                                        }
-                                    },
-                                    "required": [
-                                        "success",
-                                        "message",
-                                        "data"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean"
                                         },
-                                        "message": {
-                                            "anyOf": [
-                                                {
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "success": {
+                                                    "type": "boolean"
+                                                },
+                                                "message": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "null"
+                                                        },
+                                                        {
+                                                            "type": "array",
+                                                            "items": {}
+                                                        },
+                                                        {
+                                                            "type": "string"
+                                                        }
+                                                    ]
+                                                },
+                                                "data": {
                                                     "type": "null"
-                                                },
-                                                {
-                                                    "type": "array",
-                                                    "items": {}
-                                                },
-                                                {
-                                                    "type": "string"
                                                 }
+                                            },
+                                            "required": [
+                                                "success",
+                                                "message",
+                                                "data"
                                             ]
-                                        },
-                                        "errors": {
-                                            "type": "string"
                                         }
-                                    },
-                                    "required": [
-                                        "success",
-                                        "message",
-                                        "errors"
                                     ]
                                 }
                             }
@@ -1946,43 +2003,6 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
-                    },
-                    "404": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean"
-                                        },
-                                        "message": {
-                                            "anyOf": [
-                                                {
-                                                    "type": "null"
-                                                },
-                                                {
-                                                    "type": "array",
-                                                    "items": {}
-                                                },
-                                                {
-                                                    "type": "string"
-                                                }
-                                            ]
-                                        },
-                                        "errors": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "success",
-                                        "message",
-                                        "errors"
-                                    ]
-                                }
-                            }
-                        }
                     }
                 }
             }
@@ -3135,6 +3155,25 @@
                             }
                         }
                     },
+                    "403": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
                     }
@@ -3921,6 +3960,25 @@
                 "responses": {
                     "204": {
                         "description": "No content"
+                    },
+                    "409": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
                     },
                     "403": {
                         "$ref": "#/components/responses/AuthorizationException"
@@ -10317,6 +10375,25 @@
                     "204": {
                         "description": "No content"
                     },
+                    "409": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
                     "404": {
                         "$ref": "#/components/responses/ModelNotFoundException"
                     },
@@ -10610,6 +10687,25 @@
                 "responses": {
                     "204": {
                         "description": "No content"
+                    },
+                    "409": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
                     },
                     "404": {
                         "$ref": "#/components/responses/ModelNotFoundException"
@@ -13889,6 +13985,7 @@
                         ],
                         "format": "binary",
                         "contentMediaType": "application/octet-stream",
+                        "description": "Images and PDFs only (Phase 10): attachments are served from\nthe API's own origin, so an HTML or SVG file could run script.",
                         "maxLength": 10240
                     }
                 },
