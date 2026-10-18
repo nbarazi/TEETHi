@@ -429,6 +429,14 @@ Backend Phase 13 is built on TEETHi-Backend branch `feat/timezone-contract` (`25
 - [x] Reschedule: replace the free date/time picker (`pickFutureDateTime` in `request_dialogs.dart`) with the open-slot list from `GET /doctor/availability/open-slots`, and send the chosen slot's `starts_at` as `scheduled_at`. The backend accepts only an exact open slot start, so today's free picker gets `422 slot_not_available` unless the time happens to match a slot. **Verified (`1487519`, unit tests only):** `pickOpenSlot` shows a date (starting from the doctor's today in the visit's zone) and that date's slots from `open-slots` (`visit_type` from the visit), then asks for the reason. `reschedulePayload` sends the slot's `starts_at` string unchanged. `pickFutureDateTime` is gone.
 - [x] Schedule editor: say that hours are in the city's timezone, showing `city.timezone`, so a doctor travelling with their phone doesn't misread their hours. **Verified (`1487519`):** `DoctorProfile.cityTimezone` reads `city.timezone`. The weekly grid and the date-exception screen both say "Hours are in Los Angeles time (America/Los_Angeles), your city's timezone…", using the platform default when there's no city.
 
+### Reschedule confirmation — backend decision #8 (2026-10-18)
+- [x] Pending lists a patient's reschedule (`status: rescheduled`) with a "New time" badge, the patient's reason and **Accept new time**. Declining cancels the visit and requires a reason. A doctor's own reschedule comes back `accepted`. In-progress visits are labelled "In progress" instead of "Today" (E8).
+
+**Verified live (2026-10-18):** TEETHi-Dentist-App `c59e68a` on `feat/reschedule-confirmation`.
+1. The patient moved visit #2 to 12:00. The dentist's Pending tab showed it as "New time" with the reason, while the patient saw "New time · awaiting dentist" with only Cancel.
+2. Accept new time returned it to Accepted.
+3. The dentist's own reschedule to 15:00 stayed Accepted. After a refresh, the patient saw "Confirmed".
+
 ### Phase 11 — Polish & hardening
 - [ ] Empty/error/loading states on every list; pull-to-refresh as the only freshness mechanism
 - [ ] Contract test against a live backend for each repository (the mocks currently make every screen look fine)

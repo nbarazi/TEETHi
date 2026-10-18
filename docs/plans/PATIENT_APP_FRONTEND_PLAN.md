@@ -606,6 +606,14 @@ Backend Phase 13 is built on TEETHi-Backend branch `feat/timezone-contract` (`25
 - [x] Check: with the device set to UTC or a European zone, book the 09:00 slot of a Los Angeles dentist. It must show 09:00 in the patient app, the dentist app and the dashboard. **Verified live (2026-10-18):** on a UTC+3 (Syria) machine, the 09:00 Los Angeles slot showed as 09:00 GMT-7 in the patient app, 09:00 in the dentist app and 9:00 AM (America/Los_Angeles) in the dashboard, and was stored as 16:00Z. See `docs/CONSISTENCY_REPORT.md` §8. The booking itself had to be submitted through the API because the consent screen is mock (E1/C4).
   - Not run yet: needs a running backend and all three clients. Unit tests cover the patient side (`09:00 GMT-8` with a UTC device).
 
+### Reschedule confirmation — backend decision #8 (2026-10-18)
+- [x] Upcoming cards show where a visit stands (Waiting for dentist / New time · awaiting dentist / Confirmed / In progress), and a visit the patient moved explains that the dentist will confirm or cancel it. Reschedule is offered only for `accepted` visits with a dentist.
+
+**Verified live (2026-10-18):** TEETHi-Patient-App `924abf8` on `feat/reschedule-confirmation`.
+1. The patient moved visit #2 to 12:00. The dentist's Pending tab showed it as "New time" with the reason, while the patient saw "New time · awaiting dentist" with only Cancel.
+2. Accept new time returned it to Accepted.
+3. The dentist's own reschedule to 15:00 stayed Accepted. After a refresh, the patient saw "Confirmed".
+
 ### Phase 10 — Polish & hardening
 - [ ] Loading/empty/error states for every list screen, using the Phase 0 envelope handling consistently
 - [ ] Confirm-before-destructive-action dialogs for every hard delete (dependents, insurance, payment methods — none of these are soft-deletable or undoable server-side)
