@@ -18,15 +18,14 @@ IDs are stable across updates: C = critical, H = high, M = medium (from the stat
 
 | Project | Plan progress | Build / tests on `master` (2026-10-18) | What's left |
 |---|---|---|---|
-| **Backend** (Laravel 13) | Phases 0–9 and 12–14 done | ✅ **491 Pest tests pass**, PHPStan (max) and Pint clean | Phase 10 HIPAA close-out (6 items). Phase 11 real payment gateway (deferred). Open: H6, H7, M4 |
+| **Backend** (Laravel 13) | Phases 0–9 and 12–14 done | ✅ **497 Pest tests pass**, PHPStan (max) and Pint clean | Phase 10 HIPAA close-out (6 items). Phase 11 real payment gateway (deferred). Open: H6, H7, M4 |
 | **Admin dashboard** (Angular 21) | Phases 0–11 done, plus the timezone and currency/name sections | ✅ `ng build` clean, **189/189 tests pass** | Phase 0 leftovers (429 handling, `/enums` cache). Optional Phase 12 (messaging view). Open: M6 (no appointment detail, placeholder home page) |
 | **Dentist app** (Flutter) | Phases 0–10 plus the timezone, reschedule and display-name sections | ✅ **100/100 tests pass**. `flutter analyze`: 49 infos, 0 warnings/errors | Phase 11 polish. Open: H4 (push), M4/E7 (generic error text), M9 |
-| **Patient app** (Flutter) | Phases 0–8 plus timezone, consent, reschedule, medical history, currency and name | ✅ **36/36 tests pass**. `flutter analyze`: 38 infos, 0 warnings/errors | Phase 2b (insurance and payment-method screens, H5), Phase 9 (notifications, push, H4), Phase 10. Open: H3, E4, E9 |
+| **Patient app** (Flutter) | Phases 0–8 plus timezone, consent, reschedule, medical history, currency and name | ✅ **41/41 tests pass**. `flutter analyze`: 38 infos, 0 warnings/errors | Phase 2b (insurance and payment-method screens, H5), Phase 9 (notifications, push, H4), Phase 10. Open: E9, E11, E12 |
 
 **Bottom line:**
 - **The core visit lifecycle now works end to end and is consistent in all three apps.** A patient books (consent is signed in the app), the dentist accepts and reschedules (both directions, rule A), then starts, documents and completes the visit. The patient receives the report, and the admin sees the appointment and the invoice. Every app shows the same visit time in the visit's own timezone.
 - **What's left, in order:**
-  - **Merge** `feat/booking-gaps` (patient app) and `fix/phone-format` (backend).
   - **Patient-app mock screens:** H4, H5.
   - **Backend hardening:** Phase 10, H6, H7, M4.
 
@@ -81,8 +80,8 @@ None open. C2 (mock medical history) is fixed; see §3.
 | E2 | A rescheduled visit could never be started | Decision #8 (rule A): a doctor's reschedule goes straight back to `accepted`; a patient's waits in the dentist's Pending list for Accept new time / Decline (decline cancels). Only `accepted` visits can be moved | Backend `8d9b4b9`, dentist app `c59e68a`, patient app `924abf8` | Live in all three apps, full status history checked |
 | H1 | Admin password reset sent `token`; the backend wants `code` | OTP code entry | Dashboard `b2882f6` | Live: code → `200` → login |
 | H2 | Two copies of the admin plan had diverged | Root `docs/` is the only copy; per-repo files are pointers | Root docs repo | — |
-| H3 | Bookings couldn't be made for family members | "Who is this visit for?" in Before we book; checks, consent and booking use the chosen profile's `patient_profile_id` | Patient app `badb8a9` (*branch `feat/booking-gaps`, not merged*) | Live: booked for child "Mia Patient" and signed her consent; the dentist sees "Mia Patient" |
-| E4 | No way to add a phone number while booking | "No number on file" → Add → number field → Send code → code entry. The backend now validates the phone format (`5ee82df`, *branch `fix/phone-format`, not merged*) | Patient app `badb8a9` | Live: added and verified a phone inside the step. The earlier "code boxes don't accept input" note was a test-tool limitation; key presses work |
+| H3 | Bookings couldn't be made for family members | "Who is this visit for?" in Before we book; checks, consent and booking use the chosen profile's `patient_profile_id` | Patient app `badb8a9` | Live: booked for child "Mia Patient" and signed her consent; the dentist sees "Mia Patient" |
+| E4 | No way to add a phone number while booking | "No number on file" → Add → number field → Send code → code entry. The backend now validates the phone format (`5ee82df`) | Patient app `badb8a9` | Live: added and verified a phone inside the step. The earlier "code boxes don't accept input" note was a test-tool limitation; key presses work |
 | M8 | Patient smoke test failed | Test now registers dependencies | Patient app `82a0509` | Suite passes |
 | C2 | Medical history was hardcoded ("Penicillin" for everyone), so dentists never got real allergies | Medical tab wired to `GET/PUT /patient/medical-history`, with an edit sheet | Patient app `64a2539` | Live: the patient saved Latex / Metformin 500mg, and the dentist's record showed the same |
 | E3 | The dashboard showed AED while the patient app showed $ | Decision #9: the backend sends `currency` (USD). Dashboard `money` pipe; patient app `formatMoney()` | Backend `7860aee`, dashboard `3df5016`, patient app `3d2a4b1` | Live: dashboard invoices "$250.00 / $100.00" |
@@ -130,9 +129,9 @@ None open. C2 (mock medical history) is fixed; see §3.
 4. **Product note:** the backend allows one active consent form per template type, while the old mock had four patient forms. Decide whether one combined form is enough.
 
 ### Suggested order of work
-1. **Merge** the H3/E4 branches (`feat/booking-gaps`, `fix/phone-format`) and run the suites on `master`.
-2. **Backend Phase 10,** including H7, M4 and H6.
-3. **H4 / H5:** patient Phase 9 (notifications and push) and Phase 2b (insurance and payment methods). Dentist Phase 11.
+1. **Backend Phase 10,** including H7, M4 and H6.
+2. **H4 / H5:** patient Phase 9 (notifications and push) and Phase 2b (insurance and payment methods). Dentist Phase 11.
+3. **E11 / E12:** provider fee currency, and insurance filtered by the booked profile.
 4. **Re-run the live end-to-end scenario** (§7) after each group.
 
 ---
@@ -143,6 +142,12 @@ None open. C2 (mock medical history) is fixed; see §3.
 - Dashboard: `ng build` is clean and 189/189 tests pass.
 - Patient app: 36/36 tests pass, 0 analyzer warnings or errors.
 - Dentist app: 100/100 tests pass, 0 analyzer warnings or errors.
+
+### Merge check (2026-10-18, H3 and E4)
+Fast-forwarded: TEETHi-Patient-App `master` → `badb8a9` (`feat/booking-gaps`); TEETHi-Backend `master` → `5ee82df` (`fix/phone-format`).
+- Backend: 497 Pest tests pass; PHPStan and Pint are clean.
+- Patient app: 41/41 tests pass, 0 analyzer warnings or errors.
+- The dashboard and the dentist app are unchanged since the last merge check (189/189 and 100/100).
 
 ## 6. Docs consolidated in this folder
 
