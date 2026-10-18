@@ -30,7 +30,7 @@ These were open questions; each has a chosen answer that the plan below is writt
 | 8 | Who confirms a rescheduled visit | **The party whose calendar is affected confirms.** A doctor's reschedule (picked from their own open slots) settles straight back to `accepted`, and the patient gets one notification. Both steps are kept in the status history. A patient's (or admin's) reschedule stays `rescheduled` and appears in the doctor's **Pending** list next to new bookings. Accept moves it to `accepted`; Decline moves it to `cancelled` with the doctor's reason (`declined` stays reserved for a fresh `pending` request). Only an `accepted` visit can be rescheduled, and starting a visit requires `accepted`. Decided 2026-10-18 after the live run found rescheduled visits could never be started (`docs/CONSISTENCY_REPORT.md` E2). Rejected: auto-accepting every reschedule, because it would let a patient move a visit without the doctor, while a new booking needs the doctor's acceptance. | 4 |
 | 9 | Currency | **One platform currency, sent by the backend.** `config('app.currency')` (ISO 4217, default `USD`) is returned as `currency` on every resource that carries a price (`TreatmentResource`, `InvoiceResource`, `AppointmentResource`), and every app formats amounts with it instead of a hardcoded symbol. It moves to `cities` only if a non-US city is ever added. Decided 2026-10-18 (`docs/CONSISTENCY_REPORT.md` E3: the dashboard showed AED while the patient app showed $ for the same invoice). | 14 |
 | 10 | Patient display name | **The patient profile's first and last name are the source, and booking requires them.** Registration pre-fills the account holder's profile from the account name (first word becomes `first_name`, the rest `last_name`), and a one-time data migration does the same for existing profiles with no name. `PatientProfileResource.full_name` falls back to the managing account's name for the account holder. The dentist app, the dashboard and the patient app all show `full_name`. `BookingService::missingRequirements()` adds `booking.name_missing`. Decided 2026-10-18 (E5: dentist and admin saw "Patient" / "#1"). | 1, 4, 14 |
-| 11 | When an invoice is created | **At booking.** `BookingService` creates the pending invoice from the booked treatments' standard amounts. Cancelling or declining the visit cancels the invoice if nothing has been paid; a partly paid invoice is left for admin reconciliation. Payments and reconciliation are unchanged. Decided 2026-10-18 (E6: a visit the patient never paid had no invoice, so admin couldn't reconcile it). | 7, 14 |
+| 11 | When an invoice is created | **At booking** for a direct request, and **when a doctor claims** an open-pool request (an invoice always names its doctor, and `invoices.doctor_profile_id` is required). The pending invoice is built from the booked treatments' standard amounts. Cancelling or declining the visit cancels the invoice if nothing has been paid; a partly paid invoice is left for admin reconciliation. Payments and reconciliation are unchanged. Decided 2026-10-18 (E6: a visit the patient never paid had no invoice, so admin couldn't reconcile it). | 7, 14 |
 
 Other assumptions made without a dedicated question (revisit if wrong — see §7 Open Questions): one shared treatment catalog for both apps (not two audience-specific catalogs); `appointments.insurance_id` is a point-in-time snapshot reference, not a live one; admin authenticates through the same `/login` endpoint gated by `role:admin`, with dashboard RBAC (decision #5) providing the finer-grained access control within that gate rather than a separate auth surface.
 
@@ -616,13 +616,23 @@ Verified: full Pest suite green (471 tests, +30: `tests/Feature/Api/V1/TimezoneC
 - Open slots for today still include slots whose start has already passed; booking one then fails `after:now`.
 - On the spring-forward date, a window covering the skipped hour (02:00-03:00 local) yields a slot whose `starts_at` PHP shifts to 03:00, the same instant as the next slot. Harmless unless a doctor works at 2 am.
 
-### Phase 14 — Cross-app data agreements (decisions #9–#11)
-- [ ] #9: `config('app.currency')` (default `USD`) returned as `currency` on `TreatmentResource`, `InvoiceResource` and `AppointmentResource`
-- [ ] #10: registration and the `User::created` hook pre-fill the account holder's profile names from the account name; a data migration backfills profiles that have no name
-- [ ] #10: `PatientProfileResource.full_name`, falling back to the managing account's name for the account holder
-- [ ] #10: `BookingService::missingRequirements()` adds `booking.name_missing` when the booked profile has no first or last name
-- [ ] #11: `BookingService` creates the pending invoice at booking; `AppointmentStatusService` cancels an unpaid invoice when the visit is cancelled or declined
-- [ ] Tests for each; regenerate `api.json` and refresh `docs/api/openapi.json`
+### Phase 14 — Cross-app data agreements (decisions #9–#11) ✅ built 2026-10-18 (branch `feat/decisions-9-11`, not merged)
+- [x] #9: `config('app.currency')` (default `USD`) returned as `currency` on `TreatmentResource`, `InvoiceResource` and `AppointmentResource`
+- [x] #10: registration and the `User::created` hook pre-fill the account holder's profile names from the account name; a data migration backfills profiles that have no name
+- [x] #10: `PatientProfileResource.full_name`, falling back to the managing account's name for the account holder
+- [x] #10: `BookingService::missingRequirements()` adds `booking.name_missing` when the booked profile has no first or last name
+- [x] #11: `BookingService` creates the pending invoice at booking (direct requests); `claimOpenAppointment` creates it for open-pool requests; `AppointmentStatusService` cancels an unpaid invoice when the visit is cancelled or declined
+- [x] Tests for each; regenerate `api.json` and refresh `docs/api/openapi.json`
+
+**Verified (2026-10-18):** TEETHi-Backend `422ceb4` + `7860aee` on `feat/decisions-9-11`.
+- 491 Pest tests pass (13 new in `CrossAppAgreementsTest`); PHPStan and Pint are clean.
+- The backfill migration ran on the local database: the seeded "Sample Patient" became first "Sample", last "Patient".
+- Live:
+  - A new direct booking returned `currency: USD` and `patient_profile.full_name: "Sample Patient"`.
+  - Its invoice ($250, pending) existed immediately.
+  - The dentist's Pending list and Patients tab, and the dashboard's Appointments list, all show "Sample Patient" (previously "Patient" and "#1").
+  - Dashboard invoices show "$250.00" (previously "AED").
+- Visits booked before this change keep their old behaviour: appointment #2 still has no invoice until a payment is started.
 
 ### Phase 10 — HIPAA hardening close-out
 - [ ] Reflection-based Pest test asserting encrypted casts on every flagged column (regression guard)

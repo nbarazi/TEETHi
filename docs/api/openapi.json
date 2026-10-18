@@ -11271,6 +11271,10 @@
                             "$ref": "#/components/schemas/TreatmentResource"
                         }
                     },
+                    "currency": {
+                        "type": "string",
+                        "description": "Decision #9: the currency of every amount on this visit."
+                    },
                     "patient_profile": {
                         "$ref": "#/components/schemas/PatientProfileResource"
                     },
@@ -11373,6 +11377,7 @@
                     "status",
                     "visit_type",
                     "request_mode",
+                    "currency",
                     "requested_at",
                     "scheduled_at",
                     "timezone",
@@ -12152,6 +12157,9 @@
                     "remaining_amount": {
                         "type": "string"
                     },
+                    "currency": {
+                        "type": "string"
+                    },
                     "status": {
                         "type": "string"
                     },
@@ -12175,6 +12183,7 @@
                     "standard_amount",
                     "advance_paid",
                     "remaining_amount",
+                    "currency",
                     "status",
                     "due_at",
                     "created_at"
@@ -12451,6 +12460,13 @@
                             "null"
                         ]
                     },
+                    "full_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Decision #10: what every app displays for this patient."
+                    },
                     "suffix": {
                         "type": [
                             "string",
@@ -12528,6 +12544,7 @@
                     "first_name",
                     "middle_name",
                     "last_name",
+                    "full_name",
                     "suffix",
                     "gender",
                     "blood_type",
@@ -14633,6 +14650,9 @@
                     "standard_amount": {
                         "type": "string"
                     },
+                    "currency": {
+                        "type": "string"
+                    },
                     "is_quick_select": {
                         "type": "boolean"
                     },
@@ -14655,6 +14675,7 @@
                     "name",
                     "description",
                     "standard_amount",
+                    "currency",
                     "is_quick_select",
                     "requires_tooth_chart",
                     "is_active",

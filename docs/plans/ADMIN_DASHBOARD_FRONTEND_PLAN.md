@@ -747,6 +747,12 @@ Backend Phase 13 is merged on TEETHi-Backend `master`. The contract is in §4.8 
 - [x] Cities (`features/cities/city-form.component`): show and edit `timezone` as an IANA zone picker on `PATCH /admin/cities/{city}`. Show it as a column in the list. **Verified:** TEETHi-Frontend `9af49ca` (branch `feat/timezone-contract`) — Time zone column; the edit modal's searchable `app-searchable-select` lists `Intl.supportedValuesOf('timeZone')` plus `UTC`, keeps the city's current zone if the browser doesn't list it (Chrome lists some legacy aliases such as `Asia/Calcutta`, which the backend's `timezone:all` may reject, so the `422` shows inline under the picker), and a hint warns that a change re-reads doctors' stored hours in the new zone.
 - [x] Appointments list (`appointments-list.component.html`) and the patient detail Appointments tab: show `scheduled_at_local` plus the zone, instead of the `date` pipe in the browser's zone. `requested_at` and other audit timestamps can stay in browser time, but label them as such. **Verified:** same commit — new `LocalDateTimePipe` (`shared/pipes/`) formats `scheduled_at_local` as UTC (so the browser zone can't shift it) and appends `(timezone)`; the Scheduled header reads "visit's local time", Requested reads "your time", and the scheduled-date filters' tooltip says they use UTC days. `ng build` clean; `ng test` **185/185** (11 new: pipe, city form PATCH/422/zone fallback, list and tab rendering).
 
+### Currency and patient display name — backend decisions #9 and #10 (2026-10-18)
+- [x] A `money` pipe formats each amount in the API's `currency` (invoices, payments, treatment catalog, patient invoices). The hardcoded `TREATMENTS.CURRENCY` ("AED" / "درهم") is removed.
+- [x] Patients are shown by `full_name` (appointments list, patients list, patient detail), falling back to first/last name and then `#id`.
+
+**Verified (2026-10-18):** TEETHi-Frontend `3df5016` on `feat/decisions-9-11`. `ng build` is clean and 189/189 tests pass. Live: Invoices show "$250.00 / $100.00", and Appointments show "Sample Patient".
+
 ### Phase 12 — Messaging visibility (optional, product call) — backend Phase 8, §4.13
 - [ ] Only if a support/dispute workflow needs it: a read-only conversation browser (`GET /api/v1/conversations` — an admin sees all), drilling into `GET /api/v1/conversations/{id}/messages`
 - [ ] No compose box — an admin `POST` to messages is `403` by policy

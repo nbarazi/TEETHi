@@ -1,6 +1,6 @@
 # TEETHi — Cross-Project Status & Consistency Report
 
-**Last updated:** 2026-10-18 (first written 2026-10-17) · **Scope:** TEETHi-Backend, TEETHi-Frontend (admin dashboard), TEETHi-Patient-App, TEETHI-Dentist-App
+**Last updated:** 2026-10-18, after C2 and decisions #9–#11 (first written 2026-10-17) · **Scope:** TEETHi-Backend, TEETHi-Frontend (admin dashboard), TEETHi-Patient-App, TEETHI-Dentist-App
 
 **How this was checked**
 - **Static review (2026-10-17):**
@@ -18,17 +18,17 @@ IDs are stable across updates: C = critical, H = high, M = medium (from the stat
 
 | Project | Plan progress | Build / tests on `master` (2026-10-18) | What's left |
 |---|---|---|---|
-| **Backend** (Laravel 13) | 102 ✔ / 11 open. Phases 0–9, 12 and 13 (timezones) done | ✅ **478 Pest tests pass**, PHPStan (max) and Pint clean | Phase 10 HIPAA close-out (6 items). Phase 11 real payment gateway (deferred). Open: H6, H7, E3 (currency source), E5, E6, M4 |
-| **Admin dashboard** (Angular 21) | 54 ✔ / 7 open. Phases 0–11 done, plus the timezone section | ✅ `ng build` clean, **185/185 tests pass** | Phase 0 leftovers (429 handling, `/enums` cache). Optional Phase 12 (messaging view). Open: E3 (AED), M6 (no appointment detail, placeholder home page) |
-| **Dentist app** (Flutter) | 48 ✔ / 8 open. Phases 0–10 plus the timezone and reschedule sections | ✅ **98/98 tests pass**. `flutter analyze`: 49 infos, 0 warnings/errors | Phase 11 polish. Open: H4 (push), M4/E7 (generic error text), M9 |
-| **Patient app** (Flutter) | 47 ✔ / 11 open. Phases 0–8 plus the timezone, consent and reschedule work | ✅ **29/29 tests pass**. `flutter analyze`: 38 infos, 0 warnings/errors | **C2 medical history still mock.** Phase 2b (insurance and payment-method screens, H5), Phase 9 (notifications, push, H4), Phase 10. Open: H3, E4, E9 |
+| **Backend** (Laravel 13) | Phases 0–9, 12, 13 and 14 done (14 is on a branch) | ✅ `master`: 478 tests. `feat/decisions-9-11`: **491 tests pass**, PHPStan (max) and Pint clean | Phase 10 HIPAA close-out (6 items). Phase 11 real payment gateway (deferred). Open: H6, H7, M4 |
+| **Admin dashboard** (Angular 21) | Phases 0–11 done, plus the timezone and currency/name sections | ✅ `ng build` clean. `master`: 185 tests; `feat/decisions-9-11`: **189/189** | Phase 0 leftovers (429 handling, `/enums` cache). Optional Phase 12 (messaging view). Open: M6 (no appointment detail, placeholder home page) |
+| **Dentist app** (Flutter) | Phases 0–10 plus the timezone, reschedule and display-name sections | ✅ `master`: 98 tests; `feat/decisions-9-11`: **100/100**. `flutter analyze`: 49 infos, 0 warnings/errors | Phase 11 polish. Open: H4 (push), M4/E7 (generic error text), M9 |
+| **Patient app** (Flutter) | Phases 0–8 plus timezone, consent, reschedule, medical history, currency and name | ✅ `master`: 29 tests; `feat/decisions-9-11` (includes `fix/medical-history`): **36/36**. `flutter analyze`: 38 infos, 0 warnings/errors | Phase 2b (insurance and payment-method screens, H5), Phase 9 (notifications, push, H4), Phase 10. Open: H3, E4, E9 |
 
 **Bottom line:**
 - **The core visit lifecycle now works end to end and is consistent in all three apps.** A patient books (consent is signed in the app), the dentist accepts and reschedules (both directions, rule A), then starts, documents and completes the visit. The patient receives the report, and the admin sees the appointment and the invoice. Every app shows the same visit time in the visit's own timezone.
 - **What's left, in order:**
-  - **Clinical safety:** C2, mock medical history.
+  - **Merge** the 2026-10-18 branches (C2 and decisions #9–#11, see §3).
+  - **Booking-flow gaps:** E4 (no field to add a phone number), H3 (no booking for family members).
   - **Patient-app mock screens:** H4, H5.
-  - **Cross-app data agreements:** E3 currency, E5 patient name, E6 invoice timing.
   - **Backend hardening:** Phase 10, H6, H7, M4.
 
 ---
@@ -36,11 +36,7 @@ IDs are stable across updates: C = critical, H = high, M = medium (from the stat
 ## 2. Open issues
 
 ### Critical
-**C2. Patient medical history is hardcoded, so dentists never get real allergies or medications.**
-- Profile → Medical shows fixed values for every patient ("Allergies: Penicillin", "Medication: None", `lib/features/profile/presentation/screens/profile_screen.dart:340`).
-- The app never calls `GET` or `PUT /patient/medical-history`.
-- The dentist app *does* read `medical_history`. Dentists therefore see empty data while patients see made-up data. This is a clinical-safety issue.
-- The patient plan documents the endpoints (§8) but has no phase checkbox for wiring them. Add one.
+None open. C2 (mock medical history) is fixed on a branch; see §3.
 
 ### High
 | # | Projects | Issue |
@@ -50,14 +46,11 @@ IDs are stable across updates: C = critical, H = high, M = medium (from the stat
 | H5 | Patient | **Payment and insurance screens show placeholders.** The payment step always shows "CareCredit card · Ending 4417" and sends `mock-token-<timestamp>`. "CareCredit" is a real brand. Saved payment methods are never listed. There's no insurance management screen (Phase 2b). |
 | H6 | Backend, Dashboard | **Shared routes bypass dashboard permissions.** `/appointments/{id}` (view, cancel, reschedule) and `/conversations*` are open to *any* `role=admin` user, so a billing-only staff member can read PHI and move visits through the API. **Decision needed:** gate these routes with permissions, or document the exception. |
 | H7 | Backend | **"Forgot password" reveals whether an account exists.** `ForgotPasswordRequest` uses `exists:users,email`, so an unknown email gets a `422`. Always return `200`. |
-| E3 | Dashboard, Backend | **Currency differs between apps.** The dashboard shows "100.00 **AED**" (`COMMON.CURRENCY` in `src/assets/i18n/en.json`, "درهم" in `ar.json`, left over from the template it was built from). The patient app shows "$100" for the same invoice, and the business is US / Los Angeles. Have the backend send one currency and use it everywhere. |
 | E4 | Patient | **Phone verification dead end in booking.** "Before we book" requires a verified mobile, but an account with no phone gets "Add a phone number…" and no field to add one. |
 
 ### Medium
 | # | Projects | Issue |
 |---|---|---|
-| E5 | Backend, all apps | **The patient's name comes from different sources.** The patient app shows the account name ("Sample Patient"). The dentist app and the dashboard read `patient_profile.first_name/last_name`, which can be empty, giving "Patient" and "#1". The patient's own Profile also shows Name "—". Fill the profile names at registration (and in the seeder), or define one display-name field. |
-| E6 | Backend, Dashboard | **No invoice exists until the patient pays.** An invoice is only created by `POST /patient/appointments/{id}/payment`. A completed visit where the patient never opens the payment step is invisible to admin reconciliation. Consider creating the invoice at booking or at completion. |
 | M4 / E7 | Backend, all apps | **Error envelope.** `404`, `405`, `409` and `500` return Laravel's debug format, not `{success, message, data}` (backend Phase 10). Confirmed live: the dentist app showed "Something went wrong" instead of the server's `409` message. |
 | M1 | Mobile apps | **No Arabic on mobile.** The backend and the dashboard support Arabic; both mobile apps are English-only, with `ApiClient.locale` hardcoded to `'en'`. This is a product decision. |
 | M2 | Backend, Patient | **No doctor photos.** There's no doctor photo upload and no image on `ProviderResource`, so the dentist directory shows initials only. This is a product decision. |
@@ -90,6 +83,10 @@ IDs are stable across updates: C = critical, H = high, M = medium (from the stat
 | H1 | Admin password reset sent `token`; the backend wants `code` | OTP code entry | Dashboard `b2882f6` | Live: code → `200` → login |
 | H2 | Two copies of the admin plan had diverged | Root `docs/` is the only copy; per-repo files are pointers | Root docs repo | — |
 | M8 | Patient smoke test failed | Test now registers dependencies | Patient app `82a0509` | Suite passes |
+| C2 | Medical history was hardcoded ("Penicillin" for everyone), so dentists never got real allergies | Medical tab wired to `GET/PUT /patient/medical-history`, with an edit sheet | Patient app `64a2539` (*branch `fix/medical-history`, not merged*) | Live: the patient saved Latex / Metformin 500mg, and the dentist's record showed the same |
+| E3 | The dashboard showed AED while the patient app showed $ | Decision #9: the backend sends `currency` (USD). Dashboard `money` pipe; patient app `formatMoney()` | Backend `7860aee`, dashboard `3df5016`, patient app `3d2a4b1` (*branches `feat/decisions-9-11`, not merged*) | Live: dashboard invoices "$250.00 / $100.00" |
+| E5 | The dentist and admin saw "Patient" / "#1" | Decision #10: profile names pre-filled from the account name and backfilled; `full_name` used in every app; booking requires a name | Backend `422ceb4` / `7860aee`, dashboard `3df5016`, dentist app `b14a731`, patient app `3d2a4b1` (*branches, not merged*) | Live: "Sample Patient" in the dentist Pending list, the Patients tab and the dashboard Appointments list |
+| E6 | No invoice existed until the patient paid | Decision #11: invoice created at booking (direct requests) or when a dentist claims an open request; an unpaid invoice is cancelled with its visit | Backend `422ceb4` (*branch, not merged*) | Live: new booking #3's $250 invoice existed immediately; tests cover the claim, cancel and partly-paid cases |
 
 ---
 
@@ -121,23 +118,22 @@ IDs are stable across updates: C = critical, H = high, M = medium (from the stat
 - **Single source of truth for plans:** the root `docs/` (2026-10-17).
 - **#7 Timezones:** one timezone per city, with exact instants on the wire (2026-10-17).
 - **#8 Rescheduled visits:** a doctor's reschedule settles back to accepted; a patient's needs the doctor's acceptance (2026-10-18).
+- **#9 Currency:** one platform currency (USD), sent by the backend as `currency` (2026-10-18).
+- **#10 Patient display name:** the profile's first/last name, pre-filled from the account name; `full_name` everywhere; required to book (2026-10-18).
+- **#11 Invoice timing:** at booking for direct requests, on claim for open requests; cancelled with an unpaid visit (2026-10-18).
 
 **Still needed:**
 1. **H6:** admin access to the shared PHI routes. Add permissions, or document the exception.
-2. **E3:** the platform currency, and whether the backend sends it.
-3. **E5:** a single source for the patient's display name.
-4. **E6:** when an invoice is created (booking, completion, or first payment).
-5. **M1 / M2:** Arabic on mobile, and doctor photos (product decisions).
-6. **H4:** set up one Firebase project for both apps.
-7. **Product note:** the backend allows one active consent form per template type, while the old mock had four patient forms. Decide whether one combined form is enough.
+2. **M1 / M2:** Arabic on mobile, and doctor photos (product decisions).
+3. **H4:** set up one Firebase project for both apps.
+4. **Product note:** the backend allows one active consent form per template type, while the old mock had four patient forms. Decide whether one combined form is enough.
 
 ### Suggested order of work
-1. **C2:** wire medical history in the patient app (clinical safety).
-2. **E3, E5, E6:** settle the cross-app data agreements, then make the small changes in each app.
-3. **E4 and H3:** close the booking-flow gaps (phone entry, dependent picker).
-4. **Backend Phase 10,** including H7, M4 and H6.
-5. **H4 / H5:** patient Phase 9 (notifications and push) and Phase 2b (insurance and payment methods). Dentist Phase 11.
-6. **Re-run the live end-to-end scenario** (§7) after each group.
+1. **Merge** `fix/medical-history` and the four `feat/decisions-9-11` branches, and run every suite on `master`.
+2. **E4 and H3:** close the booking-flow gaps (phone entry, dependent picker).
+3. **Backend Phase 10,** including H7, M4 and H6.
+4. **H4 / H5:** patient Phase 9 (notifications and push) and Phase 2b (insurance and payment methods). Dentist Phase 11.
+5. **Re-run the live end-to-end scenario** (§7) after each group.
 
 ---
 
@@ -171,8 +167,15 @@ See `docs/README.md` for the index and the rules for keeping docs here.
 5. The dentist chose Accept new time.
 6. The dentist's own move to 15:00 stayed Accepted, and the patient saw "Confirmed" after a reload.
 
+**Run 3, after C2 and decisions #9–#11:**
+1. The patient filled in their medical history, and the dentist saw it.
+2. Booking #3 (Wed 21 Oct 10:00) returned `currency: USD` and `full_name`, and its invoice existed immediately.
+3. The dashboard showed $ amounts and "Sample Patient" everywhere.
+
 **Test data left in the local database:**
-- Appointment #1 (completed, Invoice #1 pending pay-later) and appointment #2 (accepted, Tue 20 Oct 15:00).
+- Appointment #1 (completed, Invoice #1 pending pay-later), appointment #2 (accepted, Tue 20 Oct 15:00, no invoice because it was booked before decision #11), and appointment #3 (pending, Wed 21 Oct 10:00, Invoice #2 $250 pending).
+- The seeded patient's medical history: allergies "Latex", current medications "Metformin 500mg".
+- Migrations `2026_10_18_000002_backfill_patient_profile_names` applied; the seeded patient's profile is now "Sample" / "Patient".
 - Consent templates: patient consent v1 (superseded) and v2 (active), signed by the seeded patient; plus the seeded doctor business agreement and nondiscrimination notice.
 - The seeded patient has a date of birth (1996-10-18) and a verified phone (+13105550142).
 - The admin password was reset to the same seed value.

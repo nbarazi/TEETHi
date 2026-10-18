@@ -614,6 +614,17 @@ Backend Phase 13 is built on TEETHi-Backend branch `feat/timezone-contract` (`25
 2. Accept new time returned it to Accepted.
 3. The dentist's own reschedule to 15:00 stayed Accepted. After a refresh, the patient saw "Confirmed".
 
+### Medical history and cross-app agreements (2026-10-18)
+- [x] **Medical history (§8, consistency report C2):** the Medical tab reads and writes `GET/PUT /patient/medical-history`. It shows allergies, conditions, current medications and notes, with "Not provided" for an empty field. An Add/Edit sheet saves to the server, and blank fields are sent as `null`. The hardcoded "Penicillin" rows are gone. (TEETHi-Patient-App `64a2539`, branch `fix/medical-history`)
+- [x] **Decision #9:** every API-backed price is formatted with the response's `currency` through `formatMoney()`. (`3d2a4b1`)
+- [x] **Decision #10:** "Before we book" has a Full name item with first/last inputs (PATCH `/patient/profile`), matching `booking.name_missing`. (`3d2a4b1`)
+
+**Verified live (2026-10-18):**
+- The Medical tab showed "Not provided" for every field.
+- Adding Latex and Metformin 500mg returned `PUT 200`.
+- The dentist app's record for Sample Patient then showed "Allergies: Latex, Medication: Metformin 500mg".
+- Not yet checked live: the Full name step with an empty name. The backend's `422` for that case is covered by tests.
+
 ### Phase 10 — Polish & hardening
 - [ ] Loading/empty/error states for every list screen, using the Phase 0 envelope handling consistently
 - [ ] Confirm-before-destructive-action dialogs for every hard delete (dependents, insurance, payment methods — none of these are soft-deletable or undoable server-side)

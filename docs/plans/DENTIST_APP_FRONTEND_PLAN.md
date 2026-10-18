@@ -437,6 +437,9 @@ Backend Phase 13 is built on TEETHi-Backend branch `feat/timezone-contract` (`25
 2. Accept new time returned it to Accepted.
 3. The dentist's own reschedule to 15:00 stayed Accepted. After a refresh, the patient saw "Confirmed".
 
+### Patient display name — backend decision #10 (2026-10-18)
+- [x] Requests, Patients and Messages show `full_name`, then first + last name, then "Patient", through one `patientDisplayName()` helper. (TEETHI-Dentist-App `b14a731`, branch `feat/decisions-9-11`; verified live: "Sample Patient" instead of "Patient")
+
 ### Phase 11 — Polish & hardening
 - [ ] Empty/error/loading states on every list; pull-to-refresh as the only freshness mechanism
 - [ ] Contract test against a live backend for each repository (the mocks currently make every screen look fine)
