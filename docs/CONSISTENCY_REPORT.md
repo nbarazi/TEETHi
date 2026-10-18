@@ -1,6 +1,6 @@
 # TEETHi — Cross-Project Status & Consistency Report
 
-**Last updated:** 2026-10-18, after fixing E11 and E12 (first written 2026-10-17) · **Scope:** TEETHi-Backend, TEETHi-Frontend (admin dashboard), TEETHi-Patient-App, TEETHI-Dentist-App
+**Last updated:** 2026-10-18, after merging E11 and E12 (first written 2026-10-17) · **Scope:** TEETHi-Backend, TEETHi-Frontend (admin dashboard), TEETHi-Patient-App, TEETHI-Dentist-App
 
 **How this was checked**
 - **Static review (2026-10-17):**
@@ -18,10 +18,10 @@ IDs are stable across updates: C = critical, H = high, M = medium (from the stat
 
 | Project | Plan progress | Build / tests on `master` (2026-10-18) | What's left |
 |---|---|---|---|
-| **Backend** (Laravel 13) | Phases 0–9 and 12–14 done | ✅ **497 Pest tests pass** (500 on `fix/e11-e12`), PHPStan (max) and Pint clean | Phase 10 HIPAA close-out (6 items). Phase 11 real payment gateway (deferred). Open: H6, H7, M4 |
+| **Backend** (Laravel 13) | Phases 0–9 and 12–14 done | ✅ **500 Pest tests pass**, PHPStan (max) and Pint clean | Phase 10 HIPAA close-out (6 items). Phase 11 real payment gateway (deferred). Open: H6, H7, M4 |
 | **Admin dashboard** (Angular 21) | Phases 0–11 done, plus the timezone and currency/name sections | ✅ `ng build` clean, **189/189 tests pass** | Phase 0 leftovers (429 handling, `/enums` cache). Optional Phase 12 (messaging view). Open: M6 (no appointment detail, placeholder home page) |
 | **Dentist app** (Flutter) | Phases 0–10 plus the timezone, reschedule and display-name sections | ✅ **100/100 tests pass**. `flutter analyze`: 49 infos, 0 warnings/errors | Phase 11 polish. Open: H4 (push), M4/E7 (generic error text), M9 |
-| **Patient app** (Flutter) | Phases 0–8 plus timezone, consent, reschedule, medical history, currency and name | ✅ **41/41 tests pass**. `flutter analyze`: 38 infos, 0 warnings/errors | Phase 2b (insurance and payment-method screens, H5), Phase 9 (notifications, push, H4), Phase 10. Open: E9. E11/E12 fixed on `fix/e11-e12` (45 tests) |
+| **Patient app** (Flutter) | Phases 0–8 plus timezone, consent, reschedule, medical history, currency and name | ✅ **45/45 tests pass**. `flutter analyze`: 38 infos, 0 warnings/errors | Phase 2b (insurance and payment-method screens, H5), Phase 9 (notifications, push, H4), Phase 10. Open: E9 |
 
 **Bottom line:**
 - **The core visit lifecycle now works end to end and is consistent in all three apps.** A patient books (consent is signed in the app), the dentist accepts and reschedules (both directions, rule A), then starts, documents and completes the visit. The patient receives the report, and the admin sees the appointment and the invoice. Every app shows the same visit time in the visit's own timezone.
@@ -80,8 +80,8 @@ None open. C2 (mock medical history) is fixed; see §3.
 | H2 | Two copies of the admin plan had diverged | Root `docs/` is the only copy; per-repo files are pointers | Root docs repo | — |
 | H3 | Bookings couldn't be made for family members | "Who is this visit for?" in Before we book; checks, consent and booking use the chosen profile's `patient_profile_id` | Patient app `badb8a9` | Live: booked for child "Mia Patient" and signed her consent; the dentist sees "Mia Patient" |
 | E4 | No way to add a phone number while booking | "No number on file" → Add → number field → Send code → code entry. The backend now validates the phone format (`5ee82df`) | Patient app `badb8a9` | Live: added and verified a phone inside the step. The earlier "code boxes don't accept input" note was a test-tool limitation; key presses work |
-| E11 | The provider starting fee had no currency ("$80" hardcoded) | `ProviderResource.currency`; the dentist step and the dentist profile use `formatMoney()`. The last hardcoded `$` amounts (payment step, invoice detail, visits list) were also replaced. The branch step's fixed "From $95 / $165" copy remains | Backend `efb65c2`, patient app `c22338a` (*branches `fix/e11-e12`, not merged*) | Live API: providers return `currency: USD`. Tests cover the parsing and the fallback |
-| E12 | A parent's insurance could be attached to a child's visit | The insurance step shows the shared "Who is this visit for?" picker and lists only that person's policies. Switching the person drops the chosen policy. The backend rejects a policy that isn't the booked person's own | Backend `efb65c2`, patient app `c22338a` (*branches `fix/e11-e12`, not merged*) | Live API: booking Mia with the parent's policy → `422 insurance_id`. Three new backend tests. In the app: each person sees only their own policies; switching to Mia in Before we book shows "Choose a plan for Mia", which returns to the insurance step |
+| E11 | The provider starting fee had no currency ("$80" hardcoded) | `ProviderResource.currency`; the dentist step and the dentist profile use `formatMoney()`. The last hardcoded `$` amounts (payment step, invoice detail, visits list) were also replaced. The branch step's fixed "From $95 / $165" copy remains | Backend `efb65c2`, patient app `c22338a` | Live API: providers return `currency: USD`. Tests cover the parsing and the fallback |
+| E12 | A parent's insurance could be attached to a child's visit | The insurance step shows the shared "Who is this visit for?" picker and lists only that person's policies. Switching the person drops the chosen policy. The backend rejects a policy that isn't the booked person's own | Backend `efb65c2`, patient app `c22338a` | Live API: booking Mia with the parent's policy → `422 insurance_id`. Three new backend tests. In the app: each person sees only their own policies; switching to Mia in Before we book shows "Choose a plan for Mia", which returns to the insurance step |
 | M8 | Patient smoke test failed | Test now registers dependencies | Patient app `82a0509` | Suite passes |
 | C2 | Medical history was hardcoded ("Penicillin" for everyone), so dentists never got real allergies | Medical tab wired to `GET/PUT /patient/medical-history`, with an edit sheet | Patient app `64a2539` | Live: the patient saved Latex / Metformin 500mg, and the dentist's record showed the same |
 | E3 | The dashboard showed AED while the patient app showed $ | Decision #9: the backend sends `currency` (USD). Dashboard `money` pipe; patient app `formatMoney()` | Backend `7860aee`, dashboard `3df5016`, patient app `3d2a4b1` | Live: dashboard invoices "$250.00 / $100.00" |
@@ -131,8 +131,7 @@ None open. C2 (mock medical history) is fixed; see §3.
 ### Suggested order of work
 1. **Backend Phase 10,** including H7, M4 and H6.
 2. **H4 / H5:** patient Phase 9 (notifications and push) and Phase 2b (insurance and payment methods). Dentist Phase 11.
-3. **Merge** `fix/e11-e12` (backend and patient app) and run the suites on `master`.
-4. **Re-run the live end-to-end scenario** (§7) after each group.
+3. **Re-run the live end-to-end scenario** (§7) after each group.
 
 ---
 
@@ -148,6 +147,12 @@ Fast-forwarded: TEETHi-Patient-App `master` → `badb8a9` (`feat/booking-gaps`);
 - Backend: 497 Pest tests pass; PHPStan and Pint are clean.
 - Patient app: 41/41 tests pass, 0 analyzer warnings or errors.
 - The dashboard and the dentist app are unchanged since the last merge check (189/189 and 100/100).
+
+### Merge check (2026-10-18, E11 and E12)
+`fix/e11-e12` was fast-forwarded into `master`: backend `efb65c2`, patient app `c22338a`.
+- Backend: 500 Pest tests pass; PHPStan and Pint are clean.
+- Patient app: 45/45 tests pass, 0 analyzer warnings or errors (38 infos, unchanged).
+- The dashboard and the dentist app didn't change.
 
 ## 6. Docs consolidated in this folder
 

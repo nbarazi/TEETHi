@@ -649,7 +649,7 @@ Backend Phase 13 is built on TEETHi-Backend branch `feat/timezone-contract` (`25
   - Switching the person drops the chosen policy. Before we book then shows an "Insurance · Choose" item that jumps back to the insurance step.
   - Backend: `POST /patient/appointments` rejects a policy that isn't the booked person's own (`422` on `insurance_id`). TEETHi-Backend `efb65c2`.
 
-**Verified (2026-10-18):** TEETHi-Patient-App `c22338a` on `fix/e11-e12`.
+**Verified (2026-10-18):** TEETHi-Patient-App `c22338a` (merged into `master`).
 - 45/45 tests pass, analyzer unchanged.
 - Live API: the provider list returns `currency: USD`. Booking child Mia (#10) with the parent's policy returned `422 insurance_id`.
 - In the app (routine booking, Michael Johnson, Wed 21 Oct 10:00):
