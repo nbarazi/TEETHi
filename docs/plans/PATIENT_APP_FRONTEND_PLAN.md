@@ -652,7 +652,11 @@ Backend Phase 13 is built on TEETHi-Backend branch `feat/timezone-contract` (`25
 **Verified (2026-10-18):** TEETHi-Patient-App `c22338a` on `fix/e11-e12`.
 - 45/45 tests pass, analyzer unchanged.
 - Live API: the provider list returns `currency: USD`. Booking child Mia (#10) with the parent's policy returned `422 insurance_id`.
-- The in-app flow was not clicked through.
+- In the app (routine booking, Michael Johnson, Wed 21 Oct 10:00):
+  - The dentist step shows "$80" from the API currency.
+  - On the insurance step, "Me" lists only Delta Dental (the parent's) and "Mia Patient" lists only Cigna Kids (Mia's). Switching drops the selection and disables Continue.
+  - In Before we book, switching from Me to Mia shows "Insurance · Choose a plan for Mia" and blocks booking. **Choose** returns to the insurance step on Mia. Picking her plan clears the item and enables "Continue to payment".
+  - No booking was placed.
 
 ### Phase 10 — Polish & hardening
 - [ ] Loading/empty/error states for every list screen, using the Phase 0 envelope handling consistently

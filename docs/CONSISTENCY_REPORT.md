@@ -81,7 +81,7 @@ None open. C2 (mock medical history) is fixed; see §3.
 | H3 | Bookings couldn't be made for family members | "Who is this visit for?" in Before we book; checks, consent and booking use the chosen profile's `patient_profile_id` | Patient app `badb8a9` | Live: booked for child "Mia Patient" and signed her consent; the dentist sees "Mia Patient" |
 | E4 | No way to add a phone number while booking | "No number on file" → Add → number field → Send code → code entry. The backend now validates the phone format (`5ee82df`) | Patient app `badb8a9` | Live: added and verified a phone inside the step. The earlier "code boxes don't accept input" note was a test-tool limitation; key presses work |
 | E11 | The provider starting fee had no currency ("$80" hardcoded) | `ProviderResource.currency`; the dentist step and the dentist profile use `formatMoney()`. The last hardcoded `$` amounts (payment step, invoice detail, visits list) were also replaced. The branch step's fixed "From $95 / $165" copy remains | Backend `efb65c2`, patient app `c22338a` (*branches `fix/e11-e12`, not merged*) | Live API: providers return `currency: USD`. Tests cover the parsing and the fallback |
-| E12 | A parent's insurance could be attached to a child's visit | The insurance step shows the shared "Who is this visit for?" picker and lists only that person's policies. Switching the person drops the chosen policy. The backend rejects a policy that isn't the booked person's own | Backend `efb65c2`, patient app `c22338a` (*branches `fix/e11-e12`, not merged*) | Live API: booking Mia with the parent's policy → `422 insurance_id`. Three new backend tests. In-app flow not clicked through |
+| E12 | A parent's insurance could be attached to a child's visit | The insurance step shows the shared "Who is this visit for?" picker and lists only that person's policies. Switching the person drops the chosen policy. The backend rejects a policy that isn't the booked person's own | Backend `efb65c2`, patient app `c22338a` (*branches `fix/e11-e12`, not merged*) | Live API: booking Mia with the parent's policy → `422 insurance_id`. Three new backend tests. In the app: each person sees only their own policies; switching to Mia in Before we book shows "Choose a plan for Mia", which returns to the insurance step |
 | M8 | Patient smoke test failed | Test now registers dependencies | Patient app `82a0509` | Suite passes |
 | C2 | Medical history was hardcoded ("Penicillin" for everyone), so dentists never got real allergies | Medical tab wired to `GET/PUT /patient/medical-history`, with an edit sheet | Patient app `64a2539` | Live: the patient saved Latex / Metformin 500mg, and the dentist's record showed the same |
 | E3 | The dashboard showed AED while the patient app showed $ | Decision #9: the backend sends `currency` (USD). Dashboard `money` pipe; patient app `formatMoney()` | Backend `7860aee`, dashboard `3df5016`, patient app `3d2a4b1` | Live: dashboard invoices "$250.00 / $100.00" |
@@ -179,10 +179,15 @@ See `docs/README.md` for the index and the rules for keeping docs here.
 5. The dentist chose Accept new time.
 6. The dentist's own move to 15:00 stayed Accepted, and the patient saw "Confirmed" after a reload.
 
-**Run 5, E11 and E12 (2026-10-18), API only:**
+**Run 5, E11 and E12 (2026-10-18):**
 1. `GET /patient/providers` returned `currency: USD` beside `starting_fee`.
-2. Insurance policy #1 was added to the seeded patient's own profile.
-3. Booking child Mia (#10) with that policy returned `422` on `insurance_id`.
+2. Policy #1 (Delta Dental) was added to the seeded patient and policy #2 (Cigna Kids) to Mia (#10).
+3. Booking Mia with policy #1 through the API returned `422` on `insurance_id`.
+4. In the app's routine flow:
+   - The insurance step listed only the chosen person's policy.
+   - Switching to Mia in Before we book showed "Insurance · Choose a plan for Mia". **Choose** led back to the insurance step.
+   - With Mia's plan chosen, every check passed.
+   - No booking was placed.
 
 **Run 4, H3 and E4 (2026-10-18):**
 1. The seeded patient's phone was cleared, and child "Mia Patient" (no date of birth) was added.
@@ -197,6 +202,7 @@ See `docs/README.md` for the index and the rules for keeping docs here.
 
 **Test data left in the local database:**
 - Appointment #1 (completed, Invoice #1 pending pay-later), appointment #2 (accepted, Tue 20 Oct 15:00, no invoice because it was booked before decision #11), and appointment #3 (pending, Wed 21 Oct 10:00, Invoice #2 $250 pending).
+- Insurance policies #1 (Delta Dental, seeded patient) and #2 (Cigna Kids, Mia).
 - Dependent "Mia Patient" (child, profile #10, date of birth 1996-10-08 from the test picker) with consent v2 signed, and her booking #4 (pending, Thu 22 Oct 11:00, invoice $100). The visit address street was doubled by the test tool.
 - The seeded patient's medical history: allergies "Latex", current medications "Metformin 500mg".
 - Migrations `2026_10_18_000002_backfill_patient_profile_names` applied; the seeded patient's profile is now "Sample" / "Patient".
