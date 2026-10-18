@@ -1,6 +1,6 @@
 # TEETHi — Cross-Project Status & Consistency Report
 
-**Last updated:** 2026-10-19, after merging backend Phase 10 (first written 2026-10-17) · **Scope:** TEETHi-Backend, TEETHi-Frontend (admin dashboard), TEETHi-Patient-App, TEETHI-Dentist-App
+**Last updated:** 2026-10-19, H4 push work in progress (first written 2026-10-17) · **Scope:** TEETHi-Backend, TEETHi-Frontend (admin dashboard), TEETHi-Patient-App, TEETHI-Dentist-App
 
 **How this was checked**
 - **Static review (2026-10-17):**
@@ -39,7 +39,7 @@ None open. C2 (mock medical history) is fixed; see §3.
 ### High
 | # | Projects | Issue |
 |---|---|---|
-| H4 | Patient, Dentist | **Push notifications aren't delivered.** The backend sends notifications through `database` and `FcmChannel`. The dentist app's `NoopPushTokenSource` has no Firebase SDK or config behind it. The patient app has no device-token registration, and its notification feed and bell badge are still mock: the live run showed **3 while the server had 5 unread**. Patients never see status changes; a rescheduled visit only updated after a manual reload. |
+| H4 | Patient, Dentist | **Push notifications aren't delivered.** The backend sends notifications through `database` and `FcmChannel`. The dentist app's `NoopPushTokenSource` has no Firebase SDK or config behind it. The patient app has no device-token registration, and its notification feed and bell badge are still mock: the live run showed **3 while the server had 5 unread**. Patients never see status changes; a rescheduled visit only updated after a manual reload. **In progress (2026-10-19, branches `feat/push-notifications`, not merged):** both apps register with Firebase (project `teethi-508df`, web included) and handle foreground and tapped pushes; the patient app's feed and bell are now real (live: 8 server notifications shown, tapping one opened Visits and marked it read on the server); the backend accepts `web` devices. **Still to do:** the backend still sends through FCM's shut-down legacy API — it needs HTTP v1 (credentials: no-key impersonation or a key file, plus approval for `google/auth`) and notification text (`body`). Untested on devices: the built-in browser blocks notification permission; Android builds wait on accepting the SDK licenses. |
 | H5 | Patient | **Payment and insurance screens show placeholders.** The payment step always shows "CareCredit card · Ending 4417" and sends `mock-token-<timestamp>`. "CareCredit" is a real brand. Saved payment methods are never listed. There's no insurance management screen (Phase 2b). |
 
 ### Medium
