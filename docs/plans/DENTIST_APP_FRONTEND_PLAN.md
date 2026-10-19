@@ -62,6 +62,8 @@ Dentist-specific points:
 |---|---|---|
 | `GET /doctor/profile` | Own profile (with `city`, `address`, `specializations`) | — |
 | `PATCH /doctor/profile` (also `POST`) | Partial update — send only what changed | any of `title, first_name, middle_name, last_name, suffix, date_of_birth, mobile_no, health_authority_registration_no, bio, education[], experience, skills[], honors_awards, social_link, languages[], city_id, years_experience, service_radius_km` |
+| `POST /doctor/profile/photo` | Upload or replace the doctor's photo (`multipart/form-data`). The old file is deleted | `{ photo: file }` (image, max 5 MB) → `UserResource`, whose `profile_image` is a 30-minute signed URL |
+| `DELETE /doctor/profile/photo` | Remove the photo | — → `204` |
 | `PUT /doctor/address` | Create/replace the single **practice** address | `{ street, apartment?, note?, city, state, zip, latitude?, longitude? }` |
 
 `DoctorProfileResource` (own-profile shape): `id, title, first/middle/last_name, suffix, date_of_birth, mobile_no, health_authority_registration_no, bio, education, experience, skills, honors_awards, social_link, languages, city, address, years_experience, service_radius_km, average_rating, patients_treated_count, recommended_percentage, specializations[], profile_completed_at, missing_fields, created_at, updated_at`.
@@ -473,6 +475,21 @@ Patients showed as initials everywhere, because no response the dentist reads ca
 - The seeded patient's photo showed on Home, in Pending, in the patient list, in the chart header and in the inbox.
 - Dependent Mia kept her "MP" initials.
 - Tests: 6 new backend tests (`PatientPhotoTest`), 575 in total, PHPStan and Pint clean. Dentist app: 111 tests (3 mapper tests and 3 `Avatar` widget tests are new); analyzer unchanged at 49 infos.
+
+### Dentist profile photo (2026-10-20)
+The dentist can add a photo the same way patients do in the patient app.
+- [x] Backend: `POST`/`DELETE /doctor/profile/photo`, the same request, storage and response as the patient's. The upload code moved into a shared `ProfilePhotoService` that both controllers use.
+- [x] App:
+  - **Edit profile** has **Change photo** (`image_picker`, gallery, at most 1024 px wide, quality 85) and **Remove photo**, as in the patient app. Each saves at once and pushes the returned user into `AuthViewModel`.
+  - The photo replaces the initials on the profile header and Home's greeting, through the shared `Avatar` (now with an `initials` override, so "Dr" is still skipped).
+  - Added `image_picker` (with `image_picker_for_web`, registered by hand on web like Firebase; `lib/utils/firebase_web_registrar.dart` became `web_plugin_registrar.dart`) and the iOS photo-library usage text.
+- **Not built:** patients don't see dentist photos yet. `ProviderResource` has no image (consistency report M2).
+
+**Verified (2026-10-20):** merged into `master` in TEETHi-Backend (`7405f57`) and TEETHI-Dentist-App (`30c43de`); suites pass on `master`. Backend 580 tests (5 new doctor photo tests), PHPStan and Pint clean; app 114 tests (3 new repository and view-model tests), analyzer unchanged at 49 infos. Live:
+- A PNG uploaded as Dr Michael through the API returned a signed URL; a non-image got `422`.
+- The app showed it on Home and the profile, and Edit profile showed **Change photo** and **Remove photo**.
+- **Remove photo** in the app answered "Photo removed.", the initials came back, and `/me` then had `profile_image: null`.
+- The picker itself wasn't driven, because the browser pane can't use the system file dialog.
 
 ### Phase 11 — Polish & hardening
 - [ ] Empty/error/loading states on every list; pull-to-refresh as the only freshness mechanism

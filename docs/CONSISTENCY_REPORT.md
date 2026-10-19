@@ -18,9 +18,9 @@ IDs are stable across updates: C = critical, H = high, M = medium (from the stat
 
 | Project | Plan progress | Build / tests on `master` (2026-10-19) | What's left |
 |---|---|---|---|
-| **Backend** (Laravel 13) | Phases 0–10 and 12–15 done | ✅ **575 Pest tests pass**, PHPStan (max) and Pint clean | Phase 11, the real payment gateway (deferred). Production settings listed in §5, plus push credentials and a queue worker (Phase 15) |
+| **Backend** (Laravel 13) | Phases 0–10 and 12–15 done | ✅ **580 Pest tests pass**, PHPStan (max) and Pint clean | Phase 11, the real payment gateway (deferred). Production settings listed in §5, plus push credentials and a queue worker (Phase 15) |
 | **Admin dashboard** (Angular 21) | Phases 0–11 done, plus the timezone and currency/name sections | ✅ `ng build` clean, **189/189 tests pass** | Phase 0 leftovers (429 handling, `/enums` cache). Optional Phase 12 (messaging view). Open: M6 (no appointment detail, placeholder home page) |
-| **Dentist app** (Flutter) | Phases 0–10 plus the timezone, reschedule, display-name, push and patient-photo sections | ✅ **111/111 tests pass**. `flutter analyze`: 49 infos, 0 warnings/errors | Phase 11 polish. Open: M9. E7 fixed by the backend's error envelope |
+| **Dentist app** (Flutter) | Phases 0–10 plus the timezone, reschedule, display-name, push, patient-photo and profile-photo sections | ✅ **114/114 tests pass**. `flutter analyze`: 49 infos, 0 warnings/errors | Phase 11 polish. Open: M9. E7 fixed by the backend's error envelope |
 | **Patient app** (Flutter) | Phases 0–9 plus timezone, consent, reschedule, medical history, currency and name | ✅ **53/53 tests pass**. `flutter analyze`: 38 infos, 0 warnings/errors | Phase 2b (insurance and payment-method screens, H5), Phase 10. Open: E9 |
 
 **Bottom line:**
@@ -46,7 +46,7 @@ None open. C2 (mock medical history) is fixed; see §3.
 | # | Projects | Issue |
 |---|---|---|
 | M1 | Mobile apps | **No Arabic on mobile.** The backend and the dashboard support Arabic; both mobile apps are English-only, with `ApiClient.locale` hardcoded to `'en'`. This is a product decision. |
-| M2 | Backend, Patient | **No doctor photos.** There's no doctor photo upload and no image on `ProviderResource`, so the dentist directory shows initials only. This is a product decision. |
+| M2 | Backend, Patient | **Patients don't see doctor photos.** Dentists can now upload one (`POST /doctor/profile/photo`, 2026-10-20), but `ProviderResource` has no image, so the patient app's dentist directory and profile still show initials. |
 | M3 | Dashboard, Patient | **Hardcoded labels.** `GET /enums` exists, but the dashboard (Phase 0) and parts of the patient app hardcode labels, so wording can differ between apps, especially in Arabic. |
 | M5 | Dashboard | **No 429 handling.** The dashboard has no rate-limit (`429`) surface. |
 | M6 | Dashboard | **Missing appointment detail.** The scope promises list **and detail** views for appointments; there's only a list. The backend already serves `GET /appointments/{id}` to admins. The dashboard home page is still a placeholder. |

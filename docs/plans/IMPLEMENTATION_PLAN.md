@@ -708,6 +708,13 @@ Merged into TEETHi-Backend `master` (`0a42cd7`); 575 Pest tests, PHPStan max and
   - Dependents have no photo of their own and always get `null`.
 - [x] `tests/Feature/Api/V1/Doctor/PatientPhotoTest.php` (6 tests).
 
+### Addendum — doctor profile photo (2026-10-20)
+Merged into TEETHi-Backend `master` (`7405f57`); 580 Pest tests, PHPStan max and Pint clean on `master`.
+- [x] `POST`/`DELETE /doctor/profile/photo`, the same contract as the patient's (`StoreProfilePhotoRequest`, now shared at `App\Http\Requests\Api\V1`; image, max 5 MB → `UserResource`, or `204`).
+- [x] `ProfilePhotoService` holds the storage logic for both roles: private `local` disk under `avatars/{user}`, and the replaced or removed file is deleted.
+- [x] Tests: 5 in `Doctor/ProfileTest.php` (upload, replace, remove, a non-image or over-5 MB file, a patient account). The patient photo tests pass unchanged.
+- Not done: `ProviderResource` still carries no photo, so patients don't see it (consistency report M2).
+
 ### Phase 16 — Sign in with Google and Apple (decision #15)
 Not started. The contract is in §5.6 and the data model in §4.1. Client work: patient plan Phase 11, dentist plan Phase 12.
 
