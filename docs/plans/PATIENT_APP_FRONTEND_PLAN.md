@@ -589,7 +589,7 @@ There is no field indicating whether a completed visit has already been reviewed
 **Verified (2026-09-17):** See §10's own "Verified" note above for the full build summary. The mock's "Message support" entry point (Profile → Help and contact) is removed — that screen now shows phone/email/hours only, per the resolved product decision.
 
 ### Phase 9 — Notifications & push
-Built 2026-10-19 on TEETHi-Patient-App `feat/push-notifications` (`342be33`, not merged), consistency report H4.
+Built 2026-10-19, merged into TEETHi-Patient-App `master` (`342be33`), consistency report H4.
 - [x] In-app feed + mark-read (single and "mark all as read") → `GET /notifications`, `PATCH .../read`, `PATCH .../read-all` (§11.1).
   - New `features/notifications` slice. The inbox's Alerts tab and the bell use it instead of `MockData`.
   - Tapping a row marks it read and opens Visits or the conversation (`openPushTarget`).

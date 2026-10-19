@@ -638,7 +638,7 @@ Verified: full Pest suite green (471 tests, +30: `tests/Feature/Api/V1/TimezoneC
 - Visits booked before this change keep their old behaviour: appointment #2 still has no invoice until a payment is started.
 
 ### Phase 15 — Push delivery through FCM HTTP v1 (consistency report H4)
-Built 2026-10-19 on TEETHi-Backend `feat/push-notifications` (`b7787d5`, `6a17191`, `77cdbad`; not merged). Decision #14 applies.
+Built 2026-10-19 and merged into TEETHi-Backend `master` (`77cdbad`). Decision #14 applies.
 - [x] `FcmChannel` moved off FCM's legacy API, which Google shut down, to HTTP v1.
   - One message per device, addressed by Firebase Installation ID (`message.fid`).
   - `data` values are sent as strings.

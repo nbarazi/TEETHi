@@ -290,7 +290,7 @@ Shared with the patient app: `POST /device-tokens` `{ token, platform: ios|andro
 Doctor-relevant pushes: `new_nearby_open_request` (a new open-pool request inside this doctor's `service_radius_km`, or 50 km if unset), `appointment_status_changed` (patient cancelled/rescheduled), `appointment_reminder`, `new_message`, `document_expiring` (a credential nearing expiry). Delivery uses FCM (`FCM_SERVER_KEY`, configured server-side); the in-app notification feed is the source of truth either way.
 
 
-**Built 2026-10-19** (TEETHi-Dentist-App `feat/push-notifications`, `2abaf6f` and `e461a93`, not merged; consistency report H4):
+**Built 2026-10-19** (TEETHi-Dentist-App `master`, `2abaf6f` and `e461a93`, merged; consistency report H4):
 - `FirebasePushTokenSource` replaces `NoopPushTokenSource` once Firebase starts. It registers through `register()` / `onRegistered` (installation ID) and asks for permission first.
 - `web` is a platform too, with the public web push key and `web/firebase-messaging-sw.js`.
 - `PushHandler`: a foreground push shows a toast and refreshes Home and Requests. A tapped push opens Requests on Open, Pending or Accepted, the inbox, or Documents (`PushTarget`, 5 unit tests).
