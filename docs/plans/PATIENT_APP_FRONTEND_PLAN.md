@@ -66,6 +66,25 @@ This document tells a Flutter engineer/agent **what exists in the Teethi backend
 
 **Verified**: _(fill in once wired — note the Flutter/http-client version used, and confirm the OTP round-trip works against a real inbox/phone once Twilio is configured, not just the dev "log channel" fallback)_
 
+### 2.1 Sign in with Google and Apple (backend decision #15, Phase 16; not built yet)
+
+| Endpoint | Purpose | Body | Auth |
+|---|---|---|---|
+| `POST /auth/social` | Sign in **or** register with a provider ID token. `201` for a new account, `200` otherwise | `{ provider: "google" \| "apple", id_token, role: "patient", nonce?, authorization_code?, given_name?, family_name? }` → `{ user: UserResource, token, is_new_user }` | No |
+
+- **Same result as `/login`**: store the token the same way (respecting "Keep me signed in") and register the push device as usual.
+- **`is_new_user: true`** means the account was just created. Its email is already verified (the provider vouched for it), so **skip the verify-email step**. There is no password and no phone yet.
+- **Apple specifics**: send the raw `nonce` you generated (Apple gets its SHA-256). Apple hands the user's name to the app **only on the first authorization**, so always send `given_name`/`family_name` when the credential has them. Also send `authorization_code`, which the backend keeps for revoking the authorization later.
+- **Errors to handle**:
+  - `409 auth.social_role_mismatch`: the Google/Apple account belongs to a dentist account. Show the server's message, which names the dentist app.
+  - `403 auth.account_inactive`: same as login.
+  - `401 auth.social_token_invalid`: "Couldn't sign in with Google/Apple. Try again."
+  - `422 auth.social_email_unverified` or `auth.social_email_missing`: show the message and suggest email sign-up.
+  - `503 auth.social_provider_unavailable`: "Not available right now."
+  - A user who cancels the Google or Apple sheet gets no message at all.
+- **One email, one account**: if a TEETHi account already uses that email, the provider sign-in lands in it. A patient who is also a dentist needs a different email for each app.
+- **`UserResource` gains** `has_password` (bool) and `sign_in_providers` (e.g. `["apple"]`). With no password, offer **"Set a password"**: it's the forgot-password flow (`POST /forgot-password`, then `POST /reset-password`) with the account's email filled in. `POST /change-password` can't work without a current password.
+
 ---
 
 ## 3. Patient profile & family (dependents)
@@ -494,7 +513,7 @@ Two corrections to the mock UI discovered while wiring, beyond what §2 already 
 
 Not wired (no mock screen assumed it, so out of this phase's scope, but the repository/use-case/data-source methods exist and are ready): `POST /change-password`. No settings screen currently offers changing a password, so there's nothing to wire it to yet — flag as a real gap if a "change password" screen is ever added to Settings.
 
-Social ("Continue with Google/Apple") buttons on Login/Register are unchanged visually but no longer fake-succeed a login — there's no social-auth endpoint in this backend at all, so tapping either now shows a "not available yet" notice instead.
+Social ("Continue with Google/Apple") buttons on Login/Register are unchanged visually but no longer fake-succeed a login — there's no social-auth endpoint in this backend at all, so tapping either now shows a "not available yet" notice instead. **Planned 2026-10-20:** Phase 11 below wires them to backend Phase 16 (decision #15).
 
 ### Phase 2 — Profile & family
 - [x] Profile view/edit → `GET`/`PATCH /patient/profile`, `PUT /patient/address` (§3), including `gender`/`blood_type`/`bio` (§3) — all three now real
@@ -674,6 +693,54 @@ Backend Phase 13 is built on TEETHi-Backend branch `feat/timezone-contract` (`25
 - [ ] Confirm-before-destructive-action dialogs for every hard delete (dependents, insurance, payment methods — none of these are soft-deletable or undoable server-side)
 - [ ] A real end-to-end pass once backend Phase 10 (HIPAA hardening) ships, specifically re-checking `POST /logout` behavior if a "log out all devices" endpoint is added (§15) and re-verifying error envelope shapes if `withExceptions` handling changes
 - [ ] A real end-to-end pass once backend Phase 11 (real payment gateway) ships — re-verify the payment screens against actual gateway SDK tokens and real decline/error paths, neither of which exist to test against today
+
+### Phase 11 — Sign in with Google and Apple (backend Phase 16, decision #15)
+Not started. Needs backend Phase 16 and the Google/Apple setup listed there. The contract is in §2.1. The dentist plan's Phase 12 is the same work; build the shared pieces the same way in both apps.
+
+**Packages** (each needs approval before adding):
+- `google_sign_in` 7.x. Its API changed in 7.0: `GoogleSignIn.instance.initialize(...)`, then `authenticate()`, then `account.authentication.idToken`. Older guides using `signIn()` no longer apply.
+- `sign_in_with_apple`: `SignInWithApple.getAppleIDCredential(...)` gives `identityToken`, `authorizationCode`, `givenName`, `familyName`.
+- `crypto`: the SHA-256 of the Apple nonce.
+
+**Code** (inside `features/auth`, same layering as the rest of the feature):
+- [ ] `SocialCredential` entity: `provider`, `idToken`, `nonce?`, `authorizationCode?`, `givenName?`, `familyName?`.
+- [ ] `SocialIdentitySource` interface with `GoogleIdentitySource` and `AppleIdentitySource`, registered in `features/auth/injector.dart` and replaced by fakes in tests. Each returns a `SocialCredential`, or `null` when the user cancelled (Google `GoogleSignInExceptionCode.canceled`, Apple `AuthorizationErrorCode.canceled`).
+  - **Google**: `initialize(clientId: <iOS client ID on iOS, Web client ID on web>, serverClientId: <Web client ID>)` once at startup. Then `authenticate()` and read `authentication.idToken`. The Web client ID is also what makes Android's token carry the audience the backend accepts.
+  - **Apple**: make a random nonce (32 bytes from `Random.secure()`, base64url) and pass `sha256(nonce)` as `nonce:` with scopes `email` and `fullName`. Return the raw nonce in the credential. On Android and web, also pass `webAuthenticationOptions` (see platform setup).
+- [ ] `AuthRemoteDataSource.socialLogin(SocialCredential)` → `POST /auth/social` with `role: "patient"`; `AuthRepository.signInWithProvider`, `SocialSignInUseCase`.
+- [ ] `AuthViewModel.continueWith(provider)`: loading state and errors as in §2.1. On success, store the token exactly like `login`, then route:
+  - `is_new_user: false` → `AuthPhase.app`.
+  - `is_new_user: true` → a new `AuthPhase.completeAccount`.
+- [ ] **Finish signing up** screen (`completeAccount`). It asks for what the email Register screen collects and the provider doesn't give: first and last name (pre-filled from `GET /patient/profile`, editable), mobile number and city. Save names and `city_id` with `PATCH /patient/profile`, then the number with `PUT /phone`, then go to the existing verify-phone step and on to the app. There's no verify-email step and no password. If the app restarts before this is finished, the restored session goes straight to the app. That's acceptable, because "Before we book" already asks for the name and phone (H3/E4).
+- [ ] Buttons on Login and Register call `continueWith`; the "not available yet" toast goes. Follow each brand's rules, which the current hand-drawn "G" and the "Apple" label don't:
+  - Google: the official "G" logo, with "Continue with Google" or the plain "Google" label.
+  - Apple: Apple's style (black or white, Apple logo, "Continue with Apple"). The package's `SignInWithAppleButton` already follows it.
+  - **On web, the Google button must be the one Google draws** (`renderButton()` from `google_sign_in_web`), because `authenticate()` isn't supported in a browser. Listen to `GoogleSignIn.instance.authenticationEvents` for the result.
+- [ ] Logout also calls `GoogleSignIn.instance.signOut()`, best effort, so the next tap offers the account chooser again. Don't call `disconnect()`. Apple has no sign-out.
+- [ ] `UserModel` parses `has_password` and `sign_in_providers`. Settings shows **Set a password** when `has_password` is false (the forgot-password screens with the email filled in). It shows "Signed in with Google/Apple" for the providers listed.
+- [ ] Tests:
+  - View model with a fake identity source and repository: new user → `completeAccount`; returning user → `app`; cancel → no error and no call; `409` → the server's message; logout calls Google sign-out.
+  - The request body, including the Apple fields.
+  - The nonce: the hash sent to Apple matches the raw nonce sent to the backend.
+  - `UserModel` with and without the new fields.
+
+**Platform setup** (values from backend Phase 16's list):
+- [ ] **Android (Google):** nothing in code beyond `serverClientId`. The Android OAuth client must carry this machine's debug SHA-1 (`keytool -list -v -keystore %USERPROFILE%\.android\debug.keystore -alias androiddebugkey -storepass android`). Check each new plugin's minimum SDK. This app still needs its Gradle 7.5 / AGP 7.3 upgrade (Phase 9 note) before any Android run.
+- [ ] **Android (Apple):** there's no native Apple sign-in, so the package opens Apple's web page in a Custom Tab.
+  - `webAuthenticationOptions(clientId: <patient Services ID>, redirectUri: https://<api-host>/api/v1/auth/apple/callback/patient)`.
+  - Add the package's `SignInWithAppleCallback` activity to `AndroidManifest.xml`, with an intent filter for scheme `signinwithapple` and path `callback`.
+  - The phone must reach that URL over HTTPS. Locally, that means a tunnel to `php artisan serve`, with the tunnel's domain registered on the Services ID.
+- [ ] **iOS (Google):** `GIDClientID` (iOS client) and `GIDServerClientID` (Web client) in `Info.plist`, plus a URL type with the reversed iOS client ID.
+- [ ] **iOS (Apple):** the "Sign in with Apple" capability, which creates `Runner.entitlements` with `com.apple.developer.applesignin` = `Default`. Needs a Mac and Xcode.
+- [ ] **Web (Google):** `<meta name="google-signin-client_id" content="<Web client ID>">` in `web/index.html`. `http://localhost:8917` must be an authorized JavaScript origin, so local testing works.
+- [ ] **Web (Apple):** load Apple's JS SDK in `web/index.html` and pass the same `webAuthenticationOptions` (Services ID, plus the page's own HTTPS URL as the redirect). **Apple refuses `localhost`**, so test on a registered HTTPS domain or through a tunnel.
+
+**Verify live:**
+- Google on web at `localhost:8917`: new account → Finish signing up → phone code → Home.
+- The same Google account again → straight to Home.
+- A Google account whose email already has a password account → lands in that account, and the password still works.
+- A Google account already used in the dentist app → `409` with the right message. The seeded `@teethi.test` emails aren't real Google accounts, so create that dentist account through the dentist app first.
+- Apple: iOS device, or web or Android through a tunnel.
 
 ---
 

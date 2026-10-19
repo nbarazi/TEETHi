@@ -41,6 +41,19 @@ Already wired: `POST /register` (`role: "doctor"`), `POST /login`, `GET /me`, `P
 - **Profile completeness is tracked server-side**: `DoctorProfileResource.missing_fields` lists what's still absent among `first_name, last_name, date_of_birth, city_id, mobile_no, health_authority_registration_no`; `profile_completed_at` is set once none are missing. **`date_of_birth` is required for completeness but the Register screen never collects it** — add it to onboarding or the profile screen (`PATCH /doctor/profile { date_of_birth: "1985-04-12" }`, must be before today) or the profile will never complete.
 - **There is no approval gate in the API**: a registered doctor is `active` immediately. Whether an admin should approve a doctor before they see requests is a product question (§16).
 
+### 2.1 Sign in with Google and Apple (backend decision #15, Phase 16; not built yet)
+
+Same endpoint and rules as `docs/plans/PATIENT_APP_FRONTEND_PLAN.md` §2.1, with `role: "doctor"`:
+
+| Endpoint | Purpose | Body | Auth |
+|---|---|---|---|
+| `POST /auth/social` | Sign in **or** register with a provider ID token | `{ provider: "google" \| "apple", id_token, role: "doctor", nonce?, authorization_code?, given_name?, family_name? }` → `{ user: UserResource, token, is_new_user }` | No |
+
+Dentist-specific points:
+- **A new account (`is_new_user: true`) skips the Register screen**, which is where the email path collects first/last name and mobile. Onboarding must collect them instead (Phase 12). Its email is already verified, so the verify-email step is skipped too.
+- **`409 auth.social_role_mismatch`**: the Google/Apple account belongs to a patient account. Show the server's message, which points to the patient app. One email is one account, so a dentist who is also a TEETHi patient needs a different email for each.
+- **No password**: `has_password: false` hides **Change password** (it needs the current one) and shows **Set a password**, which is the forgot/reset code flow with the account's email filled in.
+
 ---
 
 ## 3. Profile, practice address & service radius
@@ -451,6 +464,40 @@ Backend Phase 13 is built on TEETHi-Backend branch `feat/timezone-contract` (`25
 - [ ] Contract test against a live backend for each repository (the mocks currently make every screen look fine)
 - [ ] End-to-end run: register → onboard → sign docs → set schedule + radius → receive a patient's booking → accept → start → document → complete
 - [ ] Remove `MockDentistData` and every `Mock*Repository` once nothing references them
+
+### Phase 12 — Sign in with Google and Apple (backend Phase 16, decision #15)
+Not started. Needs backend Phase 16 and the Google/Apple setup listed there. The contract is in §2.1. This is the same work as the patient plan's Phase 11, whose checklist has the full detail (packages, nonce, cancel handling, brand rules, web button, logout, tests, platform setup). Only the differences are listed here.
+
+- [ ] **Shared with the patient app, built the same way:**
+  - `SocialCredential`, `SocialIdentitySource` with Google and Apple implementations, `AuthRemoteDataSource.socialLogin` with `role: "doctor"`, `SocialSignInUseCase` and `AuthViewModel.continueWith(provider)`.
+  - The brand-compliant buttons, and Google's own button on web.
+  - Google sign-out on logout, and parsing `has_password` / `sign_in_providers`.
+- [ ] **Where the buttons are:** the login screen ("Welcome back") and the "Apply as a dentist" register screen. Both call `continueWith`; the "not available yet" toast goes.
+- [ ] **Routing after a social sign-in:**
+  - `is_new_user: false` → the app. An existing dentist who never finished onboarding is handled as today (the profile's `missing_fields` banner).
+  - `is_new_user: true` → straight to `AuthPhase.onboarding`, skipping Register and verify-email.
+- [ ] **`DoctorOnboardingScreen` collects what Register would have.** When the user arrived through Google or Apple, it adds:
+  - First and last name, pre-filled from `GET /doctor/profile` (the backend splits the provider's name, decision #10).
+  - The mobile number.
+
+  These go into the existing single `PATCH /doctor/profile` (`first_name`, `last_name`, `mobile_no`) alongside registration number, date of birth and city. Then `PUT /phone` with the same number (§2: the account's verified number and the profile's contact number are separate fields fed by one input), then the existing verify-phone step, then the app. "Skip for now" stays, as on the email path.
+- [ ] **Settings:** `POST /change-password` is wired in the view model (Phase 1), but no screen offers it yet. Add a **Password** row to the profile menu:
+  - `has_password` true → Change password.
+  - `has_password` false → **Set a password** (forgot/reset with the email filled in).
+
+  Show "Signed in with Google/Apple" for the listed providers.
+- [ ] **Platform setup:** as in the patient plan, with this app's values:
+  - Android package `com.teethi.teethi_dentist_app`, and this app's own Android OAuth client with the debug SHA-1. This app is already on AGP 9.1 / Gradle 9.3, so no upgrade is needed.
+  - iOS bundle `com.teethi.teethiDentistApp`, with its own iOS client and the Apple capability.
+  - Apple Services ID for the dentist app, and return URL `https://<api-host>/api/v1/auth/apple/callback/doctor`.
+  - Web origin `http://localhost:8765`.
+- [ ] **Tests:** as in the patient plan, plus onboarding: a social sign-up sends names and mobile in the `PATCH` and calls `PUT /phone`; an email sign-up still doesn't ask for them twice.
+
+**Verify live:**
+- Google on web at `localhost:8765`: new account → onboarding with the name pre-filled → phone code → Home.
+- The account shows up in the dashboard's Doctors list with the onboarding details.
+- A Google account already used in the patient app → `409` with a message pointing to the patient app.
+- Apple: iOS device, or web or Android through a tunnel.
 
 ---
 

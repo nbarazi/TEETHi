@@ -88,6 +88,7 @@ Some of these add an `errors` object (e.g. the booking "missing requirements" ga
 Notes:
 - **There is no admin self-registration.** `POST /register` exists but its `role` field only accepts `patient` or `doctor` — an admin/staff account can only be created by another admin via `POST /admin/staff` (§4.2), or via the database seeder (`admin@teethi.test`, seeded as the standing Super Admin). Do not build a "sign up" screen for the dashboard.
 - `login` returns `403 { success: false, message: "..." }` (the hand-written envelope) if the account's `status` is `inactive`, and the hand-written `401` unauthorized envelope for wrong credentials (this one specific case does use the custom envelope, since it's written explicitly in `AuthController`, not thrown by the guard).
+- **No Google or Apple sign-in for the dashboard** (backend decision #15, Phase 16, planned 2026-10-20). `POST /auth/social` refuses admin accounts with `409`, so don't add those buttons here. `UserResource` gains `has_password` and `sign_in_providers`. Optional once Phase 16 ships: show "Signs in with: Email / Google / Apple" on the patient and doctor detail pages. That needs the admin detail resources to carry `sign_in_providers`; ask the backend first.
 - **`UserResource` (what the top-level `/me` and `/login` return) does not include the staff member's dashboard roles or permissions.** That's expected, not a gap — it's the endpoint shared by all three apps. The admin-specific `GET /admin/me` (§3.3) is the one to call right after login for that.
 
 `UserResource` shape:
