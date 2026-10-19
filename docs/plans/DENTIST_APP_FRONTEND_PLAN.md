@@ -466,11 +466,11 @@ Backend Phase 13 is built on TEETHi-Backend branch `feat/timezone-contract` (`25
 - [ ] Remove `MockDentistData` and every `Mock*Repository` once nothing references them
 
 ### Phase 12 — Sign in with Google and Apple (backend Phase 16, decision #15)
-Not started. Needs backend Phase 16 and the Google/Apple setup listed there. The contract is in §2.1. This is the same work as the patient plan's Phase 11, whose checklist has the full detail (packages, nonce, cancel handling, brand rules, web button, logout, tests, platform setup). Only the differences are listed here.
+Not started. Needs backend Phase 16 and the Google/Apple setup listed there. The contract is in §2.1. This is the same work as the patient plan's Phase 11, whose checklist has the full detail (packages, nonce, cancel handling, brand rules, hiding the buttons in a browser, logout, tests, platform setup). Only the differences are listed here.
 
 - [ ] **Shared with the patient app, built the same way:**
   - `SocialCredential`, `SocialIdentitySource` with Google and Apple implementations, `AuthRemoteDataSource.socialLogin` with `role: "doctor"`, `SocialSignInUseCase` and `AuthViewModel.continueWith(provider)`.
-  - The brand-compliant buttons, and Google's own button on web.
+  - The brand-compliant buttons, shown on Android and iOS only (hidden under `kIsWeb`, which this app uses for local dev).
   - Google sign-out on logout, and parsing `has_password` / `sign_in_providers`.
 - [ ] **Where the buttons are:** the login screen ("Welcome back") and the "Apply as a dentist" register screen. Both call `continueWith`; the "not available yet" toast goes.
 - [ ] **Routing after a social sign-in:**
@@ -489,15 +489,15 @@ Not started. Needs backend Phase 16 and the Google/Apple setup listed there. The
 - [ ] **Platform setup:** as in the patient plan, with this app's values:
   - Android package `com.teethi.teethi_dentist_app`, and this app's own Android OAuth client with the debug SHA-1. This app is already on AGP 9.1 / Gradle 9.3, so no upgrade is needed.
   - iOS bundle `com.teethi.teethiDentistApp`, with its own iOS client and the Apple capability.
-  - Apple Services ID for the dentist app, and return URL `https://<api-host>/api/v1/auth/apple/callback/doctor`.
-  - Web origin `http://localhost:8765`.
+  - Apple Services ID for the dentist app (used by Android), and return URL `https://<api-host>/api/v1/auth/apple/callback/doctor`.
 - [ ] **Tests:** as in the patient plan, plus onboarding: a social sign-up sends names and mobile in the `PATCH` and calls `PUT /phone`; an email sign-up still doesn't ask for them twice.
 
-**Verify live:**
-- Google on web at `localhost:8765`: new account → onboarding with the name pre-filled → phone code → Home.
+**Verify live** (on an Android device or emulator with Google Play services, and on an iOS device or simulator):
+- Google: new account → onboarding with the name pre-filled → phone code → Home.
 - The account shows up in the dashboard's Doctors list with the onboarding details.
 - A Google account already used in the patient app → `409` with a message pointing to the patient app.
-- Apple: iOS device, or web or Android through a tunnel.
+- Apple: natively on iOS; on Android through the Custom Tab, with the backend reachable over HTTPS (a tunnel locally).
+- In a browser, no Google or Apple buttons appear.
 
 ---
 

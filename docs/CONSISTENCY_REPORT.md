@@ -125,7 +125,7 @@ None open. C2 (mock medical history) is fixed; see §3.
 - **#12 Admin access to shared routes (H6):** only staff with the matching dashboard permission; new `manage_appointments` and `view_messages` (2026-10-19).
 - **#13 Password reset responses (H7):** the same answer whether or not the email has an account (2026-10-19).
 - **#14 Push content (H4):** pushes say what happened, never to whom or what; sent from the queue (2026-10-19).
-- **#15 Sign in with Google and Apple:** the apps get the provider's ID token and the backend verifies it (`POST /auth/social`, sign-in and sign-up in one). One email is one account, with automatic linking by verified email. The role must match the app, and never admin (2026-10-20). Planned as backend Phase 16, patient Phase 11, dentist Phase 12; not built.
+- **#15 Sign in with Google and Apple:** the apps get the provider's ID token and the backend verifies it (`POST /auth/social`, sign-in and sign-up in one). One email is one account, with automatic linking by verified email. The role must match the app, and never admin. Android and iOS only, no web (2026-10-20). Planned as backend Phase 16, patient Phase 11, dentist Phase 12; not built.
 
 **Still needed:**
 1. **M1 / M2:** Arabic on mobile, and doctor photos (product decisions).
@@ -134,7 +134,7 @@ None open. C2 (mock medical history) is fixed; see §3.
 ### Suggested order of work
 1. **Dashboard roles:** grant `manage_appointments` / `view_messages` to the roles that need them (Super Admins already have them). Set the production settings in §5 at deployment.
 2. **H5:** patient Phase 2b (insurance and payment methods). Dentist Phase 11.
-3. **Sign in with Google and Apple (decision #15):** first the Google Cloud and Apple Developer setup listed in backend Phase 16, then backend Phase 16, then patient Phase 11 and dentist Phase 12. Google can be built and tested locally on web. Apple needs an HTTPS domain or tunnel, or an iOS device. Account deletion, an App Store requirement for any app that creates accounts, isn't planned anywhere yet.
+3. **Sign in with Google and Apple (decision #15):** first the Google Cloud and Apple Developer setup listed in backend Phase 16, then backend Phase 16, then patient Phase 11 and dentist Phase 12. Android and iOS only, so testing needs an Android build (blocked today on the SDK licences, plus the patient app's Gradle upgrade) or a Mac for iOS. Apple on Android also needs the backend on HTTPS (a tunnel locally). Account deletion, an App Store requirement for any app that creates accounts, isn't planned anywhere yet.
 4. **Re-run the live end-to-end scenario** (§7) after each group.
 
 ---
