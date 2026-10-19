@@ -33,6 +33,7 @@ These were open questions; each has a chosen answer that the plan below is writt
 | 11 | When an invoice is created | **At booking** for a direct request, and **when a doctor claims** an open-pool request (an invoice always names its doctor, and `invoices.doctor_profile_id` is required). The pending invoice is built from the booked treatments' standard amounts. Cancelling or declining the visit cancels the invoice if nothing has been paid; a partly paid invoice is left for admin reconciliation. Payments and reconciliation are unchanged. Decided 2026-10-18 (E6: a visit the patient never paid had no invoice, so admin couldn't reconcile it). | 7, 14 |
 | 12 | Admin access to the routes shared with the apps | **Only staff with the matching dashboard permission.** Being `role=admin` grants nothing on its own. Reading a visit needs `view_appointments`. Cancelling it needs `manage_appointments` (new); admins never reschedule. Reading conversations needs `view_messages` (new); admins never post. Legal documents need `verify_legal_documents`, or `view_doctors` / `view_patients` matching the owner. Patient profiles, insurance and medical history need `view_patients` to read and `manage_patients` to change. Doctor profiles and expertise need `view_doctors` / `manage_doctors`. Super Admins keep everything. Decided 2026-10-19 (`docs/CONSISTENCY_REPORT.md` H6: a billing-only staff member could read PHI and cancel visits). | 5, 10 |
 | 13 | Password reset responses | **The same answer whether or not the email has an account.** "Forgot password" always returns `200` with one message. "Reset password" with an unknown email answers like a wrong code (`422`). Decided 2026-10-19 (H7: the endpoint revealed which emails have accounts). | 0, 10 |
+| 14 | Push content and delivery | **Pushes say what happened, never to whom or what.** Titles and bodies are generic ("A visit was confirmed"): no names, treatments, times or message text, because pushes pass through Google and Apple and show on lock screens. Details stay in the app behind sign-in. `data` carries only the type and ids, which the apps route by. Pushes are sent from the queue, never inside the request. Decided 2026-10-19 (H4). | 15 |
 
 Other assumptions made without a dedicated question (revisit if wrong — see §7 Open Questions): one shared treatment catalog for both apps (not two audience-specific catalogs); `appointments.insurance_id` is a point-in-time snapshot reference, not a live one; admin authenticates through the same `/login` endpoint gated by `role:admin`, with dashboard RBAC (decision #5) providing the finer-grained access control within that gate rather than a separate auth surface.
 
@@ -635,6 +636,23 @@ Verified: full Pest suite green (471 tests, +30: `tests/Feature/Api/V1/TimezoneC
   - The dentist's Pending list and Patients tab, and the dashboard's Appointments list, all show "Sample Patient" (previously "Patient" and "#1").
   - Dashboard invoices show "$250.00" (previously "AED").
 - Visits booked before this change keep their old behaviour: appointment #2 still has no invoice until a payment is started.
+
+### Phase 15 — Push delivery through FCM HTTP v1 (consistency report H4)
+Built 2026-10-19 on TEETHi-Backend `feat/push-notifications` (`b7787d5`, `6a17191`, `77cdbad`; not merged). Decision #14 applies.
+- [x] `FcmChannel` moved off FCM's legacy API, which Google shut down, to HTTP v1.
+  - One message per device, addressed by Firebase Installation ID (`message.fid`).
+  - `data` values are sent as strings.
+  - A device FCM reports as `UNREGISTERED` is deleted. A bare `404`, such as a wrong project id, deletes nothing.
+- [x] Keyless credentials: `GoogleFcmAccessTokenProvider` uses Application Default Credentials (adds `google/auth`) and caches the token until shortly before it expires.
+  - Locally: `gcloud auth application-default login --impersonate-service-account=firebase-adminsdk-fbsvc@teethi-508df.iam.gserviceaccount.com`.
+  - In production: the host's attached service account, or workload identity federation.
+  - `FIREBASE_PROJECT_ID` replaces `FCM_SERVER_KEY`.
+- [x] Every pushed notification has a `body`, deliberately generic.
+- [x] Pushes are queued (`PushesInBackground`): only the FCM channel goes to the queue, and the in-app record is written at once. The status-change push reports the status captured at the change. A queue worker must run (`queue-worker` in `.claude/launch.json`).
+- [x] `DevicePlatform::Web`, so browsers can register.
+- Tests: `FcmChannelTest` (15), plus a web registration test. 569 Pest tests, PHPStan max and Pint clean.
+- Live: a token was fetched through impersonation. A made-up installation id came back `UNREGISTERED`. A real send to the dentist's Chrome returned `200` and arrived in `chrome://gcm-internals`.
+- **For production:** credentials for the host (attached service account or workload identity federation), a supervised queue worker, and `FIREBASE_PROJECT_ID`.
 
 ### Phase 10 — HIPAA hardening close-out ✅ complete (2026-10-19, merged)
 Done 2026-10-19, merged into TEETHi-Backend `master` at `32fe915` (553 Pest tests, PHPStan max and Pint clean). Two decisions apply: decision #12 (H6, admin access to shared routes) and decision #13 (H7, password reset responses).

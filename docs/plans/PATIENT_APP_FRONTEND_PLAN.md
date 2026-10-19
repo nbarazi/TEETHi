@@ -589,9 +589,20 @@ There is no field indicating whether a completed visit has already been reviewed
 **Verified (2026-09-17):** See §10's own "Verified" note above for the full build summary. The mock's "Message support" entry point (Profile → Help and contact) is removed — that screen now shows phone/email/hours only, per the resolved product decision.
 
 ### Phase 9 — Notifications & push
-- [ ] In-app feed + mark-read (single and "mark all as read") → `GET /notifications`, `PATCH .../read`, `PATCH .../read-all` (§11.1); bucket by date client-side, no server-side grouping
-- [ ] Integrate an FCM SDK (net-new dependency, native platform setup — not covered by this doc) and register the resulting token → `POST /device-tokens` (§11.2) right after login
-- [ ] Deregister on logout → `DELETE /device-tokens` or the `device_token` param on `POST /logout` (§2, §11.2)
+Built 2026-10-19 on TEETHi-Patient-App `feat/push-notifications` (`342be33`, not merged), consistency report H4.
+- [x] In-app feed + mark-read (single and "mark all as read") → `GET /notifications`, `PATCH .../read`, `PATCH .../read-all` (§11.1).
+  - New `features/notifications` slice. The inbox's Alerts tab and the bell use it instead of `MockData`.
+  - Tapping a row marks it read and opens Visits or the conversation (`openPushTarget`).
+  - Listed newest first, not bucketed by date.
+  - Live: 8 server notifications shown. Tapping one opened Visits, and the server's unread count dropped to 7.
+- [x] Integrate an FCM SDK and register the resulting token → `POST /device-tokens` (§11.2) right after login.
+  - `firebase_core` / `firebase_messaging` 17, configured by `flutterfire configure` (project `teethi-508df`).
+  - FCM now addresses devices by Firebase Installation ID (`register()` / `onRegistered`), not the deprecated token API. The backend sends to it as `message.fid`.
+  - Web is a push platform too (`platform: web`), with the public web push key and `web/firebase-messaging-sw.js`.
+  - Firebase's web plugins are registered by hand in `main`, because the generated registrant can come out empty on this setup.
+  - A foreground push shows a toast and refreshes the feed and Home. A tapped push opens Visits or the conversation.
+- [x] Deregister on logout → the `device_token` param on `POST /logout` (§2, §11.2).
+- Not verified on a device: Android builds wait on accepting the SDK licenses (and this app's Gradle 7.5 / AGP 7.3 may need upgrading for Firebase Messaging 17, which needs minSdk 24). iOS needs a Mac and an APNs key.
 
 ### Timezone contract — backend decision #7 (2026-10-17)
 Backend Phase 13 is built on TEETHi-Backend branch `feat/timezone-contract` (`25a38b4`, `9253d74`), not merged yet. The contract is in §7.1 (slots) and §7.3 (booking, `AppointmentResource`). Fixes consistency report C1: today, a booking made from a device not set to UTC fails the slot check or lands in the wrong slot.

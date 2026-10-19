@@ -1,6 +1,6 @@
 # TEETHi — Cross-Project Status & Consistency Report
 
-**Last updated:** 2026-10-19, H4 push work in progress (first written 2026-10-17) · **Scope:** TEETHi-Backend, TEETHi-Frontend (admin dashboard), TEETHi-Patient-App, TEETHI-Dentist-App
+**Last updated:** 2026-10-19, after building H4 push notifications (first written 2026-10-17) · **Scope:** TEETHi-Backend, TEETHi-Frontend (admin dashboard), TEETHi-Patient-App, TEETHI-Dentist-App
 
 **How this was checked**
 - **Static review (2026-10-17):**
@@ -39,7 +39,6 @@ None open. C2 (mock medical history) is fixed; see §3.
 ### High
 | # | Projects | Issue |
 |---|---|---|
-| H4 | Patient, Dentist | **Push notifications aren't delivered.** The backend sends notifications through `database` and `FcmChannel`. The dentist app's `NoopPushTokenSource` has no Firebase SDK or config behind it. The patient app has no device-token registration, and its notification feed and bell badge are still mock: the live run showed **3 while the server had 5 unread**. Patients never see status changes; a rescheduled visit only updated after a manual reload. **In progress (2026-10-19, branches `feat/push-notifications`, not merged):** both apps register with Firebase (project `teethi-508df`, web included) and handle foreground and tapped pushes; the patient app's feed and bell are now real (live: 8 server notifications shown, tapping one opened Visits and marked it read on the server); the backend accepts `web` devices. **Still to do:** the backend still sends through FCM's shut-down legacy API — it needs HTTP v1 (credentials: no-key impersonation or a key file, plus approval for `google/auth`) and notification text (`body`). Untested on devices: the built-in browser blocks notification permission; Android builds wait on accepting the SDK licenses. |
 | H5 | Patient | **Payment and insurance screens show placeholders.** The payment step always shows "CareCredit card · Ending 4417" and sends `mock-token-<timestamp>`. "CareCredit" is a real brand. Saved payment methods are never listed. There's no insurance management screen (Phase 2b). |
 
 ### Medium
@@ -82,6 +81,7 @@ None open. C2 (mock medical history) is fixed; see §3.
 | H6 | Any `role=admin` user could read visits and conversations and cancel visits through the shared routes | Decision #12: every policy checks the matching dashboard permission; new `manage_appointments` and `view_messages`, added by migration. Reschedule and cancel authorize before validating | Backend `c95808c` | 12 tests in `AdminPermissionScopeTest`. Live: the Super Admin still reads visit #1 and the conversations |
 | H7 | "Forgot password" revealed whether an account exists | Decision #13: the same `200` and message for any email; reset with an unknown email answers like a wrong code | Backend `0fac63a` | Live: known and unknown emails got the same message (local dev still returns the code for a real account, because `OTP_EXPOSE_IN_RESPONSE` is on) |
 | M4 / E7 | Errors came back in Laravel's debug format, so the dentist app showed "Something went wrong" instead of the server's `409` reason | `ApiExceptionRenderer`: every error is `{success: false, message, errors?}`; no class names, files or traces; a `409` keeps its reason | Backend `3fd2cd0` | 9 tests in `ErrorEnvelopeTest`. Live: 404, 405 and a missing visit all came back in the envelope. Both apps already read `success: false` + `message` |
+| H4 | Push notifications were never delivered: no Firebase in either app, the patient app's feed and bell were mock (3 shown while the server had 5 unread), and the backend used FCM's shut-down legacy API | Firebase in both apps, web included, registering by installation id; foreground toasts and tap routing; the patient app's real feed and bell. Backend on FCM HTTP v1 with keyless credentials, queued sends, push-safe text (decision #14) | Backend `77cdbad`, patient app `342be33`, dentist app `e461a93` (*branches `feat/push-notifications`, not merged*) | Live: the dentist's Chrome registered; sends returned `200` and arrived in `chrome://gcm-internals`. The on-screen pop-up wasn't seen (display side of that machine, not tracked down). Patient feed and tap routing checked live. Not run on Android or iOS |
 | M8 | Patient smoke test failed | Test now registers dependencies | Patient app `82a0509` | Suite passes |
 | C2 | Medical history was hardcoded ("Penicillin" for everyone), so dentists never got real allergies | Medical tab wired to `GET/PUT /patient/medical-history`, with an edit sheet | Patient app `64a2539` | Live: the patient saved Latex / Metformin 500mg, and the dentist's record showed the same |
 | E3 | The dashboard showed AED while the patient app showed $ | Decision #9: the backend sends `currency` (USD). Dashboard `money` pipe; patient app `formatMoney()` | Backend `7860aee`, dashboard `3df5016`, patient app `3d2a4b1` | Live: dashboard invoices "$250.00 / $100.00" |
@@ -123,16 +123,17 @@ None open. C2 (mock medical history) is fixed; see §3.
 - **#11 Invoice timing:** at booking for direct requests, on claim for open requests; cancelled with an unpaid visit (2026-10-18).
 - **#12 Admin access to shared routes (H6):** only staff with the matching dashboard permission; new `manage_appointments` and `view_messages` (2026-10-19).
 - **#13 Password reset responses (H7):** the same answer whether or not the email has an account (2026-10-19).
+- **#14 Push content (H4):** pushes say what happened, never to whom or what; sent from the queue (2026-10-19).
 
 **Still needed:**
 1. **M1 / M2:** Arabic on mobile, and doctor photos (product decisions).
-2. **H4:** set up one Firebase project for both apps.
-3. **Product note:** the backend allows one active consent form per template type, while the old mock had four patient forms. Decide whether one combined form is enough.
+2. **Product note:** the backend allows one active consent form per template type, while the old mock had four patient forms. Decide whether one combined form is enough.
 
 ### Suggested order of work
 1. **Dashboard roles:** grant `manage_appointments` / `view_messages` to the roles that need them (Super Admins already have them). Set the production settings in §5 at deployment.
-2. **H4 / H5:** patient Phase 9 (notifications and push) and Phase 2b (insurance and payment methods). Dentist Phase 11.
-3. **Re-run the live end-to-end scenario** (§7) after each group.
+2. **Merge** `feat/push-notifications` (backend, patient app, dentist app) and run the suites on `master`.
+3. **H5:** patient Phase 2b (insurance and payment methods). Dentist Phase 11.
+4. **Re-run the live end-to-end scenario** (§7) after each group.
 
 ---
 
@@ -208,6 +209,16 @@ See `docs/README.md` for the index and the rules for keeping docs here.
 4. The patient moved it to 12:00. The dentist's Pending tab showed "New time" with the reason; the patient saw "New time · awaiting dentist".
 5. The dentist chose Accept new time.
 6. The dentist's own move to 15:00 stayed Accepted, and the patient saw "Confirmed" after a reload.
+
+**Run 7, H4 push (2026-10-19):**
+1. Both apps started with Firebase on web. The built-in browser pane blocks notification permission, so it registered nothing there, as designed.
+2. Patient app: the Alerts tab showed the server's 8 notifications (all unread). Tapping one opened Visits, and the server's unread count dropped to 7.
+3. Backend: an access token was fetched through `gcloud` impersonation. A made-up installation id came back `UNREGISTERED`.
+4. In the user's own Chrome, the dentist signed in and allowed notifications. The browser registered as `web`.
+5. A queued status-change push and two direct test pushes returned `200` with message ids, and arrived in `chrome://gcm-internals`. The pop-up itself wasn't seen on screen; the user accepted delivery as working.
+6. Gotchas on this machine:
+   - A global `PYTHONHOME` (from ZKBio software) breaks `gcloud`. Clear it in the terminal first: `$env:PYTHONHOME = $null`.
+   - DNS lookups for `fcm.googleapis.com` take about 12 seconds here, longer than Laravel's 10-second default connect timeout. The channel now allows 30 seconds and runs in the queue.
 
 **Run 6, backend Phase 10 (2026-10-19), API only:**
 1. The unknown route, wrong method and missing visit returned `404`, `405` and `404` in the `{success: false, message}` envelope. The responses carried `nosniff` and `no-referrer`.

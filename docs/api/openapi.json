@@ -11713,7 +11713,8 @@
                 "type": "string",
                 "enum": [
                     "ios",
-                    "android"
+                    "android",
+                    "web"
                 ],
                 "title": "DevicePlatform"
             },
