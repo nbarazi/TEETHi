@@ -700,6 +700,14 @@ Built 2026-10-19 and merged into TEETHi-Backend `master` (`77cdbad`). Decision #
 - Live: a token was fetched through impersonation. A made-up installation id came back `UNREGISTERED`. A real send to the dentist's Chrome returned `200` and arrived in `chrome://gcm-internals`.
 - **For production:** credentials for the host (attached service account or workload identity federation), a supervised queue worker, and `FIREBASE_PROJECT_ID`.
 
+### Addendum — patient photo for the treating doctor (2026-10-20)
+Merged into TEETHi-Backend `master` (`0a42cd7`); 575 Pest tests, PHPStan max and Pint clean on `master`.
+- [x] `PatientProfileResource.photo_url`: a 30-minute signed URL of the account holder's `users.profile_image`, rendered only when the controller loads the profile's `user` relation, and `null` otherwise.
+  - Loaded by the doctor's accepted/pending requests and request actions, the doctor dashboard, `GET /doctor/patients` and the chart, conversations, and the shared appointment show/reschedule/cancel.
+  - Not loaded by the open pool (`OpenRequestService`), so nearby doctors don't get the photo before one of them takes the visit.
+  - Dependents have no photo of their own and always get `null`.
+- [x] `tests/Feature/Api/V1/Doctor/PatientPhotoTest.php` (6 tests).
+
 ### Phase 16 — Sign in with Google and Apple (decision #15)
 Not started. The contract is in §5.6 and the data model in §4.1. Client work: patient plan Phase 11, dentist plan Phase 12.
 

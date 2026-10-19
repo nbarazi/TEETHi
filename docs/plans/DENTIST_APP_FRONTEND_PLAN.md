@@ -239,7 +239,7 @@ Mapping to `PatientDetailBundle`:
 - `note: ClinicalNote` ← the most recent `clinical_notes` entry (or the one for the visit being documented).
 - `teeth` ← the `tooth_chart.entries` of the most recent plan that has a chart (universal → FDI, §8). `restorative` / `cosmetic` ← items of the plans with that `category`.
 - **Insurance appears here but is masked on `AppointmentResource`** — this is deliberate: the chart is the one place a treating doctor sees coverage details.
-- `photoUrl`: patient profiles have **no photo on the wire** (`profile_image` lives on the patient's `UserResource`, which the doctor doesn't receive). Show initials/avatar placeholder (§16).
+- `photoUrl`: `PatientProfileResource.photo_url`, a 30-minute signed URL of the account holder's photo (added 2026-10-20). It's `null` for a dependent, for a patient with no photo, and on open-pool requests. Show initials then.
 
 **Verified**: _(fill in once wired)_
 
@@ -321,7 +321,7 @@ One call returns every enum's `{ value: label }` map in the request locale — a
 | Mock (`features/common/...`, `MockDentistData`) | Real source |
 |---|---|
 | `Visit` (`id, patientId, patientName, service, durationMins, status, address, distanceMiles, whenText, time, cta`) | `AppointmentResource` (§7). `patientId` → `patient_profile.id`; `patientName` → its names; `durationMins` → constant 60; `distanceMiles` → **computed client-side**; `status`/`cta` → derived from `status` + `visit_type` + `scheduled_at` |
-| `Patient` (`id, name, age, languages, insurance*, dob, address, phone, phoneVerified, allergies, medications`) | `PatientProfileResource` + `insurance[]` + `medical_history` (§9); `photoUrl` has no source |
+| `Patient` (`id, name, age, languages, insurance*, dob, address, phone, phoneVerified, allergies, medications`) | `PatientProfileResource` + `insurance[]` + `medical_history` (§9); `photoUrl` from `photo_url` |
 | `VisitHistoryEntry` | `appointments[]` joined with `clinical_notes[]` on `appointment_id` (§9) |
 | `ClinicalNote` (`chiefComplaint, clinicalFinding, recommendation, isComplete`) | `ClinicalNoteResource` (§8); `isComplete` derived |
 | `ToothChartEntry` (`id "UR6", label, flag`) | `ToothChartEntryResource` (`tooth_number` 1–32, `surfaces[]`, `condition_code`, `notes`) — needs a universal ↔ FDI lookup (§8) |
@@ -459,6 +459,21 @@ Backend Phase 13 is built on TEETHi-Backend branch `feat/timezone-contract` (`25
 ### Patient display name — backend decision #10 (2026-10-18)
 - [x] Requests, Patients and Messages show `full_name`, then first + last name, then "Patient", through one `patientDisplayName()` helper. (TEETHI-Dentist-App `b14a731`, branch `feat/decisions-9-11`; verified live: "Sample Patient" instead of "Patient")
 
+### Patient photos (2026-10-20)
+Patients showed as initials everywhere, because no response the dentist reads carried their photo.
+- [x] Backend: `PatientProfileResource.photo_url`, a signed URL of the account holder's own photo (`users.profile_image`).
+  - Sent on the dentist's accepted and pending requests, the dashboard, the patient list and chart, conversations, and the single-visit responses.
+  - `null` for dependents (they have no photo), for patients without one, and on **open-pool** requests, which nearby dentists see before anyone takes the visit (the same reason the chart is closed until then).
+- [x] App: the shared `Avatar` widget shows the photo and falls back to initials when there's none or it fails to load. It now also draws rounded rectangles and takes a text style.
+  - Used for Home's next visit, request cards, the patient list and the chart header.
+  - Inbox chat rows show the photo in place of the chat icon when there is one.
+  - The visit, patient and inbox mappers read `photo_url`.
+
+**Verified live (2026-10-20):** merged into `master` in TEETHi-Backend (`0a42cd7`) and TEETHI-Dentist-App (`2c2f9d1`); the suites pass on `master`.
+- The seeded patient's photo showed on Home, in Pending, in the patient list, in the chart header and in the inbox.
+- Dependent Mia kept her "MP" initials.
+- Tests: 6 new backend tests (`PatientPhotoTest`), 575 in total, PHPStan and Pint clean. Dentist app: 111 tests (3 mapper tests and 3 `Avatar` widget tests are new); analyzer unchanged at 49 infos.
+
 ### Phase 11 — Polish & hardening
 - [ ] Empty/error/loading states on every list; pull-to-refresh as the only freshness mechanism
 - [ ] Contract test against a live backend for each repository (the mocks currently make every screen look fine)
@@ -509,7 +524,7 @@ Backend candidates (none block the phases above):
 2. **No bulk enable/disable of a visit type's windows** (§6) — "turn off Emergency" is N `PATCH` calls today.
 3. **No way to delete a tooth-chart entry** (§8) — "clear this tooth" can't be expressed; needs either a `DELETE` or an agreed "no finding" `condition_code`.
 4. **No distance on `AppointmentResource`** (§7) — the open list is *sorted and filtered* by distance server-side but the value isn't returned, so the client recomputes it. A `distance_km` on the open-request items would remove the duplication.
-5. **No patient photo for the doctor** (§9) — chart shows initials only unless a doctor-safe avatar URL is added.
+5. ~~**No patient photo for the doctor** (§9)~~ — resolved 2026-10-20: `PatientProfileResource.photo_url` (see "Patient photos" in §15).
 
 Product decisions:
 
