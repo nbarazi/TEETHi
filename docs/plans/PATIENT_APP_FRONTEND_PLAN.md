@@ -705,7 +705,7 @@ Dentists can now upload a photo (dentist app, `POST /doctor/profile/photo`), and
 - Live, with a test photo on Dr Michael Johnson: it showed on the directory tile, his profile, Home's next visit, Visits and the inbox's Messages. The API sent it on visits, the dashboard and conversations, without `account_status`.
 - **Map pins not confirmed live.** The Nearby map draws one blank, unlabelled pin at the Santa Monica fallback point whether or not a photo exists, and the original `dentist_map.dart` draws it too (checked by swapping the file back), so it's an older issue, not part of this change. It hides whether Michael's pin shows his photo.
   - A first version loaded the photo through `NetworkImage`. In the browser that image is GPU-backed and paints blank into the marker's offscreen canvas, so pins now download the bytes (Dio) and decode them like the bundled sample headshots.
-- Seen, not changed: Home's next-visit card overflows by 26 px at a 459 px-wide window (the View visit / Reschedule row).
+- Fixed afterwards (2026-10-20): Home's next-visit card overflowed by 26 px at phone width. The View visit / Reschedule row is now a `Wrap`, so Reschedule drops to its own line, and the time chip's text can wrap. Checked at 375 px (no overflow) and 800 px (buttons still side by side).
 
 ### Phase 10 — Polish & hardening
 - [ ] Loading/empty/error states for every list screen, using the Phase 0 envelope handling consistently
