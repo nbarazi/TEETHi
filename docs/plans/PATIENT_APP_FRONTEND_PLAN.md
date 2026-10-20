@@ -198,7 +198,7 @@ Each item (`DocumentTemplateResource`, in the signed-flow shape):
 `ProviderResource` (`{doctor}` here is a `DoctorProfile` id — **a real id exists now**, unlike the app's current mock `Doctor` model which has none and keys doctors by name):
 ```json
 {
-  "id": 9, "name": "Dr. Sara M.", "bio": "...", "years_experience": 12,
+  "id": 9, "name": "Dr. Sara M.", "photo_url": "https://…/storage/avatars/…?signature=…", "bio": "...", "years_experience": 12,
   "average_rating": 4.6, "patients_treated_count": 320, "recommended_percentage": 94,
   "starting_fee": 120.0, "hours": "9:00 AM - 5:00 PM", "available_today": true,
   "city": { "id": 3, "name": "Dubai", "state": "Dubai", "timezone": "Asia/Dubai", "is_available": true },
@@ -207,6 +207,8 @@ Each item (`DocumentTemplateResource`, in the signed-flow shape):
   "distance_km": 3.42
 }
 ```
+
+`photo_url` (added 2026-10-20) is the dentist's own photo as a 30-minute signed URL, or `null` without one. The same field is on the `doctor_profile` embedded in appointments (`GET /patient/appointments`, `GET /appointments/{id}`, the dashboard's `upcoming_appointments`) and conversations.
 `ReviewResource` (public — never the full reviewer identity):
 ```json
 { "id": 55, "reviewer_name": "Amina K.", "doctor_rating": 5, "would_recommend": true, "comment": "Great visit.", "created_at": "..." }
@@ -687,6 +689,23 @@ Backend Phase 13 is built on TEETHi-Backend branch `feat/timezone-contract` (`25
   - On the insurance step, "Me" lists only Delta Dental (the parent's) and "Mia Patient" lists only Cigna Kids (Mia's). Switching drops the selection and disables Continue.
   - In Before we book, switching from Me to Mia shows "Insurance · Choose a plan for Mia" and blocks booking. **Choose** returns to the insurance step on Mia. Picking her plan clears the item and enables "Continue to payment".
   - No booking was placed.
+
+### Dentist photos (2026-10-20, consistency report M2)
+Dentists can now upload a photo (dentist app, `POST /doctor/profile/photo`), and patients see it.
+- [x] Backend:
+  - `ProviderResource.photo_url`, and `DoctorProfileResource.photo_url` on visits, the dashboard and conversations.
+  - Both resources and `UserResource` now get the signed URL from one place, `User::profileImageUrl()`.
+  - `DoctorProfileResource.account_status` is now sent to admins only, because patients now load the doctor's account too.
+- [x] App: `DoctorProvider.photoUrl`, and `doctorPhotoUrl` on `Appointment`, `AppointmentSummary` and `Conversation`.
+  - `DoctorAvatar` and `DentistTile` prefer the real photo. Without one they keep the old behaviour: the design's sample headshot for a roster name, else initials.
+  - Used on the directory grid and dentist profile, the booking flow's dentist and confirm steps, Home's next visit, Visits, and the inbox and chat header.
+  - Map pins load the photo's bytes too.
+
+**Verified (2026-10-20):** merged into `master` in TEETHi-Backend (`6cf2a8c`) and TEETHi-Patient-App (`da94507`); suites pass on `master`. Backend 586 tests (6 new in `Patient/DoctorPhotoTest`, including one query for every doctor's account in the list), PHPStan and Pint clean; app 61 tests (6 new in `doctor_photo_test.dart`), analyzer unchanged at 38 infos.
+- Live, with a test photo on Dr Michael Johnson: it showed on the directory tile, his profile, Home's next visit, Visits and the inbox's Messages. The API sent it on visits, the dashboard and conversations, without `account_status`.
+- **Map pins not confirmed live.** The Nearby map draws one blank, unlabelled pin at the Santa Monica fallback point whether or not a photo exists, and the original `dentist_map.dart` draws it too (checked by swapping the file back), so it's an older issue, not part of this change. It hides whether Michael's pin shows his photo.
+  - A first version loaded the photo through `NetworkImage`. In the browser that image is GPU-backed and paints blank into the marker's offscreen canvas, so pins now download the bytes (Dio) and decode them like the bundled sample headshots.
+- Seen, not changed: Home's next-visit card overflows by 26 px at a 459 px-wide window (the View visit / Reschedule row).
 
 ### Phase 10 — Polish & hardening
 - [ ] Loading/empty/error states for every list screen, using the Phase 0 envelope handling consistently

@@ -18,10 +18,10 @@ IDs are stable across updates: C = critical, H = high, M = medium (from the stat
 
 | Project | Plan progress | Build / tests on `master` (2026-10-19) | What's left |
 |---|---|---|---|
-| **Backend** (Laravel 13) | Phases 0–10 and 12–15 done | ✅ **580 Pest tests pass**, PHPStan (max) and Pint clean | Phase 11, the real payment gateway (deferred). Production settings listed in §5, plus push credentials and a queue worker (Phase 15) |
+| **Backend** (Laravel 13) | Phases 0–10 and 12–15 done | ✅ **586 Pest tests pass**, PHPStan (max) and Pint clean | Phase 11, the real payment gateway (deferred). Production settings listed in §5, plus push credentials and a queue worker (Phase 15) |
 | **Admin dashboard** (Angular 21) | Phases 0–11 done, plus the timezone and currency/name sections | ✅ `ng build` clean, **189/189 tests pass** | Phase 0 leftovers (429 handling, `/enums` cache). Optional Phase 12 (messaging view). Open: M6 (no appointment detail, placeholder home page) |
 | **Dentist app** (Flutter) | Phases 0–10 plus the timezone, reschedule, display-name, push, patient-photo and profile-photo sections | ✅ **114/114 tests pass**. `flutter analyze`: 49 infos, 0 warnings/errors | Phase 11 polish. Open: M9. E7 fixed by the backend's error envelope |
-| **Patient app** (Flutter) | Phases 0–9 plus timezone, consent, reschedule, medical history, currency and name | ✅ **53/53 tests pass**. `flutter analyze`: 38 infos, 0 warnings/errors | Phase 2b (insurance and payment-method screens, H5), Phase 10. Open: E9 |
+| **Patient app** (Flutter) | Phases 0–9 plus timezone, consent, reschedule, medical history, currency and name | ✅ **61/61 tests pass**. `flutter analyze`: 38 infos, 0 warnings/errors | Phase 2b (insurance and payment-method screens, H5), Phase 10. Open: E9 |
 
 **Bottom line:**
 - **The core visit lifecycle now works end to end and is consistent in all three apps.** A patient books (consent is signed in the app), the dentist accepts and reschedules (both directions, rule A), then starts, documents and completes the visit. The patient receives the report, and the admin sees the appointment and the invoice. Every app shows the same visit time in the visit's own timezone.
@@ -46,7 +46,7 @@ None open. C2 (mock medical history) is fixed; see §3.
 | # | Projects | Issue |
 |---|---|---|
 | M1 | Mobile apps | **No Arabic on mobile.** The backend and the dashboard support Arabic; both mobile apps are English-only, with `ApiClient.locale` hardcoded to `'en'`. This is a product decision. |
-| M2 | Backend, Patient | **Patients don't see doctor photos.** Dentists can now upload one (`POST /doctor/profile/photo`, 2026-10-20), but `ProviderResource` has no image, so the patient app's dentist directory and profile still show initials. |
+| M13 | Backend, Patient | **Patients receive private doctor fields.** `DoctorProfileResource`, embedded in a patient's appointments and conversations, includes the doctor's date of birth, mobile number and health-authority registration number. The patient app doesn't show them, but they're on the wire. A patient-facing doctor shape (like `ProviderResource`) would fix it. Found 2026-10-20. |
 | M3 | Dashboard, Patient | **Hardcoded labels.** `GET /enums` exists, but the dashboard (Phase 0) and parts of the patient app hardcode labels, so wording can differ between apps, especially in Arabic. |
 | M5 | Dashboard | **No 429 handling.** The dashboard has no rate-limit (`429`) surface. |
 | M6 | Dashboard | **Missing appointment detail.** The scope promises list **and detail** views for appointments; there's only a list. The backend already serves `GET /appointments/{id}` to admins. The dashboard home page is still a placeholder. |
@@ -84,6 +84,7 @@ None open. C2 (mock medical history) is fixed; see §3.
 | M4 / E7 | Errors came back in Laravel's debug format, so the dentist app showed "Something went wrong" instead of the server's `409` reason | `ApiExceptionRenderer`: every error is `{success: false, message, errors?}`; no class names, files or traces; a `409` keeps its reason | Backend `3fd2cd0` | 9 tests in `ErrorEnvelopeTest`. Live: 404, 405 and a missing visit all came back in the envelope. Both apps already read `success: false` + `message` |
 | H4 | Push notifications were never delivered: no Firebase in either app, the patient app's feed and bell were mock (3 shown while the server had 5 unread), and the backend used FCM's shut-down legacy API | Firebase in both apps, web included, registering by installation id; foreground toasts and tap routing; the patient app's real feed and bell. Backend on FCM HTTP v1 with keyless credentials, queued sends, push-safe text (decision #14) | Backend `77cdbad`, patient app `342be33`, dentist app `e461a93` | Live: the dentist's Chrome registered; sends returned `200` and arrived in `chrome://gcm-internals`. The on-screen pop-up wasn't seen (display side of that machine, not tracked down). Patient feed and tap routing checked live. Not run on Android or iOS |
 | E13 | The dentist app showed initials for every patient: no response it reads carried the patient's photo | `PatientProfileResource.photo_url` (the account holder's photo, signed URL; `null` for dependents and on open-pool requests). The app's shared `Avatar` shows it on Home, requests, the patient list and chart, and inbox chat rows | Backend `0a42cd7`, dentist app `2c2f9d1` | Live: the seeded patient's photo in all five places; dependent Mia keeps her initials. 6 backend tests, 6 app tests |
+| M2 | Patients saw initials for every dentist: there was no doctor photo upload, and nothing patients read carried one | Dentists upload through `POST /doctor/profile/photo` (dentist app Edit profile). `ProviderResource` and `DoctorProfileResource` carry `photo_url`; the patient app shows it in the directory, booking, Home, Visits and the inbox, and on map pins | Backend `6cf2a8c`, patient app `da94507` (the confirm step's line is in `2195e1c`) | Live: a dentist's photo in the directory, his profile, Home, Visits and the inbox. Map pins not confirmed (an older blank pin hides them). 6 backend and 6 app tests |
 | M8 | Patient smoke test failed | Test now registers dependencies | Patient app `82a0509` | Suite passes |
 | C2 | Medical history was hardcoded ("Penicillin" for everyone), so dentists never got real allergies | Medical tab wired to `GET/PUT /patient/medical-history`, with an edit sheet | Patient app `64a2539` | Live: the patient saved Latex / Metformin 500mg, and the dentist's record showed the same |
 | E3 | The dashboard showed AED while the patient app showed $ | Decision #9: the backend sends `currency` (USD). Dashboard `money` pipe; patient app `formatMoney()` | Backend `7860aee`, dashboard `3df5016`, patient app `3d2a4b1` | Live: dashboard invoices "$250.00 / $100.00" |
@@ -129,7 +130,7 @@ None open. C2 (mock medical history) is fixed; see §3.
 - **#15 Sign in with Google and Apple:** the apps get the provider's ID token and the backend verifies it (`POST /auth/social`, sign-in and sign-up in one). One email is one account, with automatic linking by verified email. The role must match the app, and never admin. Android and iOS only, no web (2026-10-20). Planned as backend Phase 16, patient Phase 11, dentist Phase 12; not built.
 
 **Still needed:**
-1. **M1 / M2:** Arabic on mobile, and doctor photos (product decisions).
+1. **M1:** Arabic on mobile (product decision).
 2. **Product note:** the backend allows one active consent form per template type, while the old mock had four patient forms. Decide whether one combined form is enough.
 
 ### Suggested order of work

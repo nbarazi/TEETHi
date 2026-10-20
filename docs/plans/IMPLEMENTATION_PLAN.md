@@ -715,6 +715,15 @@ Merged into TEETHi-Backend `master` (`7405f57`); 580 Pest tests, PHPStan max and
 - [x] Tests: 5 in `Doctor/ProfileTest.php` (upload, replace, remove, a non-image or over-5 MB file, a patient account). The patient photo tests pass unchanged.
 - Not done: `ProviderResource` still carries no photo, so patients don't see it (consistency report M2).
 
+### Addendum — doctor photos for patients (2026-10-20, consistency report M2)
+Merged into TEETHi-Backend `master` (`6cf2a8c`); 586 Pest tests, PHPStan max and Pint clean on `master`.
+- [x] `ProviderResource.photo_url` (the directory) and `DoctorProfileResource.photo_url`, rendered when the doctor's `user` is loaded.
+  - Loaded by `GET /patient/providers` and `/{doctor}`, the patient's appointment list and dashboard, `GET /appointments/{id}` and its reschedule/cancel responses, and conversations.
+- [x] `User::profileImageUrl()` is now the one place that signs a profile photo URL (used by `UserResource`, `PatientProfileResource`, `ProviderResource` and `DoctorProfileResource`).
+- [x] `DoctorProfileResource.account_status` is sent only to admin viewers, so loading the doctor's account for a patient doesn't leak it.
+- [x] Tests: `tests/Feature/Api/V1/Patient/DoctorPhotoTest.php` (6), including a check that the directory loads every doctor's account in one query.
+- Noticed, not changed: `DoctorProfileResource` gives a patient the doctor's date of birth, mobile number and registration number wherever it's embedded (appointments, conversations). A patient-facing doctor shape (like `ProviderResource`) would fix that minimum-necessary gap.
+
 ### Phase 16 — Sign in with Google and Apple (decision #15)
 Not started. The contract is in §5.6 and the data model in §4.1. Client work: patient plan Phase 11, dentist plan Phase 12.
 
