@@ -267,6 +267,206 @@
                 }
             }
         },
+        "/v1/app-settings/{app}": {
+            "get": {
+                "operationId": "app-settings.show",
+                "summary": "One mobile app's settings (`patient` or `doctor`), fetched on\nevery start of that app before sign-in \u2014 so this is public. The\napp compares its installed version with its platform's\n`*_minimum_version` (must update) and\n`*_current_version` (update recommended), opening `*_link` from\nthe update dialog; `maintenance` on means show\n`maintenance_message` and close",
+                "tags": [
+                    "AppSetting"
+                ],
+                "parameters": [
+                    {
+                        "name": "app",
+                        "in": "path",
+                        "required": true,
+                        "description": "The app ID",
+                        "schema": {
+                            "$ref": "#/components/schemas/AppSettingApp"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "null"
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    }
+                }
+            }
+        },
+        "/v1/admin/app-settings/{app}": {
+            "get": {
+                "operationId": "admin.app-settings.show",
+                "tags": [
+                    "AppSetting"
+                ],
+                "parameters": [
+                    {
+                        "name": "app",
+                        "in": "path",
+                        "required": true,
+                        "description": "The app ID",
+                        "schema": {
+                            "$ref": "#/components/schemas/AppSettingApp"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "null"
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "patch": {
+                "operationId": "admin.app-settings.update",
+                "tags": [
+                    "AppSetting"
+                ],
+                "parameters": [
+                    {
+                        "name": "app",
+                        "in": "path",
+                        "required": true,
+                        "description": "The app ID",
+                        "schema": {
+                            "$ref": "#/components/schemas/AppSettingApp"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateAppSettingsRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "null"
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "data": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
         "/v1/appointments/{appointment}": {
             "get": {
                 "operationId": "appointments.show",
@@ -1618,7 +1818,8 @@
                                                     "type": [
                                                         "string",
                                                         "null"
-                                                    ]
+                                                    ],
+                                                    "description": "A short-lived signed URL, never the raw storage path."
                                                 },
                                                 "phone_number": {
                                                     "type": [
@@ -7750,7 +7951,7 @@
         "/v1/patient/profile/photo": {
             "post": {
                 "operationId": "patient.profile.photo.store",
-                "summary": "Uploads (or replaces) the account's avatar. Private disk only,\nlike every other upload in this domain (insurance cards, legal\ndocument credentials, message attachments) \u2014 `UserResource`\nresolves `profile_image` into a short-lived signed URL, never a\npublic path",
+                "summary": "Uploads (or replaces) the account's avatar",
                 "tags": [
                     "Profile"
                 ],
@@ -7994,6 +8195,84 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/doctor/profile/photo": {
+            "post": {
+                "operationId": "doctor.profile.photo.store",
+                "summary": "Uploads (or replaces) the doctor's photo, stored exactly like a\npatient's (`ProfilePhotoService`)",
+                "tags": [
+                    "Profile"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreProfilePhotoRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "null"
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/UserResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "doctor.profile.photo.destroy",
+                "tags": [
+                    "Profile"
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
                     }
                 }
             }
@@ -11334,6 +11613,15 @@
                 ],
                 "title": "AddressResource"
             },
+            "AppSettingApp": {
+                "type": "string",
+                "description": "The mobile app a set of `app_settings` belongs to. Each app has its own full set of keys (versions, links, texts, maintenance), edited on its own dashboard tab. Named after the API's role prefixes, so the dentist app is `doctor`.\n",
+                "enum": [
+                    "patient",
+                    "doctor"
+                ],
+                "title": "AppSettingApp"
+            },
             "AppointmentRequestMode": {
                 "type": "string",
                 "enum": [
@@ -11929,9 +12217,16 @@
                     "address": {
                         "$ref": "#/components/schemas/AddressResource"
                     },
+                    "photo_url": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "The doctor's photo as a short-lived signed URL, when the\ncontroller loads `user` (the patient's visits, dashboard and\nconversations, and the admin directory); null otherwise."
+                    },
                     "account_status": {
                         "type": "string",
-                        "description": "Only present when the controller eager-loads `user` (the\nadmin directory does; nothing else currently needs it) \u2014\na scalar field, so the loaded-but-null relation guard\nother fields here need doesn't apply."
+                        "description": "Admin-only: patients now load `user` too (for the photo), and\nthe account's status is none of their business."
                     },
                     "years_experience": {
                         "type": [
@@ -11990,6 +12285,7 @@
                     "honors_awards",
                     "social_link",
                     "languages",
+                    "photo_url",
                     "years_experience",
                     "service_radius_km",
                     "average_rating",
@@ -12564,6 +12860,13 @@
                         ],
                         "description": "Decision #10: what every app displays for this patient."
                     },
+                    "photo_url": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "The account holder's own photo (`users.profile_image`), as a\nshort-lived signed URL. Dependents have no photo of their own,\nand it's null whenever the controller didn't load `user`: the\nopen request pool leaves it out on purpose, since nearby\ndoctors see those requests before any of them takes the visit."
+                    },
                     "suffix": {
                         "type": [
                             "string",
@@ -12642,6 +12945,7 @@
                     "middle_name",
                     "last_name",
                     "full_name",
+                    "photo_url",
                     "suffix",
                     "gender",
                     "blood_type",
@@ -13008,6 +13312,13 @@
                     "name": {
                         "type": "string"
                     },
+                    "photo_url": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "The doctor's own photo (`users.profile_image`) as a short-lived\nsigned URL; null without one, or when `user` wasn't loaded."
+                    },
                     "bio": {
                         "type": [
                             "string",
@@ -13076,6 +13387,7 @@
                 "required": [
                     "id",
                     "name",
+                    "photo_url",
                     "bio",
                     "years_experience",
                     "average_rating",
@@ -14099,6 +14411,7 @@
             },
             "StoreProfilePhotoRequest": {
                 "type": "object",
+                "description": "The account's own photo, for patients and doctors alike.",
                 "properties": {
                     "photo": {
                         "type": "string",
@@ -14859,6 +15172,73 @@
                 ],
                 "title": "UpdateAddressRequest"
             },
+            "UpdateAppSettingsRequest": {
+                "type": "object",
+                "description": "A partial update of one app's settings (the `{app}` route\nparameter): only the keys sent are saved.",
+                "properties": {
+                    "app_about": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 65535
+                    },
+                    "app_policy": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 65535
+                    },
+                    "android_minimum_version": {
+                        "type": "string",
+                        "pattern": "^\\d+(\\.\\d+){0,3}$",
+                        "maxLength": 32
+                    },
+                    "android_current_version": {
+                        "type": "string",
+                        "pattern": "^\\d+(\\.\\d+){0,3}$",
+                        "maxLength": 32
+                    },
+                    "ios_minimum_version": {
+                        "type": "string",
+                        "pattern": "^\\d+(\\.\\d+){0,3}$",
+                        "maxLength": 32
+                    },
+                    "ios_current_version": {
+                        "type": "string",
+                        "pattern": "^\\d+(\\.\\d+){0,3}$",
+                        "maxLength": 32
+                    },
+                    "maintenance": {
+                        "type": "boolean"
+                    },
+                    "maintenance_message": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 65535
+                    },
+                    "android_link": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uri",
+                        "maxLength": 2048
+                    },
+                    "ios_link": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uri",
+                        "maxLength": 2048
+                    }
+                },
+                "title": "UpdateAppSettingsRequest"
+            },
             "UpdateAvailabilitySlotRequest": {
                 "type": "object",
                 "properties": {
@@ -15499,7 +15879,8 @@
                         "type": [
                             "string",
                             "null"
-                        ]
+                        ],
+                        "description": "A short-lived signed URL, never the raw storage path."
                     },
                     "phone_number": {
                         "type": [
@@ -15659,6 +16040,25 @@
                     }
                 }
             },
+            "ModelNotFoundException": {
+                "description": "Not found",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Error overview."
+                                }
+                            },
+                            "required": [
+                                "message"
+                            ]
+                        }
+                    }
+                }
+            },
             "AuthenticationException": {
                 "description": "Unauthenticated",
                 "content": {
@@ -15680,25 +16080,6 @@
             },
             "AuthorizationException": {
                 "description": "Authorization error",
-                "content": {
-                    "application/json": {
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "message": {
-                                    "type": "string",
-                                    "description": "Error overview."
-                                }
-                            },
-                            "required": [
-                                "message"
-                            ]
-                        }
-                    }
-                }
-            },
-            "ModelNotFoundException": {
-                "description": "Not found",
                 "content": {
                     "application/json": {
                         "schema": {

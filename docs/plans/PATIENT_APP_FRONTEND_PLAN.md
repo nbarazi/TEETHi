@@ -707,6 +707,17 @@ Dentists can now upload a photo (dentist app, `POST /doctor/profile/photo`), and
   - A first version loaded the photo through `NetworkImage`. In the browser that image is GPU-backed and paints blank into the marker's offscreen canvas, so pins now download the bytes (Dio) and decode them like the bundled sample headshots.
 - Fixed afterwards (2026-10-20): Home's next-visit card overflowed by 26 px at phone width. The View visit / Reschedule row is now a `Wrap`, so Reschedule drops to its own line, and the time chip's text can wrap. Checked at 375 px (no overflow) and 800 px (buttons still side by side).
 
+### App settings: maintenance, updates, About and Privacy (backend Phase 18, 2026-10-22)
+On every start the app calls the public `GET /app-settings/patient` (`lib/core/app_settings/`), its own settings from its tab of the dashboard, and `AppSettingsGate` (`lib/widgets/app_settings_gate.dart`) wraps the whole app:
+- [x] `maintenance` on: a full screen with `maintenance_message` (or a default) instead of the app. Android has **Close app** (`SystemNavigator.pop`); iOS can't close an app itself, so it has **Try again**, which re-fetches.
+- [x] Installed version (`package_info_plus`) below this platform's `*_minimum_version`: a full screen with **Update**, which opens `*_link` (`url_launcher`, external). Below `*_current_version`: the app opens and a bottom sheet in the app's card style (icon, title, body, **Later** / **Update**) offers it, once per start. With no `android_link`, Android (and debug web) opens the app's own Play Store page from its `applicationId`; iOS has no fallback, so with no `ios_link` the required screen has no button and the sheet only offers **Later** (the dashboard warns about an empty link).
+- [x] Versions compare part by part; a `+build` or `-pre` suffix is ignored. A debug web build uses the Android values (so the gate can be tried in the browser, though it never shows **Close app**); a release web build and desktop skip the version checks. Every build honours maintenance.
+- [x] A failed or slow fetch (8 s) lets the app open. The app shows a blank splash only while the first fetch runs.
+- [x] Profile: **About TEETHi** (only when `app_about` is set) and **Privacy policy** show the dashboard's text, split into paragraphs at blank lines.
+  Privacy falls back to the bundled text until the dashboard has a policy.
+
+**Verified (2026-10-22), not committed (branch `feat/tooth-chart` working tree):** `test/features/app_settings_test.dart` (11: the request path, version compare, each gate, platform links, fail-open, paragraphs, and widget tests for the maintenance, required and recommended screens). `widget_test.dart` now gives the boot test an offline settings source. 90 tests pass; analyzer unchanged at 17 infos. Not run on a device.
+
 ### Phase 10 — Polish & hardening
 - [ ] Loading/empty/error states for every list screen, using the Phase 0 envelope handling consistently
 - [ ] Confirm-before-destructive-action dialogs for every hard delete (dependents, insurance, payment methods — none of these are soft-deletable or undoable server-side)

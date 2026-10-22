@@ -317,6 +317,7 @@ Every route below sits behind `role:admin` (platform gate) **and** the listed `p
 | `GET/POST /document-templates` | Consent/agreement text + versioning | `manage_document_templates` |
 | `GET /phi-access-logs` | Compliance review | `view_phi_access_logs` |
 | `GET/PATCH /cities`, `GET /city-requests` | | `manage_cities` |
+| `GET/PATCH /app-settings/{app}` (`patient` or `doctor`) | One mobile app's settings: about/policy text, minimum and current versions, store links, maintenance (Phase 18) | `manage_app_settings` |
 
 The `is_super_admin` role bypasses every `permission:` check above, so the seeded Super Admin account never gets locked out as new permissions are added phase by phase.
 
@@ -326,6 +327,7 @@ The `is_super_admin` role bypasses every `permission:` check above, so the seede
 - `GET /conversations`, `GET /conversations/{id}/messages`, `POST /conversations/{id}/messages` — polling (`?since=`), one controller for both apps, `ConversationPolicy` restricts to the two participants (+ admin, read-only).
 - `GET /treatments` — public-ish catalog read.
 - `GET /notifications`, `PATCH /notifications/{id}/read`.
+- `GET /app-settings/{app}` (`patient` or `doctor`) — **public** (no token, `throttle:api`), so each app reads its own settings on start before sign-in (Phase 18). Any other `{app}` is a `404`.
 
 ### 5.5 Rate limits
 
@@ -786,6 +788,14 @@ Built 2026-10-22 and merged into TEETHi-Backend `master` (`8fbc68b`). The live S
 - [x] `php artisan otp:test-delivery --email=… --phone=…` sends a sample email and SMS right away through whatever is configured, without creating an account or a code.
 - [x] `phpunit.xml` pins `SMS_PROVIDER=log` and blanks the Twilio and SendGrid keys. Before this, a `.env` with real Twilio credentials made three phone tests call Twilio.
 - Tests: `OtpDeliveryTest` (11). 598 Pest tests, PHPStan and Pint clean.
+
+### Phase 18 — Mobile app settings (2026-10-22)
+Built 2026-10-22, **not committed**: the changes sit uncommitted in the working trees of TEETHi-Backend (on `feat/twilio-delivery`, beside that branch's own uncommitted OTP work, in separate files), TEETHi-Frontend (`master`) and both apps (`feat/tooth-chart`). Move them to their own branch before committing.
+- [x] Each app has its own full set of settings (`AppSettingApp`: `patient`, `doctor` — the dentist app, named like the API's role prefixes). `app_settings` table: `id`, `app`, `key`, `value` text, unique (`app`, `key`). One row per app per `AppSettingKey` case, inserted with its default by the migration, which also adds the `manage_app_settings` permission (also in `PermissionSeeder`). Keys: `app_about`, `app_policy`, `android_minimum_version`, `android_current_version`, `ios_minimum_version`, `ios_current_version`, `maintenance`, `maintenance_message`, `android_link`, `ios_link`.
+- [x] `AppSettingService` returns one app's settings typed (`maintenance` a bool, versions strings defaulting to `1.0.0`, the rest text or `null`), cached per app until that app is next saved.
+- [x] `GET /app-settings/{app}` (public) and `GET`/`PATCH /admin/app-settings/{app}` (`manage_app_settings`) return the same flat map in `data`. `PATCH` is partial and touches only that app. Versions must be dotted numbers (`1`, `1.2`, `1.2.3`, `1.2.3.4`); links must be `http(s)` URLs; text is trimmed and empty means `null`. A minimum above the current version (after the update is applied, against that app's stored other half) is a `422` on `*_minimum_version`.
+- [x] Maintenance is enforced by the apps only. The API itself keeps serving, so the dashboard keeps working.
+- Tests: `Admin/AppSettingManagementTest` (8, including that saving one app leaves the other untouched). `RoleManagementTest`'s permission count went from 6 to 7. 606 Pest tests, PHPStan and Pint clean. Migrated on the local MySQL database; `openapi.json` regenerated (Scramble documents `data` as a plain object).
 
 ### Phase 10 — HIPAA hardening close-out ✅ complete (2026-10-19, merged)
 Done 2026-10-19, merged into TEETHi-Backend `master` at `32fe915` (553 Pest tests, PHPStan max and Pint clean). Two decisions apply: decision #12 (H6, admin access to shared routes) and decision #13 (H7, password reset responses).

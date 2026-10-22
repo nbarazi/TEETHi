@@ -491,6 +491,17 @@ The dentist can add a photo the same way patients do in the patient app.
 - **Remove photo** in the app answered "Photo removed.", the initials came back, and `/me` then had `profile_image: null`.
 - The picker itself wasn't driven, because the browser pane can't use the system file dialog.
 
+### App settings: maintenance, updates, About and Privacy (backend Phase 18, 2026-10-22)
+On every start the app calls the public `GET /app-settings/doctor` (`lib/core/app_settings/`), its own settings from its tab of the dashboard, and `AppSettingsGate` (`lib/widgets/app_settings_gate.dart`) wraps the whole app:
+- [x] `maintenance` on: a full screen with `maintenance_message` (or a default) instead of the app. Android has **Close app** (`SystemNavigator.pop`); iOS can't close an app itself, so it has **Try again**, which re-fetches.
+- [x] Installed version (`package_info_plus`) below this platform's `*_minimum_version`: a full screen with **Update**, which opens `*_link` (`url_launcher`, external). Below `*_current_version`: the app opens and a bottom sheet in the app's card style (icon, title, body, **Later** / **Update**) offers it, once per start. With no `android_link`, Android (and debug web) opens the app's own Play Store page from its `applicationId`; iOS has no fallback, so with no `ios_link` the required screen has no button and the sheet only offers **Later** (the dashboard warns about an empty link).
+- [x] Versions compare part by part; a `+build` or `-pre` suffix is ignored. A debug web build uses the Android values (so the gate can be tried in the browser, though it never shows **Close app**); a release web build and desktop skip the version checks. Every build honours maintenance.
+- [x] A failed or slow fetch (8 s) lets the app open. The app shows a blank splash only while the first fetch runs.
+- [x] Profile: **About TEETHi** (only when `app_about` is set) and **Privacy policy** show the dashboard's text, split into paragraphs at blank lines.
+  Privacy still says "not available yet" until the dashboard has a policy. New `TextPageScreen` shows both.
+
+**Verified (2026-10-22), not committed (branch `feat/tooth-chart` working tree):** the same module and tests as the patient app (`test/features/app_settings_test.dart`, 11, including the `/app-settings/doctor` path). 143 tests pass; no analyzer findings in the new code. Not run on a device.
+
 ### Phase 11 — Polish & hardening
 - [ ] Empty/error/loading states on every list; pull-to-refresh as the only freshness mechanism
 - [ ] Contract test against a live backend for each repository (the mocks currently make every screen look fine)

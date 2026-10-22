@@ -754,6 +754,12 @@ Backend Phase 13 is merged on TEETHi-Backend `master`. The contract is in §4.8 
 
 **Verified (2026-10-18):** TEETHi-Frontend `3df5016` on `feat/decisions-9-11`. `ng build` is clean and 189/189 tests pass. Live: Invoices show "$250.00 / $100.00", and Appointments show "Sample Patient".
 
+### Mobile app settings (`manage_app_settings`) — backend Phase 18 (2026-10-22)
+- [x] One page at `/app-settings` (sidebar **Mobile App Settings**, icon `cilApplicationsSettings`) with a **Patient app** and a **Dentist app** tab (plain Bootstrap `nav-tabs`). Each tab is its own `app-app-settings-form`: maintenance switch and message, Android and iOS minimum version, current version and store link, About and Privacy policy text. Each loads `GET /admin/app-settings/{patient|doctor}` and saves on its own in one `PATCH` that sends every key (empty text as `null`). Both forms stay mounted (the other tab is only hidden), so switching tabs keeps unsaved edits.
+- [x] Checks before sending: dotted-number versions, `http(s)` links, minimum not above current (part-by-part compare, so `1.10` > `1.9`). A `422` from the backend shows under its field. A warning shows while maintenance is switched on, and under an empty store link (Android: Update opens the app's own Play Store page; iOS: no Update button).
+
+**Verified (2026-10-22), not committed:** `ng build` clean. Live in the browser against the local backend: a minimum of `1.10` over a current of `1.0.0` showed the inline error without a request; a save returned `200` and showed "App settings saved."; turning maintenance on in the Dentist tab and saving changed only `GET /app-settings/doctor`, not `/patient` (then reset to defaults). No horizontal scroll at 375 px. **`ng test` not run:** Playwright's headless Chromium download stalls at 10% on this machine; the new specs (service, form, tabbed page: 9 tests) are unrun.
+
 ### Phase 12 — Messaging visibility (optional, product call) — backend Phase 8, §4.13
 - [ ] Only if a support/dispute workflow needs it: a read-only conversation browser (`GET /api/v1/conversations` — an admin sees all), drilling into `GET /api/v1/conversations/{id}/messages`
 - [ ] No compose box — an admin `POST` to messages is `403` by policy
