@@ -4,7 +4,7 @@ This document tells a Flutter engineer/agent **what exists in the Teethi backend
 
 **Starting point, precisely**: `D:\Projects\TEETHi-Patient-App` today has **zero backend integration of any kind** — no HTTP client in `pubspec.yaml`, no token storage, no models with `fromJson`/`toJson`. Every screen reads from one static file (`lib/data/mock_data.dart`) via an in-memory `ChangeNotifier` (`lib/state/app_state.dart`); both files say outright that they're stand-ins for a future backend. This is not a "finish the last 20%" job — it's building the entire networking layer from scratch and then swapping every mock read/write for a real call, screen by screen.
 
-**Source of truth for the backend itself**: `docs/plans/IMPLEMENTATION_PLAN.md`, next to this file in the root docs repo. Phases 0–9 (core domain) and Phase 12 (patient directory/reviews/self-service records/SMS/push — the work this plan assumes exists) are complete. Phase 10 (HIPAA hardening close-out: "log out all devices," scrubbed exception envelopes) and Phase 11 (real payment gateway — Stripe/Apple Pay actually charging a card) are **not built yet**; the payment endpoints below exist and work end-to-end, but every card/Apple Pay charge is currently a fake gateway that always succeeds. Do not build UI that assumes a real charge failure path exists yet.
+**Source of truth for the backend itself**: `docs/plans/IMPLEMENTATION_PLAN.md`, next to this file in the root docs repo. Phases 0–9 (core domain) and Phase 12 (patient directory/reviews/self-service records/SMS/push — the work this plan assumes exists) are complete. Phase 10 (HIPAA hardening close-out) is complete. Phase 11 (Stripe, 2026-10-22) makes card and Apple Pay payments real through Stripe's payment sheet; see §9 for the contract, which changed.
 
 **How to use this file**: work phase by phase, top to bottom. Check items off (`- [x]`) as they land, and add a short "Verified" note under each phase, the same way `docs/plans/IMPLEMENTATION_PLAN.md` and `docs/plans/ADMIN_DASHBOARD_FRONTEND_PLAN.md` track their own progress. If a backend detail below turns out to be wrong or has changed, fix this doc in the root docs repo as part of the same change that discovers it.
 
@@ -381,26 +381,33 @@ The app's booking flow was designed against no real backend and makes assumption
 
 ## 9. Payment & saved payment methods
 
+Backend Phase 11 (2026-10-22) made these real: Stripe's **payment sheet**. Card details go from the sheet to Stripe; neither the app nor the backend ever sees them, and no card token is sent through this API.
+
 | Endpoint | Purpose | Body |
 |---|---|---|
-| `GET /patient/payment-methods` | Saved cards/wallets across the account | — |
-| `POST /patient/payment-methods` | Save a new one | `{ gateway_token, is_default? }` |
-| `DELETE /patient/payment-methods/{id}` | | — |
-| `POST /patient/appointments/{id}/payment` | Charge (or defer) for a specific appointment | `{ method, payment_method_id?, token?, amount?, save_payment_method? }` |
+| `GET /patient/payment-methods` | Saved cards across the account | — |
+| `POST /patient/payment-methods` | Start saving a card: returns a sheet session in setup mode | — |
+| `DELETE /patient/payment-methods/{id}` | Removes it here and in Stripe | — |
+| `POST /patient/appointments/{id}/payment` | Pay (or defer) for a specific appointment | `{ method, amount? }` |
 
-`PaymentMethodResource`: `{ id, provider, brand, last_four, is_default, created_at }` — the vault token itself is never exposed.
+`PaymentMethodResource`: `{ id, provider, brand, last_four, is_default, created_at }` — the vault token itself is never exposed. The list mirrors the paying account's Stripe customer, kept current by Stripe webhooks, so a card saved or removed inside the sheet shows up here a moment later. The first saved card is the default.
 
-**`method`** is `apple_pay` / `credit_card` / `pay_later` (via `GET /enums` → `payment_method_type` — this is exactly the app's three fixed `PaymentOptionsScreen` choices, "CareCredit" is just the app's branding of `credit_card`). Rules:
-- `pay_later` needs no `token`/`payment_method_id` at all — it just records intent to defer.
-- `credit_card`/`apple_pay` need **either** a fresh one-time `token` (from whatever gateway SDK eventually gets integrated — there is none yet, see the warning below) **or** an existing `payment_method_id` this account owns.
-- `amount` is optional — omit it to charge the full remaining balance, or send a specific amount for a partial payment.
-- `save_payment_method: true` alongside a fresh `token` saves it for later reuse — always attached to the *paying* account's own profile, reusable across every dependent, never per-dependent.
+**`method`** is `apple_pay` / `credit_card` / `pay_later` (via `GET /enums` → `payment_method_type`; the app's three fixed `PaymentOptionsScreen` choices). Rules:
+- `pay_later` just records intent to defer. The response has no `payment_sheet`.
+- `credit_card` and `apple_pay` both answer `201` with an `initiated` payment and a `payment_sheet` to present: `{ payment_intent_client_secret, customer_id, customer_session_client_secret, publishable_key, merchant_display_name }`. The patient picks a saved card, enters a new one (with an option to save it), or uses Apple Pay / Google Pay in the sheet. The payment's final `method` is recorded from what was actually used.
+- The invoice changes only when Stripe's webhook reaches the backend, usually within seconds of the sheet closing. Show "Payment received. Your invoice will update in a moment." and refresh, rather than expecting `paid` in this response.
+- `amount` is optional: omit it to pay the full remaining balance. A card amount must be above zero and at most the balance (`422` on `amount`).
+- Cards belong to the *paying* account's own profile, so they're reusable across every dependent.
+- `token`, `payment_method_id` and `save_payment_method` from the old contract are ignored.
 
-Response: `{ "invoice": InvoiceResource, "payment": PaymentResource }`. `PaymentResource`: `{ id, invoice_id, amount, method, provider_reference, status, paid_at, created_at }` — `status` (`initiated`/`succeeded`/`failed`/`refunded`) is real for the `pay_later` (`initiated`) case, but for `credit_card`/`apple_pay` it will **always** currently come back `succeeded` — see the warning below.
+`POST /patient/payment-methods` returns `{ setup_intent_client_secret, customer_id, customer_session_client_secret, publishable_key, merchant_display_name }` (`200`). Present the sheet with the SetupIntent; the card appears in `GET` once Stripe reports it.
 
-- **⚠️ There is no real payment gateway wired up yet (backend Phase 11, not built).** Every `credit_card`/`apple_pay` charge is handled by a fake gateway that always succeeds and never actually touches a card network. This is fine to wire against today (the request/response contract above is real and will not change shape when Phase 11 ships), but **do not build any "payment declined"/retry UI against real gateway error codes yet** — there aren't any to receive. The `token` field can be any non-empty string during this phase (there is no real Stripe/Apple Pay SDK integration in the Flutter app to produce a real one either — that's a separate, larger frontend task tracked alongside backend Phase 11, not part of this plan).
+Response: `{ "invoice": InvoiceResource, "payment": PaymentResource, "payment_sheet"? }`. `PaymentResource`: `{ id, invoice_id, amount, method, provider_reference, status, paid_at, created_at }`. `provider_reference` is the PaymentIntent id (`pi_…`) for a card payment and the refund id (`re_…`) for a refund row.
 
-**Verified**: _(fill in once wired)_
+- `publishable_key` is `null` when the backend runs without Stripe keys (its fake gateway): the sheet can't open, and the app says card payments need the mobile app. The same message shows on web, which has no payment sheet.
+- Apple Pay appears in the sheet only in builds with `--dart-define=STRIPE_MERCHANT_ID=merchant.…` and the Apple Pay capability.
+
+**Verified (2026-10-22):** `StripePaymentSheet` + `AppointmentsViewModel.payAppointment` (`PayOutcome`: paid / deferred / canceled / failed), wired into the booking payment step and the invoice "Pay now" sheet. `payment_sheet_test.dart` (7), 100 tests pass, `flutter analyze` 0 errors/warnings, `flutter build web` OK. **Not yet run on a device**: Android doesn't build with this Flutter until its Gradle setup is upgraded (backend plan Phase 11). The saved-cards screen (Phase 2b) isn't built; Settings still shows the mock payment options (M7).
 
 ---
 
@@ -722,7 +729,7 @@ On every start the app calls the public `GET /app-settings/patient` (`lib/core/a
 - [ ] Loading/empty/error states for every list screen, using the Phase 0 envelope handling consistently
 - [ ] Confirm-before-destructive-action dialogs for every hard delete (dependents, insurance, payment methods — none of these are soft-deletable or undoable server-side)
 - [ ] A real end-to-end pass once backend Phase 10 (HIPAA hardening) ships, specifically re-checking `POST /logout` behavior if a "log out all devices" endpoint is added (§15) and re-verifying error envelope shapes if `withExceptions` handling changes
-- [ ] A real end-to-end pass once backend Phase 11 (real payment gateway) ships — re-verify the payment screens against actual gateway SDK tokens and real decline/error paths, neither of which exist to test against today
+- [ ] A real end-to-end pass on Android and iOS against the Stripe sandbox (backend Phase 11 shipped 2026-10-22): test cards for success, decline and 3-D Secure (`4000 0025 0000 3155`), a saved card reused, a card removed in the sheet, and the invoice updating after the webhook
 
 ### Phase 11 — Sign in with Google and Apple (backend Phase 16, decision #15)
 Not started. Needs backend Phase 16 and the Google/Apple setup listed there. The contract is in §2.1. The dentist plan's Phase 12 is the same work; build the shared pieces the same way in both apps.

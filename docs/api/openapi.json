@@ -954,8 +954,8 @@
         "/v1/patient/appointments/{appointment}/payment": {
             "post": {
                 "operationId": "patient.appointments.pay",
-                "description": "A saved payment method (`save_payment_method: true` alongside a\nfresh `token`) is always saved on the *paying* account's own\nprofile, not the (possibly-dependent) profile the appointment is\nfor \u2014 one saved card is meant to be reusable across every profile\nthe account manages (`PayAppointmentRequest`'s ownership check\nalready allows using any of them via `payment_method_id`), not\nduplicated per dependent.",
-                "summary": "\"Card/Apple Pay (stubbed) or pay-later\" (\u00a75.1). Not `LogsPhiAccess`\n\u2014 invoices/payments are billing records, not one of the PHI\ncategories \u00a74.12 lists (patient profiles, medical history,\nclinical notes, treatment plans/tooth charts, prescriptions,\ninsurance, legal documents, messages)",
+                "description": "A card payment answers with an `initiated` payment and a\n`payment_sheet` for the app to present; the invoice changes once\nStripe's webhook confirms it. The paying account's own profile is\nthe Stripe customer, so cards saved in the sheet work for every\nprofile the account manages, not just the one this visit is for.",
+                "summary": "Card/Apple Pay through Stripe's payment sheet, or pay-later (\u00a75.1).\nNot `LogsPhiAccess` \u2014 invoices/payments are billing records, not\none of the PHI categories \u00a74.12 lists (patient profiles, medical\nhistory, clinical notes, treatment plans/tooth charts,\nprescriptions, insurance, legal documents, messages)",
                 "tags": [
                     "Appointment"
                 ],
@@ -1006,19 +1006,8 @@
                                             ]
                                         },
                                         "data": {
-                                            "type": "object",
-                                            "properties": {
-                                                "invoice": {
-                                                    "$ref": "#/components/schemas/InvoiceResource"
-                                                },
-                                                "payment": {
-                                                    "$ref": "#/components/schemas/PaymentResource"
-                                                }
-                                            },
-                                            "required": [
-                                                "invoice",
-                                                "payment"
-                                            ]
+                                            "type": "array",
+                                            "items": {}
                                         }
                                     },
                                     "required": [
@@ -7022,21 +7011,12 @@
             },
             "post": {
                 "operationId": "patient.payment-methods.store",
+                "summary": "Phase 11: starts saving a card rather than saving one. The app\npresents Stripe's sheet in setup mode with what this returns; the\ncard appears in `index()` once the `payment_method.attached`\nwebhook records it",
                 "tags": [
                     "PaymentMethod"
                 ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/StorePaymentMethodRequest"
-                            }
-                        }
-                    }
-                },
                 "responses": {
-                    "201": {
+                    "200": {
                         "description": "",
                         "content": {
                             "application/json": {
@@ -7061,7 +7041,34 @@
                                             ]
                                         },
                                         "data": {
-                                            "$ref": "#/components/schemas/PaymentMethodResource"
+                                            "type": "object",
+                                            "properties": {
+                                                "setup_intent_client_secret": {
+                                                    "type": "string"
+                                                },
+                                                "customer_id": {
+                                                    "type": "string"
+                                                },
+                                                "customer_session_client_secret": {
+                                                    "type": "string"
+                                                },
+                                                "publishable_key": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "merchant_display_name": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "setup_intent_client_secret",
+                                                "customer_id",
+                                                "customer_session_client_secret",
+                                                "publishable_key",
+                                                "merchant_display_name"
+                                            ]
                                         }
                                     },
                                     "required": [
@@ -7095,9 +7102,6 @@
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
                     }
                 }
             }
@@ -10113,6 +10117,90 @@
                 }
             }
         },
+        "/v1/stripe/webhook": {
+            "post": {
+                "operationId": "stripe.webhook",
+                "tags": [
+                    "StripeWebhook"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "null"
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "data": {
+                                            "type": "null"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "null"
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "errors": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "errors"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/v1/doctor/treatment-plans/{treatmentPlan}/tooth-chart": {
             "post": {
                 "operationId": "doctor.treatment-plans.tooth-chart.store",
@@ -12972,32 +13060,16 @@
             },
             "PayAppointmentRequest": {
                 "type": "object",
+                "description": "Since Phase 11 a card/Apple Pay payment needs no token or saved card id:\nthe patient picks or enters one in Stripe's payment sheet, which also\noffers to save it. Old clients that still send `token`,\n`payment_method_id` or `save_payment_method` are ignored, not rejected.",
                 "properties": {
                     "method": {
                         "$ref": "#/components/schemas/PaymentMethodType"
-                    },
-                    "payment_method_id": {
-                        "type": [
-                            "integer",
-                            "null"
-                        ]
-                    },
-                    "token": {
-                        "type": [
-                            "string",
-                            "null"
-                        ],
-                        "maxLength": 255
                     },
                     "amount": {
                         "type": [
                             "number",
                             "null"
-                        ],
-                        "minimum": 0.01
-                    },
-                    "save_payment_method": {
-                        "type": "boolean"
+                        ]
                     }
                 },
                 "required": [
@@ -14303,22 +14375,6 @@
                     }
                 },
                 "title": "StoreMessageRequest"
-            },
-            "StorePaymentMethodRequest": {
-                "type": "object",
-                "properties": {
-                    "gateway_token": {
-                        "type": "string",
-                        "maxLength": 255
-                    },
-                    "is_default": {
-                        "type": "boolean"
-                    }
-                },
-                "required": [
-                    "gateway_token"
-                ],
-                "title": "StorePaymentMethodRequest"
             },
             "StorePostVisitRecommendationRequest": {
                 "type": "object",
