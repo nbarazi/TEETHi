@@ -778,6 +778,15 @@ Not started. The contract is in §5.6 and the data model in §4.1. Client work: 
 
 **Not in this phase:** linking or unlinking a provider from settings while signed in (automatic linking by email covers the common case), and account deletion. Account deletion is an App Store requirement for any app that creates accounts, with or without social sign-in. When it's built, it must call `AppleTokenClient::revoke()` for Apple-linked accounts.
 
+### Phase 17 — Codes by Twilio SMS and Twilio SendGrid email
+Built 2026-10-22 and merged into TEETHi-Backend `master` (`8fbc68b`). The live SMS test failed with Twilio error 572006: a trial account can only send Twilio's predefined templates, not a custom body, so SMS needs an upgraded account (`SMS_PROVIDER=log` until then). Codes stay ours (`OtpService`, hashed in `otp_verifications`); Twilio only delivers them. The Twilio Verify service was considered and rejected.
+- [x] Email: a `sendgrid` mailer in `config/mail.php` (SMTP, `smtp.sendgrid.net:587` with STARTTLS, username `apikey`). Set `MAIL_MAILER=sendgrid` and `SENDGRID_API_KEY`. `MAIL_FROM_ADDRESS` must be verified in SendGrid.
+- [x] SMS: the existing `TwilioSmsChannel` (`SMS_PROVIDER=twilio`, `TWILIO_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM_NUMBER`). It now has a 10-second timeout and throws after logging a refusal or missing config, so the job is retried.
+- [x] `OtpCodeNotification` is queued (`ShouldQueue`, 3 tries, 15 s apart), so register, login and resend don't wait on SendGrid or Twilio. A queue worker must run. The payload is encrypted (`ShouldBeEncrypted`) because it holds the plaintext code. The request's locale travels with it, so the email and SMS are in the language the code was asked for in.
+- [x] `php artisan otp:test-delivery --email=… --phone=…` sends a sample email and SMS right away through whatever is configured, without creating an account or a code.
+- [x] `phpunit.xml` pins `SMS_PROVIDER=log` and blanks the Twilio and SendGrid keys. Before this, a `.env` with real Twilio credentials made three phone tests call Twilio.
+- Tests: `OtpDeliveryTest` (11). 598 Pest tests, PHPStan and Pint clean.
+
 ### Phase 10 — HIPAA hardening close-out ✅ complete (2026-10-19, merged)
 Done 2026-10-19, merged into TEETHi-Backend `master` at `32fe915` (553 Pest tests, PHPStan max and Pint clean). Two decisions apply: decision #12 (H6, admin access to shared routes) and decision #13 (H7, password reset responses).
 
