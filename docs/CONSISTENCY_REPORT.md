@@ -40,7 +40,7 @@ None open. C2 (mock medical history) is fixed; see §3.
 ### High
 | # | Projects | Issue |
 |---|---|---|
-| H5 | Patient | **Payment and insurance screens show placeholders.** Partly fixed 2026-10-22 (backend Phase 11, Stripe: backend `4b9ff24` on `feat/stripe-payments`, patient app `5736498` on `feat/stripe-payment-sheet`, not merged): the payment step and the invoice "Pay now" sheet open Stripe's payment sheet instead of sending `mock-token-<timestamp>`, and the option reads "Credit or debit card" instead of the real brand "CareCredit". Still open: no saved-cards screen (the sheet itself lists and saves cards), Settings' payment options are mock (M7), no insurance management screen (Phase 2b). |
+| H5 | Patient | **Payment and insurance screens show placeholders.** Partly fixed 2026-10-22 (backend Phase 11, Stripe: merged 2026-10-23, backend `5fbc4df`, patient app `66c95e6`): the payment step and the invoice "Pay now" sheet open Stripe's payment sheet instead of sending `mock-token-<timestamp>`, and the option reads "Credit or debit card" instead of the real brand "CareCredit". Still open: no saved-cards screen (the sheet itself lists and saves cards), Settings' payment options are mock (M7), no insurance management screen (Phase 2b). |
 
 ### Medium
 | # | Projects | Issue |
