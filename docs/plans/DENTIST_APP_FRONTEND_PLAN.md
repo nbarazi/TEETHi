@@ -157,7 +157,7 @@ Actions:
 
 | Action | Endpoint | Rules |
 |---|---|---|
-| Accept | `POST /doctor/requests/{id}/accept` | Open-pool: atomically claims it (`409` "already claimed" if another doctor won the race — handle this as a normal outcome, refresh the list). Direct: `pending → accepted` |
+| Accept | `POST /doctor/requests/{id}/accept` | Open-pool: atomically claims it (`409` "already claimed" if another doctor won the race — handle this as a normal outcome, refresh the list). Direct: `pending → accepted`. **Requires the doctor to be bookable** (R8-01): verified, unexpired licence and insurance plus both active agreements signed, otherwise `409 booking.doctor_not_bookable` |
 | Decline | `POST /doctor/requests/{id}/decline` `{ reason? }` | **Direct requests only** — an unclaimed open request can't be declined (there's nobody to decline to; just leave it). `reason` ≤ 500 chars |
 | Start visit | `POST /doctor/appointments/{id}/start` | `accepted → in_progress`; `409` from any other status; `403` if not the assigned doctor |
 | Reschedule | `PATCH /appointments/{id}/reschedule` *(shared)* | `{ scheduled_at, reason }`, reason required. `scheduled_at` must be **exactly an open slot's `starts_at`** from `GET /doctor/availability/open-slots` (§6), sent unchanged — any other time is `422 booking.slot_not_available`, and a time with no offset or `Z` is `422 booking.scheduled_at_needs_timezone` |
@@ -172,6 +172,7 @@ Actions:
 - **`Visit.service`** = `treatment.name`, or the joined names of `treatments[]` when a booking has several (the first is the "primary"). `whenText`/`time` are formatted from `scheduled_at_local`; an **open-pool request has `scheduled_at: null`** ("ASAP" — emergency requests are always this).
 - **`Visit.address`** = `visit_address` (street/city/...); **`distanceMiles` is not returned** — compute Haversine between the practice `address` lat/lng (§3) and `visit_address.latitude/longitude`, convert to miles. If either lacks coordinates, hide the distance rather than show 0.
 - **Emergency requests**: a patient's emergency booking arrives as an `open` request with `visit_type: emergency` and usually `tooth_number` + `problem_description` — surface both on the card/detail. A push (`new_nearby_open_request`, §12) fires for doctors within their radius.
+- **Bookable gate (R8-01, 2026-10-24):** new-open-request pushes only go to bookable doctors. If the doctor is not bookable, Accept answers `409 booking.doctor_not_bookable`. Publishing a new version of an agreement template also makes a previously bookable doctor non-bookable until they re-sign; the dashboard's `compliance_pending` flags it with `action: "sign"`.
 - Pull-to-refresh / polling is the only freshness mechanism (no websockets).
 
 **Verified**: _(fill in once wired)_
@@ -263,7 +264,9 @@ Mapping to `PatientDetailBundle`:
   "undocumented_visits_count": 1,
   "expertise_service_count": 6,
   "office_hours": "9:00 AM - 5:00 PM" | null,
-  "compliance_pending": [ { "type": "dental_license", "action": "sign" }, { "type": "liability_insurance", "action": "renew" } ]
+  "compliance_pending": [ { "type": "dental_license", "action": "sign" }, { "type": "liability_insurance", "action": "renew" } ],
+  "bookable": false,
+  "bookability_gaps": [ { "type": "dental_license", "reason": "awaiting_review" }, { "type": "business_agreement", "reason": "not_signed" } ]
 }
 ```
 
@@ -272,6 +275,7 @@ Mapping to `PatientDetailBundle`:
 - **"Today" is the doctor's own calendar date** in their city's zone (backend Phase 13), not the server's UTC date, so the schedule no longer empties at 4-5 pm in Los Angeles. `next_visit` and every `todays_schedule` entry carry `timezone`/`scheduled_at_local` (§7).
 - `undocumented_visits_count` = accepted/in-progress visits whose time has passed **with no visit outcome yet** — the "you have visits to document" nudge.
 - `compliance_pending` types are `business_agreement`, `nondiscrimination_notice`, `dental_license`, `liability_insurance`; `action` is `sign` (never signed/uploaded) or `renew` (expired). It is empty when everything is in order. Titles/notes for the banner come from client copy keyed on `type` — the API returns no display strings. This replaces the mock's `complianceSignaturePreview`.
+- **`bookable` / `bookability_gaps` (R8-01, 2026-10-24):** whether patients can find, book and be matched with this doctor, and if not, one entry per unmet requirement. `type` is the same four values as `compliance_pending`. `reason` is `not_uploaded`, `awaiting_review` (submitted, admin hasn't verified it yet), `rejected` or `expired` for a credential, and `not_signed` for an agreement (never signed, or an older template version). Show a "Not visible to patients yet" banner while `bookable` is false. Unlike `compliance_pending`, an `awaiting_review` gap needs no action from the dentist, so say so ("We're checking your licence") rather than asking them to upload again.
 - `greetingDate`, `dentistName`, `summaryLine` are client-composed from `profile` and the counts (there is no server-side summary text).
 - `office_hours` is a display span across all active windows regardless of day (`null` if none) — the mock's `availabilityHours`.
 
