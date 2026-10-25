@@ -3863,6 +3863,23 @@
                                                                 "type": "object",
                                                                 "properties": {
                                                                     "type": {
+                                                                        "type": "string",
+                                                                        "const": "email"
+                                                                    },
+                                                                    "reason": {
+                                                                        "type": "string",
+                                                                        "const": "not_verified"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "type",
+                                                                    "reason"
+                                                                ]
+                                                            },
+                                                            {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "type": {
                                                                         "type": "string"
                                                                     },
                                                                     "reason": {
@@ -12368,7 +12385,8 @@
                         ]
                     },
                     "date_of_birth": {
-                        "type": "string"
+                        "type": "string",
+                        "description": "R8-24: personal details for the doctor and admins only. A\npatient sees this resource on visits and conversations."
                     },
                     "mobile_no": {
                         "type": [
@@ -12491,9 +12509,6 @@
                     "middle_name",
                     "last_name",
                     "suffix",
-                    "date_of_birth",
-                    "mobile_no",
-                    "health_authority_registration_no",
                     "bio",
                     "education",
                     "experience",
