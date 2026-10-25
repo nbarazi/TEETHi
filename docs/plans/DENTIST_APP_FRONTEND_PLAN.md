@@ -310,7 +310,7 @@ The mockup's Messages tab is one list of four kinds (`InboxMessageType`: `chat`,
 
 Shared with the patient app: `POST /device-tokens` `{ token, platform: ios|android }` after login and on token refresh; `DELETE /device-tokens` `{ token }` on logout (or pass `device_token` to `POST /logout`). See `docs/plans/PATIENT_APP_FRONTEND_PLAN.md` §11.2.
 
-Doctor-relevant pushes: `new_nearby_open_request` (a new open-pool request inside this doctor's `service_radius_km`, or 50 km if unset), `appointment_status_changed` (patient cancelled/rescheduled), `appointment_reminder`, `new_message`, `document_expiring` (a credential nearing expiry). Delivery uses FCM (`FCM_SERVER_KEY`, configured server-side); the in-app notification feed is the source of truth either way.
+Doctor-relevant pushes: `new_nearby_open_request` (a new open-pool request inside this doctor's `service_radius_km`, or 50 km if unset), `appointment_status_changed` (a new direct booking arrives as status `pending`, R8-03; also patient cancelled/rescheduled), `appointment_reminder`, `new_message`, `document_expiring` (a credential nearing expiry). Delivery uses FCM (`FCM_SERVER_KEY`, configured server-side); the in-app notification feed is the source of truth either way.
 
 
 **Built 2026-10-19** (TEETHi-Dentist-App `master`, `2abaf6f` and `e461a93`, merged; consistency report H4):
