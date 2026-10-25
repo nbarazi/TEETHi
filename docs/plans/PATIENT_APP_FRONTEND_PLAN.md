@@ -514,6 +514,7 @@ For whoever wires each screen — the mock model on the left, what actually back
 - [x] Verify-email screen → `POST /email/verify` / `POST /email/resend`; delete the hardcoded `418207` shortcut entirely
 - [x] Verify-phone screen → `POST /phone/verify` / `POST /phone/resend`
 - [x] Login screen → `POST /login`; surface invalid-credentials vs. inactive-account distinctly (both currently just call `AppState.login()` unconditionally)
+- [x] **R8-09 (2026-10-25):** the login checks `user.role`. A dentist or staff account is refused ("This is a dentist account. Sign in with TEETHi for Dentists instead."), the token it was just issued is signed out with `POST /logout`, and nothing is stored. A saved session of the wrong type is dropped at launch the same way, so nobody is left on a screen with no way to sign out. The dentist app does the reverse.
 - [x] Forgot/reset password → `POST /forgot-password`, `POST /reset-password` (§2) — the same 6-digit code-entry UX as every other verification step; the app's existing `ForgotPasswordScreen` flow already matches this
 - [x] Wire "Keep me signed in" to the Phase 0 secure-storage decision
 - [x] Sign out → `POST /logout`, clear stored token (+ device token if push is already wired, §11.2)

@@ -25,7 +25,7 @@ Everything in `docs/plans/PATIENT_APP_FRONTEND_PLAN.md` §1 applies unchanged (S
 
 ## 2. Authentication & onboarding
 
-Already wired: `POST /register` (`role: "doctor"`), `POST /login`, `GET /me`, `POST /logout`, email verify/resend, `PUT /phone` + phone verify/resend, forgot/reset password, `POST /change-password`. Same contract as `docs/plans/PATIENT_APP_FRONTEND_PLAN.md` §2 (including the opt-in `data.otp_code` echo for QA, `OTP_EXPOSE_IN_RESPONSE`, never in production).
+Already wired: `POST /register` (`role: "doctor"`), `POST /login` (a non-doctor account is refused in the app with "This is a patient account…" / "This is a staff account…", and its new token is signed out, R8-09), `GET /me`, `POST /logout`, email verify/resend, `PUT /phone` + phone verify/resend, forgot/reset password, `POST /change-password`. Same contract as `docs/plans/PATIENT_APP_FRONTEND_PLAN.md` §2 (including the opt-in `data.otp_code` echo for QA, `OTP_EXPOSE_IN_RESPONSE`, never in production).
 
 **The remaining piece is doctor onboarding.** `RegisterScreen` collects a license number, practice city and specialties, currently parked on `AuthViewModel.saveDentistApplicationExtras` with a `TODO(api)`. Every one of those has a real endpoint now — call them right after register (the token is issued immediately, before verification):
 
@@ -240,6 +240,8 @@ All of these are scoped to **the assigned doctor** for that appointment (`403` o
 Mapping to `PatientDetailBundle`:
 - `patient` ← `patient` + `insurance[0]` (prefer the `is_primary` one): `insuranceProvider` ← `provider_name`, `insuranceMemberId` ← `policy_number`, `insurancePlan` ← `group_number` (there is no separate "plan name" field). No insurance = empty strings, not an error.
 - `allergies` / `medications` ← `medical_history.allergies` / `.current_medications`. **These are free-text strings on the wire**, not arrays — split/format client-side for the chip UI.
+- `conditions` ← `medical_history.conditions` (free text, split the same way) and `medicalNotes` ← `medical_history.notes`, shown on the chart (R8-02, 2026-10-25).
+- **Allergy safety (R8-02):** the visit workflow loads this chart when it opens and shows allergies, conditions and medication in a banner above every section (red when there are allergies; a warning with Retry if it can't load). Saving a prescription whose medication or instructions match a recorded allergy (`allergyConflicts()`, which knows common drug families, so Amoxicillin hits Penicillin) asks first; Cancel sends nothing. A prompt, not a block: the backend doesn't check.
 - `history: [VisitHistoryEntry]` ← `appointments` (title = treatment names, date = `scheduled_at`/`completed_at`, provider = this doctor), with `findings` ← the `clinical_notes` entry whose `appointment_id` matches (its `clinical_finding`). Join client-side.
 - `note: ClinicalNote` ← the most recent `clinical_notes` entry (or the one for the visit being documented).
 - `teeth` ← the `tooth_chart.entries` of the most recent plan that has a chart (universal → FDI, §8). `restorative` / `cosmetic` ← items of the plans with that `category`.
