@@ -3065,6 +3065,25 @@
                             }
                         }
                     },
+                    "409": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
                     "403": {
                         "$ref": "#/components/responses/AuthorizationException"
                     },
@@ -7530,6 +7549,25 @@
                             }
                         }
                     },
+                    "409": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
                     "403": {
                         "$ref": "#/components/responses/AuthorizationException"
                     },
@@ -8344,7 +8382,7 @@
         "/v1/patient/providers": {
             "get": {
                 "operationId": "patient.providers.index",
-                "summary": "`q` (name search), `city_id`, `specialization_id`, `treatment_id`,\n`available_today` filter the directory. `latitude`/`longitude` (+\noptional `radius_km`, default 50) switch to \"near me\" mode: every\nother filter still applies, but results are then sorted by\ndistance and paginated in PHP instead of at the database \u2014 the\nsame trade-off `Doctor\\RequestController::open()` already makes\nfor proximity-sorting the open pool, and for the same reason (the\nmatching set is never large enough for that to matter perf-wise)",
+                "summary": "`q` (name search), `city_id`, `specialization_id`, `treatment_id`,\n`treatment_ids[]` (every one offered, R8-07), `available_today`\nfilter the directory. `latitude`/`longitude` (+\noptional `radius_km`, default 50) switch to \"near me\" mode: every\nother filter still applies, but results are then sorted by\ndistance and paginated in PHP instead of at the database \u2014 the\nsame trade-off `Doctor\\RequestController::open()` already makes\nfor proximity-sorting the open pool, and for the same reason (the\nmatching set is never large enough for that to matter perf-wise)",
                 "tags": [
                     "Provider"
                 ],
@@ -8359,14 +8397,6 @@
                     },
                     {
                         "name": "specialization_id",
-                        "in": "query",
-                        "schema": {
-                            "type": "integer",
-                            "default": 0
-                        }
-                    },
-                    {
-                        "name": "treatment_id",
                         "in": "query",
                         "schema": {
                             "type": "integer",
@@ -11512,6 +11542,25 @@
                             }
                         }
                     },
+                    "409": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
                     "403": {
                         "$ref": "#/components/responses/AuthorizationException"
                     },
@@ -11666,6 +11715,25 @@
                                         "success",
                                         "message",
                                         "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
                                     ]
                                 }
                             }

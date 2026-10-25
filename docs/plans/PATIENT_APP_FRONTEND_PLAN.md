@@ -191,7 +191,7 @@ Each item (`DocumentTemplateResource`, in the signed-flow shape):
 
 | Endpoint | Purpose |
 |---|---|
-| `GET /patient/providers` | Browse/search doctors. Query: `q` (name substring), `city_id`, `specialization_id`, `treatment_id`, `available_today=1`, or `latitude`+`longitude` (+ optional `radius_km`, default 50) for "near me" — switches to distance-sorted results |
+| `GET /patient/providers` | Browse/search doctors. Query: `q` (name substring), `city_id`, `specialization_id`, `treatment_ids[]` (dentists offering **every** listed treatment, R8-07; the single `treatment_id` still works), `available_today=1`, or `latitude`+`longitude` (+ optional `radius_km`, default 50) for "near me" — switches to distance-sorted results |
 | `GET /patient/providers/{doctor}` | One doctor's detail |
 | `GET /patient/providers/{doctor}/reviews` | Paginated public reviews for that doctor |
 
@@ -308,7 +308,7 @@ The app's booking flow was designed against no real backend and makes assumption
   }
 }
 ```
-- **`treatment_ids`** is a non-empty array — one entry per selected procedure, no duplicates (rejected with a `422`), each must be an active catalog id. `procedures_step.dart`'s existing multi-select maps directly onto this, order preserved (the first entry becomes the appointment's "primary" treatment, see below).
+- **`treatment_ids`** is a non-empty array — one entry per selected procedure, no duplicates (rejected with a `422`), each must be an active catalog id. On a direct booking the dentist must offer every one of them (active expertise), or it's a `422` on `treatment_ids` (`booking.treatment_not_offered`, R8-07); search with the same ids (`treatment_ids[]`) so only those dentists are listed. `procedures_step.dart`'s existing multi-select maps directly onto this, order preserved (the first entry becomes the appointment's "primary" treatment, see below).
 - **`visit_type`** (`at_home` / `emergency`, via `GET /enums`) is the routine-vs-emergency branch the app's `branch_step.dart` already captures — map it directly.
 - **`address.latitude`/`address.longitude` are required**, not optional, despite other address fields being nullable — the app's `AddressEditor` needs a way to resolve/confirm coordinates (geocoding or the device's current location, same `geolocator` package already used for the map) before submitting, not just free-text fields.
 - **Before this call ever succeeds, the account must clear three prerequisites** (`booking.missing_requirements` — a `422` with an `errors.missing_requirements` array of human-readable strings if not): phone verified (§2), the target profile's date of birth present (§3), and the current consent-form version signed for that profile (§5). Check/surface these proactively in the UI (the app's `confirm_step.dart` already has a pre-booking checklist screen — wire its three checks directly to these three facts) rather than only reacting to the 422.
