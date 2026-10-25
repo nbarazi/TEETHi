@@ -295,7 +295,7 @@ This is the review queue for doctor-submitted `dental_license` and `liability_in
 
 | Method & path | Purpose | Body |
 |---|---|---|
-| `GET /admin/legal-documents` | Paginated. Filter with `?status=submitted` (the actual review queue), or `?type=dental_license` / `liability_insurance` / `consent_form` / `business_agreement` / `nondiscrimination_notice` | — |
+| `GET /admin/legal-documents` | Paginated. Filter with `?status=submitted` (the actual review queue), or `?type=dental_license` / `liability_insurance` / `consent_form` / `business_agreement` / `nondiscrimination_notice`. `?doctor_profile_id=` narrows to one dentist's documents | — |
 | `PATCH /admin/legal-documents/{legalDocument}/verify` | Approve a `submitted` document | — (no body) |
 | `PATCH /admin/legal-documents/{legalDocument}/reject` | Reject a `submitted` document | `{ reason }` (required, max 500 chars) |
 
@@ -310,9 +310,14 @@ This is the review queue for doctor-submitted `dental_license` and `liability_in
   "metadata": { "license_number": "LIC-1001", "issuing_authority": "Dubai Health Authority", "expiration_date": "2027-01-01" },
   "file_url": "http://localhost/storage/...(short-lived signed URL, ~30 min TTL, regenerated on every fetch — never cache/store this URL, always re-fetch the resource to view/download the file)",
   "submitted_at": "...", "verified_at": null, "rejection_reason": null, "expires_at": null,
-  "version": 1, "supersedes_id": null, "created_at": "..."
+  "version": 1, "supersedes_id": null, "created_at": "...",
+  "owner": {
+    "user_id": 41, "role": "doctor", "name": "Layla Haddad", "email": "dr.layla@example.com",
+    "doctor_profile_id": 15, "registration_no": "DHA-E2E-1023"
+  }
 }
 ```
+`owner` (R8-19, 2026-10-25) says whose document it is, so a credential can be checked against the person. It's on every admin response (`GET /admin/legal-documents`, verify, reject) and on the shared `GET /legal-documents/{id}` when the viewer isn't the owner; the owner's own apps never get it. `name` is the doctor's display name (or the patient's full name), falling back to the account name. `registration_no` is the licence number the dentist typed at onboarding, so the reviewer can compare it with `metadata.license_number`; it and `doctor_profile_id` are `null` for a patient.
 `metadata`'s shape depends on `type`: for `dental_license` it's `{license_number, issuing_authority, expiration_date}`; for `liability_insurance` it's `{insurer_name, policy_number, coverage_amount, expiration_date}`; it's `null` for the three template-based types (`consent_form`, `business_agreement`, `nondiscrimination_notice`), which carry a `signature_attestation` instead (not currently exposed on this resource — only relevant to the patient/doctor sign-flow endpoints, not to admin review).
 
 ### 4.6 Prescription templates — `permission: manage_prescription_templates`
@@ -672,6 +677,7 @@ GET /enums
 - [x] Legal documents review queue, defaulted to `?status=submitted`, with a `type` filter (dropdown covering all five types, since only credential types realistically appear under the submitted default — see "Verified" note)
 - [x] Document detail view/modal (via the shared `GET /legal-documents/{id}`) showing `metadata` fields relevant to its `type`, and the `file_url` (fetched fresh each time it's opened — never cached, §4.5)
 - [x] Verify action, Reject action with a required reason field — both buttons visible only when `status === "submitted"`
+- [x] **R8-19 (2026-10-25, TEETHi-Frontend `add4fc4`, backend `5ef5d2b`):** a "Submitted by" column (name linking to the doctor's page, email beneath); the verify prompt names the person and document ("Mark Layla Haddad's Dental License as verified?"); the detail modal shows who submitted it and the licence number given at sign-up, with a **Matches sign-up** / **Differs from sign-up** badge on the licence number (ignoring case, spaces, dots and dashes); a **Documents** button on the doctor page opens `/legal/legal-documents?doctor=<id>`, which shows that dentist's whole file (all statuses) with a "Show all documents" way back
 
 **Verified (2026-09-11):**
 - `src/app/features/document-templates/` — `DocumentTemplatesService` (`GET /admin/document-templates?type=&page=&per_page=`, `POST /admin/document-templates`); `document-templates-list.component` (type filter dropdown re-fetches server-side, superseded rows rendered greyed-out/read-only, "New version" opens a blank form pre-filled with the current type filter, an active row's pencil action opens the same form pre-filled from that version); `document-template-form.component` (modal — type/audience selects, title, body textarea, "Publish immediately" checkbox mapped to `is_active`; submit always `POST`s a new version, matching §4.4's no-in-place-edit contract). Routed at `/legal/document-templates`.

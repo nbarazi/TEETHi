@@ -3831,6 +3831,54 @@
                                                             }
                                                         ]
                                                     }
+                                                },
+                                                "bookable": {
+                                                    "type": "boolean",
+                                                    "description": "R8-01: whether patients can find and book this doctor, and\nif not, why \u2014 `compliance_pending` lists what to *do*, but\na credential awaiting admin review needs no action and still\nkeeps the doctor out of the directory."
+                                                },
+                                                "bookability_gaps": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "anyOf": [
+                                                            {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "type": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "reason": {
+                                                                        "type": "string",
+                                                                        "enum": [
+                                                                            "not_uploaded",
+                                                                            "awaiting_review",
+                                                                            "rejected",
+                                                                            "expired"
+                                                                        ]
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "type",
+                                                                    "reason"
+                                                                ]
+                                                            },
+                                                            {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "type": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "reason": {
+                                                                        "type": "string",
+                                                                        "const": "not_signed"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "type",
+                                                                    "reason"
+                                                                ]
+                                                            }
+                                                        ]
+                                                    }
                                                 }
                                             },
                                             "required": [
@@ -3844,7 +3892,9 @@
                                                 "undocumented_visits_count",
                                                 "expertise_service_count",
                                                 "office_hours",
-                                                "compliance_pending"
+                                                "compliance_pending",
+                                                "bookable",
+                                                "bookability_gaps"
                                             ]
                                         }
                                     },
@@ -5279,9 +5329,19 @@
         "/v1/admin/legal-documents": {
             "get": {
                 "operationId": "admin.legal-documents.index",
-                "summary": "Addition beyond \u00a75.3's original sketch, which only listed the\nverify/reject actions \u2014 an admin needs some way to find the\ndocuments awaiting review in the first place. `?status=submitted`\nis the review queue; other statuses are still browsable for audit",
+                "summary": "Addition beyond \u00a75.3's original sketch, which only listed the\nverify/reject actions \u2014 an admin needs some way to find the\ndocuments awaiting review in the first place. `?status=submitted`\nis the review queue; other statuses are still browsable for audit.\nEach row carries its `owner` so the reviewer sees whose document it\nis (R8-19); `?doctor_profile_id=` narrows to one dentist's documents",
                 "tags": [
                     "LegalDocument"
+                ],
+                "parameters": [
+                    {
+                        "name": "doctor_profile_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 0
+                        }
+                    }
                 ],
                 "responses": {
                     "200": {
@@ -12745,6 +12805,41 @@
                     },
                     "created_at": {
                         "type": "string"
+                    },
+                    "owner": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "description": "Only for an admin reviewer (the owner already knows who they\nare): who signed or uploaded it, so a credential can be checked\nagainst the person (R8-19). `registration_no` is the licence\nnumber the dentist gave at onboarding.",
+                        "properties": {
+                            "user_id": {
+                                "type": "string"
+                            },
+                            "role": {
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            },
+                            "email": {
+                                "type": "string"
+                            },
+                            "doctor_profile_id": {
+                                "type": "string"
+                            },
+                            "registration_no": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "user_id",
+                            "role",
+                            "name",
+                            "email",
+                            "doctor_profile_id",
+                            "registration_no"
+                        ]
                     }
                 },
                 "required": [
