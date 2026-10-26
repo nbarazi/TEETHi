@@ -316,7 +316,7 @@ Doctor-relevant pushes: `new_nearby_open_request` (a new open-pool request insid
 **Built 2026-10-19** (TEETHi-Dentist-App `master`, `2abaf6f` and `e461a93`, merged; consistency report H4):
 - `FirebasePushTokenSource` replaces `NoopPushTokenSource` once Firebase starts. It registers through `register()` / `onRegistered` (installation ID) and asks for permission first.
 - `web` is a platform too, with the public web push key and `web/firebase-messaging-sw.js`.
-- `PushHandler`: a foreground push shows a toast and refreshes Home and Requests. A tapped push opens Requests on Open, Pending or Accepted, the inbox, or Documents (`PushTarget`, 5 unit tests).
+- `PushHandler`: a foreground push shows a toast and refreshes Home and Requests. Signing an agreement or uploading a credential reloads Home once on success, since no push reports the dentist's own action (R8-13, 2026-10-26). A tapped push opens Requests on Open, Pending or Accepted, the inbox, or Documents (`PushTarget`, 5 unit tests).
 - Live, in the user's own Chrome: the dentist's browser registered (`platform: web`). Pushes sent through FCM HTTP v1 returned `200` with a message id, and arrived in `chrome://gcm-internals`. The pop-up itself wasn't seen on screen; the cause is on the display side of that machine (likely Windows notification settings) and wasn't tracked down.
 ---
 
