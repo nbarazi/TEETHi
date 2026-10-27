@@ -92,10 +92,12 @@ The mockup's single "Documents" list is a **client-side merge of four existing e
 - **Credentials** are upload-based and return the doctor's **whole submission history** (`LegalDocumentResource`: `id, type, status, metadata, file_url, submitted_at, verified_at, rejection_reason, version, ...`), newest version first — including `rejected`/`superseded` rows. Use `rejection_reason` to explain a rejection.
 - **Statuses**: `submitted` (awaiting admin) → `verified` | `rejected`; `signed` for agreements; `superseded` for replaced rows. **An admin verifies credentials** (`permission:verify_legal_documents`); nothing in the doctor app can trigger it. Since R8-01 a verified, unexpired licence and insurance are required to be bookable (§10 dashboard `bookable`).
 - **Renewing a credential (2026-10-24):** uploading a new licence or insurance doesn't retire a verified one. The old row stays `verified` (and keeps the doctor bookable) while the new one is `submitted`; it only becomes `superseded` when the new one is verified. If the renewal is rejected, the old one stays in force. A second upload while one is still awaiting review replaces that pending one. So the history can briefly hold a `verified` row *and* a newer `submitted` row: show the newest as "Renewal under review" and the verified one as current.
-- **Deriving the mockup's `Sign` / `Renew` / `On file` badge** (no server field for it):
+- **Deriving the mockup's `Sign` / `Renew` / `On file` badge, plus `In review`** (no server field for it):
   - `Sign` — agreements: no signed row for the active template; credentials: no `submitted`/`verified` row (or the latest is `rejected`).
-  - `Renew` — a credential whose `metadata.expiration_date` is in the past (or close). `expires_at` on the resource is **not populated** for uploads today; read `metadata.expiration_date`.
-  - `On file` — otherwise.
+  - `Renew` — a verified credential whose `metadata.expiration_date` is in the past (or within 30 days), with no renewal awaiting review. `expires_at` on the resource is **not populated** for uploads today; read `metadata.expiration_date`.
+  - `In review` (R8-20, 2026-10-28) — a credential submitted but not verified, with no verified one in force (or whose verified one is due, with the renewal already submitted). Blue hourglass, no action: it must not look approved.
+  - `On file` — otherwise. A verified one stays `On file` while its renewal is reviewed ("Verified · expires … · renewal under review").
+- **Upload form prefill (R8-20):** a renewal or re-upload starts from the newest row's `metadata` fields; a first licence starts with `health_authority_registration_no` from `GET /doctor/profile` (the number given at sign-up).
 - `file_url` is a **signed, ~30-minute URL** — never cache it; refetch to view. It is served from `/storage/...`, which has CORS enabled (relevant on Flutter web).
 - `GET /legal-documents/{id}` (shared) fetches one of the doctor's own documents.
 - `GET /doctor/dashboard` already returns a `compliance_pending` summary (§10) — use it for the Home banner instead of four calls.
