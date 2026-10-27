@@ -3877,6 +3877,27 @@
                                                                 "type": "object",
                                                                 "properties": {
                                                                     "type": {
+                                                                        "type": "string",
+                                                                        "const": "profile"
+                                                                    },
+                                                                    "reason": {
+                                                                        "type": "string",
+                                                                        "const": "incomplete"
+                                                                    },
+                                                                    "fields": {
+                                                                        "type": "string"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "type",
+                                                                    "reason",
+                                                                    "fields"
+                                                                ]
+                                                            },
+                                                            {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "type": {
                                                                         "type": "string"
                                                                     },
                                                                     "reason": {
@@ -12542,6 +12563,10 @@
                     "account_status": {
                         "type": "string",
                         "description": "Admin-only: patients now load `user` too (for the photo), and\nthe account's status is none of their business."
+                    },
+                    "email": {
+                        "type": "string",
+                        "description": "Admin-only, so a profile with no name yet still says whose it\nis in the admin lists (R8-18)."
                     },
                     "years_experience": {
                         "type": [

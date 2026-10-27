@@ -195,7 +195,7 @@ Each item (`DocumentTemplateResource`, in the signed-flow shape):
 | `GET /patient/providers/{doctor}` | One doctor's detail. Both this and the list carry `treatment_ids`, the catalog services the doctor offers (added 2026-10-28, R8-16): booking from a profile lists only those |
 | `GET /patient/providers/{doctor}/reviews` | Paginated public reviews for that doctor |
 
-**Only bookable doctors are listed** (added 2026-10-24, R8-01): a verified, unexpired licence and liability-insurance credential, plus both currently active doctor agreements signed. A direct booking naming a non-bookable `doctor_profile_id` is a `422` on that field with `booking.doctor_not_bookable`.
+**Only bookable doctors are listed** (added 2026-10-24, R8-01): a verified email (R8-10), a complete profile (R8-18, 2026-10-28), a verified, unexpired licence and liability-insurance credential, plus both currently active doctor agreements signed. A direct booking naming a non-bookable `doctor_profile_id` is a `422` on that field with `booking.doctor_not_bookable`.
 
 `GET /patient/providers/{doctor}`, `…/reviews` and `GET /patient/availability` answer **`404`** for a doctor who isn't listed (not bookable, or the account is inactive), so a deep link or a stale list can't lead into a booking that fails at the last step. Treat a `404` there as "this dentist is no longer available" and send the patient back to the list. **Exception:** if the patient already has a live visit (pending, accepted, in progress or rescheduled) with that doctor, all three still answer, so the visit can be viewed and rescheduled.
 
