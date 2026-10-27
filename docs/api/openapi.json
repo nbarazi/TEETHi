@@ -13677,6 +13677,11 @@
                             "null"
                         ]
                     },
+                    "treatment_ids": {
+                        "type": "array",
+                        "description": "The catalog services this doctor offers, so booking from their\nprofile lists only what can be booked with them (R8-16).",
+                        "items": {}
+                    },
                     "currency": {
                         "type": "string",
                         "description": "Decision #9: every amount carries its currency (E11)."

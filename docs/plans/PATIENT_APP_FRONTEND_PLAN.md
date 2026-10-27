@@ -191,8 +191,8 @@ Each item (`DocumentTemplateResource`, in the signed-flow shape):
 
 | Endpoint | Purpose |
 |---|---|
-| `GET /patient/providers` | Browse/search doctors. Query: `q` (name substring), `city_id`, `specialization_id`, `treatment_ids[]` (dentists offering **every** listed treatment, R8-07; the single `treatment_id` still works), `available_today=1`, or `latitude`+`longitude` (+ optional `radius_km`, default 50) for "near me" — switches to distance-sorted results |
-| `GET /patient/providers/{doctor}` | One doctor's detail |
+| `GET /patient/providers` | Browse/search doctors. Query: `q` (name substring), `city_id`, `specialization_id`, `treatment_ids[]` (dentists offering **every** listed treatment, R8-07; the single `treatment_id` still works), `available_today=1`, or `latitude`+`longitude` (+ optional `radius_km`, default 50) for "near me" — switches to distance-sorted results. The booking's dentist step uses the visit or profile address coordinates, not `city_id` (R8-17, 2026-10-28) |
+| `GET /patient/providers/{doctor}` | One doctor's detail. Both this and the list carry `treatment_ids`, the catalog services the doctor offers (added 2026-10-28, R8-16): booking from a profile lists only those |
 | `GET /patient/providers/{doctor}/reviews` | Paginated public reviews for that doctor |
 
 **Only bookable doctors are listed** (added 2026-10-24, R8-01): a verified, unexpired licence and liability-insurance credential, plus both currently active doctor agreements signed. A direct booking naming a non-bookable `doctor_profile_id` is a `422` on that field with `booking.doctor_not_bookable`.
