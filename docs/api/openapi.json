@@ -9207,6 +9207,90 @@
                 }
             }
         },
+        "/v1/doctor/requests/{appointment}/medical-history": {
+            "get": {
+                "operationId": "doctor.requests.medical-history",
+                "summary": "The request's patient's allergies, conditions and current\nmedication, so the doctor can weigh a direct request before\naccepting it (R8-15). Read-only, and nothing else from the chart:\nnotes and past visits still need `GET /doctor/patients/{id}`, which\nopens once the visit is accepted. Each field is null when the\npatient hasn't filled it in",
+                "tags": [
+                    "Request"
+                ],
+                "parameters": [
+                    {
+                        "name": "appointment",
+                        "in": "path",
+                        "required": true,
+                        "description": "The appointment ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "null"
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "allergies": {
+                                                    "type": "string"
+                                                },
+                                                "conditions": {
+                                                    "type": "string"
+                                                },
+                                                "current_medications": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "allergies",
+                                                "conditions",
+                                                "current_medications"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/v1/patient/appointments/{appointment}/review": {
             "post": {
                 "operationId": "patient.appointments.review.store",
