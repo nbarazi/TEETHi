@@ -15009,10 +15009,50 @@
                                         "null"
                                     ],
                                     "maxLength": 2000
+                                },
+                                "tooth_number": {
+                                    "type": [
+                                        "integer",
+                                        "null"
+                                    ],
+                                    "description": "R8-22: the tooth the item treats, which must be marked in\n`teeth` below. Required for a service with requires_tooth_chart.",
+                                    "minimum": 1,
+                                    "maximum": 32
                                 }
                             }
                         },
                         "minItems": 1
+                    },
+                    "teeth": {
+                        "type": "array",
+                        "description": "The plan's tooth chart, saved with it (same shape as\nPOST /treatment-plans/{id}/tooth-chart).",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "tooth_number": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 32
+                                },
+                                "surfaces": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                },
+                                "condition_code": {
+                                    "type": "string",
+                                    "maxLength": 50
+                                },
+                                "notes": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "maxLength": 2000
+                                }
+                            }
+                        }
                     }
                 },
                 "required": [
@@ -15292,6 +15332,10 @@
                             "integer",
                             "null"
                         ]
+                    },
+                    "tooth_number": {
+                        "type": "string",
+                        "description": "The tooth this item treats (R8-22), when the entry is loaded."
                     },
                     "status": {
                         "type": "string"
