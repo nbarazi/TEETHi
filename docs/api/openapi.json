@@ -1766,92 +1766,181 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean"
-                                        },
-                                        "message": {
-                                            "anyOf": [
-                                                {
-                                                    "type": "null"
-                                                },
-                                                {
-                                                    "type": "array",
-                                                    "items": {}
-                                                },
-                                                {
-                                                    "type": "string"
-                                                }
-                                            ]
-                                        },
-                                        "data": {
+                                    "anyOf": [
+                                        {
                                             "type": "object",
                                             "properties": {
-                                                "id": {
-                                                    "type": "integer"
+                                                "success": {
+                                                    "type": "boolean"
                                                 },
-                                                "name": {
-                                                    "type": "string"
-                                                },
-                                                "email": {
-                                                    "type": "string"
-                                                },
-                                                "role": {
-                                                    "type": "string"
-                                                },
-                                                "status": {
-                                                    "type": "string"
-                                                },
-                                                "profile_image": {
-                                                    "type": [
-                                                        "string",
-                                                        "null"
-                                                    ],
-                                                    "description": "A short-lived signed URL, never the raw storage path."
-                                                },
-                                                "phone_number": {
-                                                    "type": [
-                                                        "string",
-                                                        "null"
+                                                "message": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "null"
+                                                        },
+                                                        {
+                                                            "type": "array",
+                                                            "items": {}
+                                                        },
+                                                        {
+                                                            "type": "string"
+                                                        }
                                                     ]
                                                 },
-                                                "phone_verified_at": {
-                                                    "type": "string"
-                                                },
-                                                "email_verified_at": {
-                                                    "type": "string"
-                                                },
-                                                "created_at": {
-                                                    "type": "string"
-                                                },
-                                                "updated_at": {
-                                                    "type": "string"
-                                                },
-                                                "otp_code": {
-                                                    "type": "string"
+                                                "data": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        },
+                                                        "email": {
+                                                            "type": "string"
+                                                        },
+                                                        "role": {
+                                                            "type": "string"
+                                                        },
+                                                        "status": {
+                                                            "type": "string"
+                                                        },
+                                                        "profile_image": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ],
+                                                            "description": "A short-lived signed URL, never the raw storage path."
+                                                        },
+                                                        "phone_number": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "phone_verified_at": {
+                                                            "type": "string"
+                                                        },
+                                                        "email_verified_at": {
+                                                            "type": "string"
+                                                        },
+                                                        "created_at": {
+                                                            "type": "string"
+                                                        },
+                                                        "updated_at": {
+                                                            "type": "string"
+                                                        },
+                                                        "otp_code": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "name",
+                                                        "email",
+                                                        "role",
+                                                        "status",
+                                                        "profile_image",
+                                                        "phone_number",
+                                                        "phone_verified_at",
+                                                        "email_verified_at",
+                                                        "created_at",
+                                                        "updated_at",
+                                                        "otp_code"
+                                                    ]
                                                 }
                                             },
                                             "required": [
-                                                "id",
-                                                "name",
-                                                "email",
-                                                "role",
-                                                "status",
-                                                "profile_image",
-                                                "phone_number",
-                                                "phone_verified_at",
-                                                "email_verified_at",
-                                                "created_at",
-                                                "updated_at",
-                                                "otp_code"
+                                                "success",
+                                                "message",
+                                                "data"
+                                            ]
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "success": {
+                                                    "type": "boolean"
+                                                },
+                                                "message": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "null"
+                                                        },
+                                                        {
+                                                            "type": "array",
+                                                            "items": {}
+                                                        },
+                                                        {
+                                                            "type": "string"
+                                                        }
+                                                    ]
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer"
+                                                        },
+                                                        "name": {
+                                                            "type": "string"
+                                                        },
+                                                        "email": {
+                                                            "type": "string"
+                                                        },
+                                                        "role": {
+                                                            "type": "string"
+                                                        },
+                                                        "status": {
+                                                            "type": "string"
+                                                        },
+                                                        "profile_image": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ],
+                                                            "description": "A short-lived signed URL, never the raw storage path."
+                                                        },
+                                                        "phone_number": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "phone_verified_at": {
+                                                            "type": "string"
+                                                        },
+                                                        "email_verified_at": {
+                                                            "type": "string"
+                                                        },
+                                                        "created_at": {
+                                                            "type": "string"
+                                                        },
+                                                        "updated_at": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id",
+                                                        "name",
+                                                        "email",
+                                                        "role",
+                                                        "status",
+                                                        "profile_image",
+                                                        "phone_number",
+                                                        "phone_verified_at",
+                                                        "email_verified_at",
+                                                        "created_at",
+                                                        "updated_at"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "success",
+                                                "message",
+                                                "data"
                                             ]
                                         }
-                                    },
-                                    "required": [
-                                        "success",
-                                        "message",
-                                        "data"
                                     ]
                                 }
                             }
@@ -16059,6 +16148,10 @@
                         "type": "string",
                         "pattern": "^\\+?(?:[\\s().-]*\\d){7,15}[\\s().-]*$",
                         "maxLength": 32
+                    },
+                    "send_code": {
+                        "type": "boolean",
+                        "description": "`false` saves the number without texting a code yet."
                     }
                 },
                 "required": [
