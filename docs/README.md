@@ -39,6 +39,10 @@ The workspace root `D:\Projects\TEETHi Project` is its own git repo (`main`). It
    cd TEETHi-Backend && php artisan scramble:export --path=../docs/api/openapi.json
    ```
    `TEETHi-Backend/api.json`, the backend's own export target in `config/scramble.php`, still exists as a build artifact. Treat the copy here as the shared one.
+5. **Run migrations after every backend merge and deploy.** In the 2026-10-23 E2E run, a merged Stripe migration hadn't been applied, so card payments failed with a 500 (R8-08).
+   ```bash
+   cd TEETHi-Backend && php artisan migrate
+   ```
 
 ## Not yet done
 - No repo here has a remote yet: not this root repo, and not any of the four project repos. Everything exists only on this machine. Add private remotes and push, including one for this docs repo (for example `teethi-docs`).

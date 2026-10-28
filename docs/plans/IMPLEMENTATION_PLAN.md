@@ -840,7 +840,7 @@ Built 2026-10-22, merged 2026-10-23: TEETHi-Backend `master` at `5fbc4df` (`feat
 - [ ] Run the patient app on Android and iOS against the sandbox.
 - [ ] Production: a live restricted key with only the permissions above, a webhook endpoint subscribed to the five events, Stripe's go-live checklist.
 - Tests: `StripeWebhookTest` (11: signature, once-only delivery, re-reading Stripe, cancel, refund failure, card mirror), `PaymentTest` and `PaymentMethodTest` rewritten for the sheet flow, `Unit/StripePaymentGatewayTest` (minor units, Apple Pay detection), admin refund tests. 628 Pest tests (+5 unit), PHPStan max and Pint clean. Sandbox smoke run of the real gateway: customer, customer session, SetupIntent and PaymentIntent created; the intent confirmed with `pm_card_visa`, re-read as `succeeded`, and partly refunded. Patient app: `payment_sheet_test.dart` (7), 100 tests pass, `flutter analyze` 0 errors/warnings, `flutter build web` OK. The webhook hasn't been exercised end to end (no Stripe CLI here).
-- Follow-up: a card payment the patient abandons stays `initiated` (its intent is never canceled), so invoices collect stale attempts; cancel old intents, or reuse an open one, before launch.
+- Follow-up, mostly done 2026-10-29 (R8-08, TEETHi-Backend `2afd4b6` on `fix/r8-08-payments`): the next attempt on an invoice, card or pay later, cancels the card intent the patient left open. Still open: an attempt with no later attempt stays `initiated` until Stripe expires it; a scheduled cleanup would close that.
 
 ---
 
