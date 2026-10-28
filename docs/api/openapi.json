@@ -12262,6 +12262,10 @@
                             "null"
                         ]
                     },
+                    "visit_at_local": {
+                        "type": "string",
+                        "description": "The visit's own wall-clock time, so a report is dated by its\nvisit rather than when the note was written (Low). Present\nwhen the controller loads `appointment`."
+                    },
                     "created_at": {
                         "type": "string"
                     },
