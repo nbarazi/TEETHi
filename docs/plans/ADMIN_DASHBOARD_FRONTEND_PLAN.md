@@ -766,6 +766,9 @@ Backend Phase 13 is merged on TEETHi-Backend `master`. The contract is in §4.8 
 
 **Verified (2026-10-22), not committed:** `ng build` clean. Live in the browser against the local backend: a minimum of `1.10` over a current of `1.0.0` showed the inline error without a request; a save returned `200` and showed "App settings saved."; turning maintenance on in the Dentist tab and saving changed only `GET /app-settings/doctor`, not `/patient` (then reset to defaults). No horizontal scroll at 375 px. **`ng test` not run:** Playwright's headless Chromium download stalls at 10% on this machine; the new specs (service, form, tabbed page: 9 tests) are unrun.
 
+### Deleted accounts (backend account deletion addendum, 2026-10-29)
+Patients and dentists can now delete their own account in the apps. The row stays (visits and records point at it) as "Deleted user" with a `deleted-{id}@deleted.invalid` email and `status: inactive`. `PATCH /admin/patients/{patient}/status` and `/admin/doctors/{doctor}/status` answer `409` with "This account was deleted by its owner and cannot be reactivated." The status toggle already shows the server's message for a failed save; no dashboard change was made. A "Deleted" badge (the API doesn't expose `account_deleted_at` yet) is a possible follow-up.
+
 ### Phase 12 — Messaging visibility (optional, product call) — backend Phase 8, §4.13
 - [ ] Only if a support/dispute workflow needs it: a read-only conversation browser (`GET /api/v1/conversations` — an admin sees all), drilling into `GET /api/v1/conversations/{id}/messages`
 - [ ] No compose box — an admin `POST` to messages is `403` by policy

@@ -778,7 +778,7 @@ Not started. The contract is in §5.6 and the data model in §4.1. Client work: 
 
 **For production:** HTTPS on the API's real domain (Apple's return URL), the release SHA-1s on the Android clients, and the `.p8` key available to the server outside the repo.
 
-**Not in this phase:** linking or unlinking a provider from settings while signed in (automatic linking by email covers the common case), and account deletion. Account deletion is an App Store requirement for any app that creates accounts, with or without social sign-in. When it's built, it must call `AppleTokenClient::revoke()` for Apple-linked accounts.
+**Not in this phase:** linking or unlinking a provider from settings while signed in (automatic linking by email covers the common case), Account deletion is now built (see the account deletion addendum); this phase must add `AppleTokenClient::revoke()` to it for Apple-linked accounts.
 
 ### Phase 17 — Codes by Twilio SMS and Twilio SendGrid email
 Built 2026-10-22 and merged into TEETHi-Backend `master` (`8fbc68b`). The live SMS test failed with Twilio error 572006: a trial account can only send Twilio's predefined templates, not a custom body, so SMS needs an upgraded account (`SMS_PROVIDER=log` until then). Codes stay ours (`OtpService`, hashed in `otp_verifications`); Twilio only delivers them. The Twilio Verify service was considered and rejected.
@@ -796,6 +796,21 @@ Built 2026-10-22, **not committed**: the changes sit uncommitted in the working 
 - [x] `GET /app-settings/{app}` (public) and `GET`/`PATCH /admin/app-settings/{app}` (`manage_app_settings`) return the same flat map in `data`. `PATCH` is partial and touches only that app. Versions must be dotted numbers (`1`, `1.2`, `1.2.3`, `1.2.3.4`); links must be `http(s)` URLs; text is trimmed and empty means `null`. A minimum above the current version (after the update is applied, against that app's stored other half) is a `422` on `*_minimum_version`.
 - [x] Maintenance is enforced by the apps only. The API itself keeps serving, so the dashboard keeps working.
 - Tests: `Admin/AppSettingManagementTest` (8, including that saving one app leaves the other untouched). `RoleManagementTest`'s permission count went from 6 to 7. 606 Pest tests, PHPStan and Pint clean. Migrated on the local MySQL database; `openapi.json` regenerated (Scramble documents `data` as a plain object).
+
+### Addendum — account deletion (2026-10-29, App Store guideline 5.1.1(v))
+Built on TEETHi-Backend `feat/account-deletion` (`91a92ce`), **not merged**. Client work: patient plan and dentist plan "Account deletion" sections.
+- [x] `DELETE /account` (patients and dentists; `password` required, `current_password` rule; throttled 6/min like the password routes). `200` with `auth.account_deleted`; a wrong password is `422` on `password`; staff get `403`; a visit `in_progress` (as patient, for a dependent, or as the dentist) is `409 auth.account_delete_visit_in_progress`.
+- [x] `AccountDeletionService` keeps every care and billing record, since clinical records are never hard-deleted (§4, Phase 10) and dentists must still see who they treated: care profiles (names, date of birth), dependents, visits, status histories, clinical notes, charts, prescriptions, invoices and payments, and a dentist's licence, agreements and profile. It removes the account:
+  - Live visits (`open`, `pending`, `accepted`, `rescheduled`) are cancelled through `AppointmentStatusService` with the reason "The account was deleted.", so the other party is notified and unpaid invoices are cancelled (decision #11).
+  - Saved cards are detached in Stripe and removed; insurance is soft-deleted.
+  - Device tokens, OTP rows, every Sanctum token and the profile photo file are deleted.
+  - `users`: `name` "Deleted user", `email` `deleted-{id}@deleted.invalid` (so the address can register again, as a new account), phone, verification dates and `remember_token` cleared, an unusable random password, `status` inactive, and the new `account_deleted_at`. The directory already hides inactive dentists.
+  - The log line carries the user id and role only.
+- [x] The dashboard can't switch a deleted account back on: `PATCH /admin/patients/{patient}/status` and `/admin/doctors/{doctor}/status` return `409 admin.account_deleted`.
+- [x] Migration `2026_10_29_000001_add_deleted_at_to_users_table` (`users.account_deleted_at`, a plain timestamp, not `SoftDeletes`, because visits and histories still point at the row). en/ar messages.
+- Tests: `AccountDeletionTest` (9: scrub and sign-out everywhere, email reusable, live visits for the account and a dependent cancelled with the dentist notified and records kept, cards detached and insurance soft-deleted, `409` while a visit is in progress, a dentist's visits cancelled with the patient notified, open-pool requests untouched, wrong password, staff `403`, no dashboard reactivation). 752 Pest tests, PHPStan max and Pint clean. Migrated on the local MySQL database; `openapi.json` regenerated (`DELETE /v1/account`).
+- **Live (local, 2026-10-29):** four throwaway patients (`e2e.delete.patient{,2,3,4}@teethi.test`) and one dentist (`e2e.delete.dentist@teethi.test`) were deleted (three patients through the patient app on web, the rest through the API). Each became "Deleted user" with a `deleted-{id}@deleted.invalid` email, no tokens, inactive, and its login answered `401`. The care profile kept its name.
+- **Not done:** Apple's token revocation. When Phase 16 builds Sign in with Apple, deletion must call `AppleTokenClient::revoke()` for Apple-linked accounts. Records are kept indefinitely; a retention period after which a deleted account's records are purged is a legal decision still to make.
 
 ### Phase 10 — HIPAA hardening close-out ✅ complete (2026-10-19, merged)
 Done 2026-10-19, merged into TEETHi-Backend `master` at `32fe915` (553 Pest tests, PHPStan max and Pint clean). Two decisions apply: decision #12 (H6, admin access to shared routes) and decision #13 (H7, password reset responses).

@@ -137,7 +137,7 @@ None open. C2 (mock medical history) is fixed; see §3.
 ### Suggested order of work
 1. **Dashboard roles:** grant `manage_appointments` / `view_messages` to the roles that need them (Super Admins already have them). Set the production settings in §5 at deployment.
 2. **H5:** patient Phase 2b (insurance and payment methods). Dentist Phase 11.
-3. **Sign in with Google and Apple (decision #15):** first the Google Cloud and Apple Developer setup listed in backend Phase 16, then backend Phase 16, then patient Phase 11 and dentist Phase 12. Android and iOS only, so testing needs an Android build (blocked today on the SDK licences, plus the patient app's Gradle upgrade) or a Mac for iOS. Apple on Android also needs the backend on HTTPS (a tunnel locally). Account deletion, an App Store requirement for any app that creates accounts, isn't planned anywhere yet.
+3. **Sign in with Google and Apple (decision #15):** first the Google Cloud and Apple Developer setup listed in backend Phase 16, then backend Phase 16, then patient Phase 11 and dentist Phase 12. Android and iOS only, so testing needs an Android build (blocked today on the SDK licences, plus the patient app's Gradle upgrade) or a Mac for iOS. Apple on Android also needs the backend on HTTPS (a tunnel locally). Account deletion, the App Store requirement for any app that creates accounts, is built on `feat/account-deletion` in the backend and both apps (2026-10-29, not merged); Phase 16 must add Apple token revocation to it.
 4. **Re-run the live end-to-end scenario** (§7) after each group.
 
 ---

@@ -730,6 +730,13 @@ On every start the app calls the public `GET /app-settings/patient` (`lib/core/a
 
 **Verified (2026-10-22), not committed (branch `feat/tooth-chart` working tree):** `test/features/app_settings_test.dart` (11: the request path, version compare, each gate, platform links, fail-open, paragraphs, and widget tests for the maintenance, required and recommended screens). `widget_test.dart` now gives the boot test an offline settings source. 90 tests pass; analyzer unchanged at 17 infos. Not run on a device.
 
+### Account deletion (App Store guideline 5.1.1(v), backend account deletion addendum, 2026-10-29)
+`DELETE /account` with `{password}` → `200` and the session is over on every device. `422` on `password` for a wrong one, `409` with a message while a visit is in progress. Upcoming visits for the account and its dependents are cancelled by the backend; records are kept.
+- [x] Profile → **Delete account** (below Log out, danger style) opens `DeleteAccountScreen`: what's deleted (sign-in, name/email/phone/photo, saved cards and insurance, upcoming visits with the dentist told) and what's kept (visit history, dental records, prescriptions, invoices). Password field, an "I understand this can't be undone" checkbox, then a final confirmation dialog.
+- [x] `AuthRepository.deleteAccount` clears the stored token only after the `200`; `AuthViewModel.deleteAccount` returns to sign-in. A wrong password shows under the field; any other error (the `409`) is a toast. The screen shows "Your account has been deleted." on the root overlay before returning, so it stays up over sign-in. English and Arabic.
+
+**Verified (2026-10-29):** TEETHi-Patient-App `feat/account-deletion` (`ab0e175`, `e5eadac`), **not merged**. `test/features/delete_account_test.dart` (5: success, wrong password, `409`, the button gating and final confirmation, and the confirmation staying up over sign-in). 160 tests pass, analyzer unchanged at 17 infos. Live on web: the screen, a wrong password ("The password is incorrect." under the field) and a deletion that returned to sign-in, with the account scrubbed server-side. The confirmation toast, as first built (shown by the sign-in screen), never appeared on web; the current version (shown by the delete screen) is covered by the widget test but wasn't seen live, because the browser pane stopped loading the restarted app. Not run on a device.
+
 ### Phase 10 — Polish & hardening
 - [ ] Loading/empty/error states for every list screen, using the Phase 0 envelope handling consistently
 - [ ] Confirm-before-destructive-action dialogs for every hard delete (dependents, insurance, payment methods — none of these are soft-deletable or undoable server-side)
