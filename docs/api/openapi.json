@@ -13681,6 +13681,11 @@
                             "null"
                         ]
                     },
+                    "languages": {
+                        "type": "array",
+                        "description": "What the dentist speaks, for the public profile (Low).",
+                        "items": {}
+                    },
                     "years_experience": {
                         "type": [
                             "integer",
@@ -13750,6 +13755,7 @@
                     "name",
                     "photo_url",
                     "bio",
+                    "languages",
                     "years_experience",
                     "average_rating",
                     "patients_treated_count",
