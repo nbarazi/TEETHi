@@ -519,7 +519,7 @@ On every start the app calls the public `GET /app-settings/doctor` (`lib/core/ap
 - [x] Profile → **Delete account** (below Log out) opens `DeleteAccountScreen`: what's deleted (sign-in, the directory listing, name/email/phone/photo, upcoming visits and pending requests) and what's kept (visit notes, charts, prescriptions and invoices in patients' records; licence and agreements). Password, acknowledgement, final confirmation.
 - [x] On success the signed-in view models are reset as on Log out (`ProfileScreen._resetSignedInState`, shared with Log out), the screen shows "Your account has been deleted." on the root overlay, and the app returns to sign-in. A wrong password shows under the field; the `409` is a toast. English and Arabic.
 
-**Verified (2026-10-29):** TEETHI-Dentist-App `feat/account-deletion` (`ef5f8f3`, `c183d57`), **not merged**. `test/features/delete_account_test.dart` (5, as in the patient app, plus the reset callback). 215 tests pass; the one new analyzer info is the constructor's existing `prefer_initializing_formals` style. Not run in the app: a throwaway dentist was deleted through the API only.
+**Verified (2026-10-29):** TEETHI-Dentist-App `ef5f8f3` and `c183d57`, merged to `master` (fast-forward) 2026-10-29; 215 tests pass on `master`. `test/features/delete_account_test.dart` (5, as in the patient app, plus the reset callback). 215 tests pass; the one new analyzer info is the constructor's existing `prefer_initializing_formals` style. Not run in the app: a throwaway dentist was deleted through the API only.
 
 ### Phase 11 — Polish & hardening
 - [ ] Empty/error/loading states on every list; pull-to-refresh as the only freshness mechanism
