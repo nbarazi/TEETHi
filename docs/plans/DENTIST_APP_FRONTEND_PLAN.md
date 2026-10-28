@@ -522,10 +522,13 @@ On every start the app calls the public `GET /app-settings/doctor` (`lib/core/ap
 **Verified (2026-10-29):** TEETHI-Dentist-App `ef5f8f3` and `c183d57`, merged to `master` (fast-forward) 2026-10-29; 215 tests pass on `master`. `test/features/delete_account_test.dart` (5, as in the patient app, plus the reset callback). 215 tests pass; the one new analyzer info is the constructor's existing `prefer_initializing_formals` style. Not run in the app: a throwaway dentist was deleted through the API only.
 
 ### Phase 11 — Polish & hardening
-- [ ] Empty/error/loading states on every list; pull-to-refresh as the only freshness mechanism
-- [ ] Contract test against a live backend for each repository (the mocks currently make every screen look fine)
-- [ ] End-to-end run: register → onboard → sign docs → set schedule + radius → receive a patient's booking → accept → start → document → complete
-- [ ] Remove `MockDentistData` and every `Mock*Repository` once nothing references them
+- [x] Empty/error/loading states on every list; pull-to-refresh as the only freshness mechanism. Audited 2026-10-29: Home, Requests, Patients, the patient chart, Messages, Documents, Expertise and Profile already used the shared `EmptyState` with pull-to-refresh, and Request details shows the medical history's loading and Retry. Schedule's failed load was plain red text and a button; it now uses the shared error state.
+- [x] Contract test against a live backend for each repository: `test/contract/live_backend_test.dart` signs in as the seeded dentist and runs every repository's read calls (dashboard, profile and specializations, onboarding cities, documents, expertise, schedule, requests and open slots, patients and a chart, inbox, treatment catalog) through the real `ApiClient`. It's skipped unless run with `flutter test test/contract --dart-define=LIVE_BACKEND=true` (`API_BASE_URL`, `LIVE_DENTIST_EMAIL`/`LIVE_DENTIST_PASSWORD` override the defaults). All 10 passed against the local backend on 2026-10-29.
+- [x] End-to-end run: register → onboard → sign docs → set schedule + radius → receive a patient's booking → accept → start → document → complete. Done on web in the 2026-10-23 run (`docs/E2E_REPORT_2026-10-23.md`, with a new dentist, Layla); its findings were R8-01 to R8-26.
+- [x] Remove `MockDentistData` and every `Mock*Repository` once nothing references them. Already gone; the injector's doc comment still described them and now doesn't.
+- [x] Also: removing the profile photo now asks first (`confirmRemovePhoto`), as in the patient app.
+
+**Verified (2026-10-29):** TEETHI-Dentist-App `fb434ca` on `fix/polish-phase`, **not merged**. `test/widgets/remove_photo_dialog_test.dart` (3). 218 tests pass (the 10 contract tests skip without a backend); analyzer unchanged at 47 infos. Not checked in the browser or on a device.
 
 ### Phase 12 — Sign in with Google and Apple (backend Phase 16, decision #15)
 Not started. Needs backend Phase 16 and the Google/Apple setup listed there. The contract is in §2.1. This is the same work as the patient plan's Phase 11, whose checklist has the full detail (packages, nonce, cancel handling, brand rules, hiding the buttons in a browser, logout, tests, platform setup). Only the differences are listed here.
