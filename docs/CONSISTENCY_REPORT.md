@@ -192,6 +192,14 @@ Beyond H6, H7 and M4, the pass found and fixed the following. All are merged (ba
 - Dentist app: 105/105 tests pass, 0 analyzer warnings or errors (49 infos, unchanged).
 - The dashboard didn't change.
 
+### Merge check (2026-10-28, E2E fixes on `fix/r8-medium`)
+`fix/r8-medium` was fast-forwarded into `master` in all four repos: backend `6a2065c` (13 commits), dashboard `aea2ca6` (1), patient app `3ce3d7d` (11), dentist app `5110372` (13). It carries R8-10 to R8-18, R8-20 to R8-24, R8-26 and the Low fixes from [E2E_REPORT_2026-10-23.md](E2E_REPORT_2026-10-23.md).
+- Backend: 738 Pest tests pass; PHPStan and Pint are clean. The local MySQL database has no pending migrations.
+- Dashboard: `ng build` is clean and 206/206 tests pass.
+- Patient app: 151/151 tests pass, 0 analyzer warnings or errors (17 infos).
+- Dentist app: 210/210 tests pass, 0 analyzer warnings or errors (46 infos).
+- Not re-run live after the merge. Several fixes were only covered by tests (R8-13, R8-26 and most Low items).
+
 ## 6. Docs consolidated in this folder
 
 See `docs/README.md` for the index and the rules for keeping docs here.
