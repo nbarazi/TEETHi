@@ -743,7 +743,7 @@ On every start the app calls the public `GET /app-settings/patient` (`lib/core/a
 - [x] A real end-to-end pass once backend Phase 10 (HIPAA hardening) ships: the 2026-10-23 run (`docs/E2E_REPORT_2026-10-23.md`) covered it on web. `POST /logout` is unchanged ("log out all devices" is its own `POST /sessions/revoke-all`, which the app doesn't use), and every error arrived in the `{success, message, errors?}` envelope.
 - [ ] A real end-to-end pass on Android and iOS against the Stripe sandbox (backend Phase 11 shipped 2026-10-22): test cards for success, decline and 3-D Secure (`4000 0025 0000 3155`), a saved card reused, a card removed in the sheet, and the invoice updating after the webhook
 
-**Verified (2026-10-29):** TEETHi-Patient-App `e8a2463` on `fix/polish-phase`, **not merged**. `test/widgets/remove_photo_dialog_test.dart` (3: Cancel, confirm, tap outside). 164 tests pass, analyzer unchanged at 17 infos. Not checked in the browser (the pane stopped rendering) or on a device. Still open: the Android/iOS Stripe pass above.
+**Verified (2026-10-29):** TEETHi-Patient-App `e8a2463`, merged to `master` (fast-forward) 2026-10-30; 164 tests pass on `master`. `test/widgets/remove_photo_dialog_test.dart` (3: Cancel, confirm, tap outside). 164 tests pass, analyzer unchanged at 17 infos. Not checked in the browser (the pane stopped rendering) or on a device. Still open: the Android/iOS Stripe pass above.
 
 ### Phase 11 — Sign in with Google and Apple (backend Phase 16, decision #15)
 Not started. Needs backend Phase 16 and the Google/Apple setup listed there. The contract is in §2.1. The dentist plan's Phase 12 is the same work; build the shared pieces the same way in both apps.

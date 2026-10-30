@@ -528,7 +528,7 @@ On every start the app calls the public `GET /app-settings/doctor` (`lib/core/ap
 - [x] Remove `MockDentistData` and every `Mock*Repository` once nothing references them. Already gone; the injector's doc comment still described them and now doesn't.
 - [x] Also: removing the profile photo now asks first (`confirmRemovePhoto`), as in the patient app.
 
-**Verified (2026-10-29):** TEETHI-Dentist-App `fb434ca` on `fix/polish-phase`, **not merged**. `test/widgets/remove_photo_dialog_test.dart` (3). 218 tests pass (the 10 contract tests skip without a backend); analyzer unchanged at 47 infos. Not checked in the browser or on a device.
+**Verified (2026-10-29):** TEETHI-Dentist-App `fb434ca`, merged to `master` (fast-forward) 2026-10-30; 218 tests pass on `master`. `test/widgets/remove_photo_dialog_test.dart` (3). 218 tests pass (the 10 contract tests skip without a backend); analyzer unchanged at 47 infos. Not checked in the browser or on a device.
 
 ### Phase 12 — Sign in with Google and Apple (backend Phase 16, decision #15)
 Not started. Needs backend Phase 16 and the Google/Apple setup listed there. The contract is in §2.1. This is the same work as the patient plan's Phase 11, whose checklist has the full detail (packages, nonce, cancel handling, brand rules, hiding the buttons in a browser, logout, tests, platform setup). Only the differences are listed here.
