@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "laravel-boost": {
+      "type": "stdio",
+      "command": "C:/Users/ASUS/.config/herd-lite/bin/php.exe",
+      "args": ["D:/Projects/TEETHi Project/TEETHi-Backend/artisan", "boost:mcp"]
+    }
+  }
+}
