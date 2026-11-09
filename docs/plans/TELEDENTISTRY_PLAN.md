@@ -48,6 +48,8 @@ Agora specifics:
 
 Route: `virtual = ['consult','dentist','insurance','confirm','payment','confirmation']`, the same chrome as the other routes (5 numbered steps).
 
+**As built (T3):** `['consult','dentist','visit','insurance','confirm','payment','confirmation']` (6 numbered steps). Open slots come from one dentist's tele hours (`GET /patient/availability` needs `doctor_profile_id`), so the day and time are picked after the dentist, as in the routine route. The tele `visit` step is only the week strip and slots, with no address. The consult step adds "Where will you be during the call?" (a state picker, prefilled from the profile address), which T11 needs.
+
 ### 3.2 Dentist app (no new design; reuse existing patterns)
 - Pages follow the existing request detail and patient pages.
 - The call screen is the **same design as the patient's** D9, with the dentist as host.
@@ -222,7 +224,21 @@ T3 can start once T1's contract is fixed, in parallel with T2. In total, about *
   - Tests: `TeleCallTest` (24), `Unit/AgoraTokenBuilderTest` (3), and the two session key columns added to `EncryptedColumnsTest`. 801 Pest tests pass; PHPStan max and Pint clean. OpenAPI refreshed.
   - **Still to do outside the code:** turn on NCS in the Agora console for `https://<api host>/api/v1/agora/webhook` (needs a public host or a tunnel), subscribe it to events 102–108, and put its secret in `AGORA_NCS_SECRET`. Until then, sessions record start and end from the visit, but not who joined when.
   - Not done here: closing the Agora channel from the server when a visit ends (needs Agora's REST customer key). Tokens expiring within 15 minutes covers it for now.
-- [ ] T3 Patient booking flow
+- [x] T3 Patient booking flow — built 2026-11-10 on TEETHi-Patient-App `feat/teledentistry-booking` (`dddd29d`), not merged yet. Needs the backend branches above.
+  - Book tab: third card **Teledentistry**, "From $45 · video or audio" from the catalog's virtual treatment. Copy says routine and emergency are in person, teledentistry is a call in the app.
+  - Route as built: consult → dentist → day and time → insurance → Before we book → payment → confirmation (see §3.1 for why the time follows the dentist).
+  - **Consult step:** Video call / Audio call, the six reason chips, "Describe it briefly" (sent as the encrypted `problem_description`), and the state the patient will be in (51 USPS codes, prefilled from the profile address).
+  - **Dentist step:** `GET /patient/providers?visit_type=tele&licensed_state=XX&treatment_ids[]=…`. No map, distance or in-person fee. Empty state: "No dentists licensed in {state} offer teledentistry yet." Changing the state after picking a dentist drops that dentist.
+  - **Before we book:** Video/Audio badge, "Virtual consultation · {reason}", "Call type: Audio call in the app", no address and no phone number. Booking sends `visit_type=tele`, `call_mode`, `consult_topic`, `patient_state` and no `address`. Insurance and payment are the same steps as routine.
+  - **Consent fix:** consent forms now carry `type`. The teledentistry consent blocks only a tele booking. Before this, since T1 seeded it, an unsigned tele consent also blocked routine bookings in the app.
+  - **Catalog fix:** the virtual consultation is left out of the routine and emergency pickers and the routine "From" price. Backend (`3ab9a7a` on `feat/teledentistry-calls`): a dentist's `starting_fee` leaves it out too; before, every tele dentist showed "From $45".
+  - **Confirmation:** "Join the call from Visits when it is time. We will notify you."
+  - **Visits and Home:** a tele visit shows "Audio/Video call in the app" and a Teledentistry badge instead of "At your address". Cancel and Reschedule use the existing rules and reason sheet (Q4). The `tele_call_ready` push opens and refreshes Visits.
+  - English and Arabic strings.
+  - Tests: `test/features/teledentistry_booking_test.dart` (16). 180 Flutter tests pass; `flutter analyze` shows only the 17 old deprecation notes.
+  - **Verified 2026-11-10** in the web preview against the dev backend: booked an audio second-opinion consultation with a California dentist (pay later). The backend stored `visit_type=tele`, `call_mode=audio`, `consult_topic=second_opinion`, `patient_state=CA`, no address. The tele consent blocked the booking until signed; Visits and Home showed it as an audio call.
+  - **Left for T4:** the Join call button and the call screen.
+  - **Small follow-up:** the Consent forms screen's banner still counts an unsigned teledentistry consent as needed "before a visit can be confirmed", which isn't true for in-person visits.
 - [ ] T4 Patient call screen
 - [ ] T5 Dentist app
 - [ ] T6 Admin dashboard
