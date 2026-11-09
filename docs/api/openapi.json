@@ -12612,6 +12612,17 @@
                             "null"
                         ]
                     },
+                    "call": {
+                        "anyOf": [
+                            {
+                                "description": "Teledentistry call log, only where the admin endpoints load\nit (T6); null for a visit whose call never started.",
+                                "$ref": "#/components/schemas/TeleSessionResource"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
                     "insurance": {
                         "anyOf": [
                             {
@@ -15876,6 +15887,41 @@
                     "started_at"
                 ],
                 "title": "TeleCallCredentialsResource"
+            },
+            "TeleSessionResource": {
+                "type": "object",
+                "properties": {
+                    "started_at": {
+                        "type": "string"
+                    },
+                    "ended_at": {
+                        "type": "string"
+                    },
+                    "ended_reason": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "`completed`, `cancelled` or `channel_closed`; null while open."
+                    },
+                    "duration_seconds": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "participants": {
+                        "type": "string",
+                        "description": "Each join, in order. Empty until NCS is set up (T0)."
+                    }
+                },
+                "required": [
+                    "started_at",
+                    "ended_at",
+                    "ended_reason",
+                    "duration_seconds"
+                ],
+                "title": "TeleSessionResource"
             },
             "ToothChartEntryResource": {
                 "type": "object",
