@@ -8665,7 +8665,7 @@
         "/v1/patient/providers": {
             "get": {
                 "operationId": "patient.providers.index",
-                "summary": "`q` (name search), `city_id`, `specialization_id`, `treatment_id`,\n`treatment_ids[]` (every one offered, R8-07), `available_today`\nfilter the directory. `latitude`/`longitude` (+\noptional `radius_km`, default 50) switch to \"near me\" mode: every\nother filter still applies, but results are then sorted by\ndistance and paginated in PHP instead of at the database \u2014 the\nsame trade-off `Doctor\\RequestController::open()` already makes\nfor proximity-sorting the open pool, and for the same reason (the\nmatching set is never large enough for that to matter perf-wise)",
+                "summary": "`q` (name search), `city_id`, `specialization_id`, `treatment_id`,\n`treatment_ids[]` (every one offered, R8-07), `available_today`,\n`visit_type` (has open hours for it) and `licensed_state` (a US\nstate code; teledentistry shows only dentists licensed where the\npatient is) filter the directory. `latitude`/`longitude` (+\noptional `radius_km`, default 50) switch to \"near me\" mode: every\nother filter still applies, but results are then sorted by\ndistance and paginated in PHP instead of at the database \u2014 the\nsame trade-off `Doctor\\RequestController::open()` already makes\nfor proximity-sorting the open pool, and for the same reason (the\nmatching set is never large enough for that to matter perf-wise)",
                 "tags": [
                     "Provider"
                 ],
@@ -12273,7 +12273,15 @@
                         ]
                     },
                     "visit_address": {
-                        "$ref": "#/components/schemas/AddressResource"
+                        "anyOf": [
+                            {
+                                "description": "Null for a teledentistry visit, which has no address (same\nnull guard as `doctor_profile` above).",
+                                "$ref": "#/components/schemas/AddressResource"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
                     },
                     "visit_instructions": {
                         "type": [
@@ -12292,6 +12300,16 @@
                             "string",
                             "null"
                         ]
+                    },
+                    "call_mode": {
+                        "type": "string",
+                        "description": "Teledentistry only (null for home visits): how the call is\nheld, what it is about, and the US state the patient is in."
+                    },
+                    "consult_topic": {
+                        "type": "string"
+                    },
+                    "patient_state": {
+                        "type": "string"
                     },
                     "insurance": {
                         "anyOf": [
@@ -12352,6 +12370,9 @@
                     "visit_instructions",
                     "tooth_number",
                     "problem_description",
+                    "call_mode",
+                    "consult_topic",
+                    "patient_state",
                     "consent_confirmed_at",
                     "cancellation_reason",
                     "rescheduled_reason",
@@ -12832,6 +12853,10 @@
                             "null"
                         ]
                     },
+                    "licensed_states": {
+                        "type": "string",
+                        "description": "Teledentistry: the US states this dentist may consult patients in."
+                    },
                     "average_rating": {
                         "type": "number"
                     },
@@ -13005,11 +13030,12 @@
             },
             "DocumentTemplateType": {
                 "type": "string",
-                "description": "The three signable, admin-authored document types (\u00a74.4). Credential uploads (`dental_license`, `liability_insurance`) have no template \u2014 they're a doctor-submitted file + metadata, never admin-authored text \u2014 so they live only on `LegalDocumentType`, not here.\n",
+                "description": "The signable, admin-authored document types (\u00a74.4), plus the teledentistry consent a patient signs before their first tele visit. Credential uploads (`dental_license`, `liability_insurance`) have no template \u2014 they're a doctor-submitted file + metadata, never admin-authored text \u2014 so they live only on `LegalDocumentType`, not here.\n",
                 "enum": [
                     "consent_form",
                     "business_agreement",
-                    "nondiscrimination_notice"
+                    "nondiscrimination_notice",
+                    "teledentistry_consent"
                 ],
                 "title": "DocumentTemplateType"
             },
@@ -13977,6 +14003,10 @@
                     "available_today": {
                         "type": "boolean"
                     },
+                    "licensed_states": {
+                        "type": "string",
+                        "description": "Teledentistry: the US states this dentist may consult patients in."
+                    },
                     "city": {
                         "$ref": "#/components/schemas/CityResource"
                     },
@@ -14429,6 +14459,15 @@
                             "integer",
                             "null"
                         ]
+                    },
+                    "call_mode": {
+                        "type": "string"
+                    },
+                    "consult_topic": {
+                        "type": "string"
+                    },
+                    "patient_state": {
+                        "type": "string"
                     },
                     "treatment_ids": {
                         "type": "array",
@@ -15347,6 +15386,10 @@
                     "requires_tooth_chart": {
                         "type": "boolean"
                     },
+                    "is_virtual": {
+                        "type": "boolean",
+                        "description": "A teledentistry consultation, booked only as a `tele` visit."
+                    },
                     "is_active": {
                         "type": "boolean"
                     }
@@ -15722,6 +15765,9 @@
                     "requires_tooth_chart": {
                         "type": "boolean"
                     },
+                    "is_virtual": {
+                        "type": "string"
+                    },
                     "is_active": {
                         "type": "boolean"
                     },
@@ -15741,6 +15787,7 @@
                     "currency",
                     "is_quick_select",
                     "requires_tooth_chart",
+                    "is_virtual",
                     "is_active",
                     "created_at",
                     "updated_at"
@@ -16137,6 +16184,13 @@
                             "type": "string",
                             "maxLength": 50
                         }
+                    },
+                    "licensed_states": {
+                        "type": "array",
+                        "description": "Teledentistry: the full list of US states this dentist is\nlicensed in. Sending it replaces the list; [] clears it.",
+                        "items": {
+                            "$ref": "#/components/schemas/UsState"
+                        }
                     }
                 },
                 "title": "UpdateDoctorProfileRequest"
@@ -16474,6 +16528,10 @@
                     "requires_tooth_chart": {
                         "type": "boolean"
                     },
+                    "is_virtual": {
+                        "type": "boolean",
+                        "description": "A teledentistry consultation, booked only as a `tele` visit."
+                    },
                     "is_active": {
                         "type": "boolean"
                     }
@@ -16507,6 +16565,64 @@
                     "surfaces"
                 ],
                 "title": "UpsertToothChartEntryRequest"
+            },
+            "UsState": {
+                "type": "string",
+                "description": "US states (plus DC) by USPS code. Teledentistry follows the patient's location: a dentist may only consult a patient who is in a state the dentist is licensed in.\n",
+                "enum": [
+                    "AL",
+                    "AK",
+                    "AZ",
+                    "AR",
+                    "CA",
+                    "CO",
+                    "CT",
+                    "DE",
+                    "DC",
+                    "FL",
+                    "GA",
+                    "HI",
+                    "ID",
+                    "IL",
+                    "IN",
+                    "IA",
+                    "KS",
+                    "KY",
+                    "LA",
+                    "ME",
+                    "MD",
+                    "MA",
+                    "MI",
+                    "MN",
+                    "MS",
+                    "MO",
+                    "MT",
+                    "NE",
+                    "NV",
+                    "NH",
+                    "NJ",
+                    "NM",
+                    "NY",
+                    "NC",
+                    "ND",
+                    "OH",
+                    "OK",
+                    "OR",
+                    "PA",
+                    "RI",
+                    "SC",
+                    "SD",
+                    "TN",
+                    "TX",
+                    "UT",
+                    "VT",
+                    "VA",
+                    "WA",
+                    "WV",
+                    "WI",
+                    "WY"
+                ],
+                "title": "UsState"
             },
             "UserResource": {
                 "type": "object",
@@ -16653,9 +16769,11 @@
             },
             "VisitType": {
                 "type": "string",
+                "description": "| |\n|---|\n| `at_home` <br/>  |\n| `emergency` <br/>  |\n| `tele` <br/> Teledentistry: a video or audio consultation in the app, with no visit address. |",
                 "enum": [
                     "at_home",
-                    "emergency"
+                    "emergency",
+                    "tele"
                 ],
                 "title": "VisitType"
             }
