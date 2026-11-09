@@ -12599,6 +12599,19 @@
                     "patient_state": {
                         "type": "string"
                     },
+                    "call_opens_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Teledentistry only: when Join call opens and closes for an\naccepted visit. Once the dentist has started it\n(`in_progress`) the call can be joined at any time."
+                    },
+                    "call_closes_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "insurance": {
                         "anyOf": [
                             {
@@ -12661,6 +12674,8 @@
                     "call_mode",
                     "consult_topic",
                     "patient_state",
+                    "call_opens_at",
+                    "call_closes_at",
                     "consent_confirmed_at",
                     "cancellation_reason",
                     "rescheduled_reason",
@@ -15792,7 +15807,7 @@
                 "type": "object",
                 "properties": {
                     "appointment_id": {
-                        "type": "string"
+                        "type": "integer"
                     },
                     "provider": {
                         "type": "string",
@@ -16141,7 +16156,7 @@
                         "type": "boolean"
                     },
                     "is_virtual": {
-                        "type": "string"
+                        "type": "boolean"
                     },
                     "is_active": {
                         "type": "boolean"
