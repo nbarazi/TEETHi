@@ -175,7 +175,19 @@ T3 can start once T1's contract is fixed, in parallel with T2. In total, about *
 
 ## 10. Progress
 
-- [ ] T0 Agora account and BAA
+- [ ] T0 Agora account and BAA — in progress (2026-11-09)
+  - [x] Agora project in secure mode. `AGORA_APP_ID` and `AGORA_APP_CERTIFICATE` are in TEETHi-Backend `.env` (gitignored): both are 32-character hex and different from each other. They aren't proven against Agora yet; the first token that joins a channel in T2 does that.
+  - [x] Design file updated per §3.3 (Claude Design "TEETHi Patient app", version 4):
+    - Branch copy and the consult step say "video or audio call in the app". Audio replaces Phone.
+    - "Next available" and "Remind me" are removed; only the day and time picker is left.
+    - The tele route now has the insurance step.
+    - Before we book and Confirmation have no phone number.
+    - Tele visit cards have Cancel, Reschedule and Join call.
+    - The call screen has no Chat or Share.
+  - [ ] BAA signed with Agora (business; blocks real patient calls, not development).
+  - [ ] NCS (webhook): turn it on in the Agora console once T2's webhook URL exists, then add `AGORA_NCS_SECRET` to `.env`.
+  - [ ] Teledentistry consent text from legal (a placeholder is seeded).
+  - [ ] Launch states confirmed (seed assumes California).
 - [x] T1 Backend booking — built 2026-11-09 on TEETHi-Backend `feat/teledentistry-booking` (`4446128`), not merged yet.
   - `VisitType::Tele` (`tele`). A tele booking has no address (`address` is prohibited) and needs `call_mode` (`video`/`audio`), `consult_topic` (the six reasons) and `patient_state` (USPS code: the state the patient will be in). The description goes in the existing encrypted `problem_description`. Home-visit bookings reject the three tele fields. `AppointmentResource` returns all three, and `visit_address: null` for tele.
   - Tele visits are **direct only** (the open pool matches dentists by distance to an address).
