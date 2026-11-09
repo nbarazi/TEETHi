@@ -203,7 +203,25 @@ T3 can start once T1's contract is fixed, in parallel with T2. In total, about *
     - The patient app must send `visit_type=tele` and no address.
     - The dentist app's schedule `VisitType` and the dashboard's `VisitType` union don't know `tele` yet (T3, T5, T6). Until then, a tele visit shows as a home visit with a blank address, and the dentist schedule skips tele windows. Nothing crashes.
     - The dashboard's treatment form needs the `is_virtual` toggle (T6).
-- [ ] T2 Backend call sessions
+- [x] T2 Backend call sessions — built 2026-11-10 on TEETHi-Backend `feat/teledentistry-calls` (`81f9c7b`), stacked on `feat/teledentistry-booking`. Not merged yet.
+  - `VideoCallProvider`: `AgoraVideoCallProvider` when `AGORA_APP_ID` and `AGORA_APP_CERTIFICATE` are set, otherwise `FakeVideoCallProvider` (the same pattern as the payment gateway; `phpunit.xml` blanks the keys).
+  - `AgoraTokenBuilder` is a port of Agora's AccessToken2 / `RtcTokenBuilder2::buildTokenWithUid` with the publisher role. Agora doesn't publish it to Packagist, so no new dependency.
+  - **Live check:** a token minted from the real keys joined an Agora channel from the Web SDK. A tampered token and a token-less join were both refused, so the project is in secure mode.
+  - Tables: `tele_sessions` (one per visit, random `tele_…` channel, encrypted media key and salt for `aes_128_gcm2`, `started_at`, `ended_at`, `ended_reason`, `duration_seconds`), `tele_session_participants` (each join/leave), and `video_call_events` (NCS events handled once).
+  - `POST /doctor/appointments/{id}/call-token`:
+    - Only for the assigned dentist, from 15 minutes before to 60 minutes after an accepted visit, or at any time once it is in progress (`409` otherwise).
+    - The first call starts the visit (`in_progress`, in the status history), sets `started_at` and sends the patient `TeleCallReadyNotification` (`tele_call_ready`, generic text) instead of the generic "Visit started".
+  - `POST /patient/appointments/{id}/call-token` with `current_state`:
+    - For the managing account (including a parent for a dependent), in the same window.
+    - `409` unless the dentist is licensed in `current_state`.
+    - Joining before the dentist is allowed: `started_at` is null while the patient waits.
+  - Response: `provider`, `app_id`, `channel_name`, `uid` (the account id), `token`, `expires_at` (15 minutes, `AGORA_TOKEN_TTL_SECONDS`), `role` (`host`/`patient`), `call_mode`, `encryption` {`mode`, `key`, `salt`}, `started_at`. Apps call again before `expires_at` and renew the SDK token; the channel and encryption stay the same for the visit.
+  - Every token issue writes `PhiAccessLog`.
+  - Completing or cancelling the visit ends the session (`ended_reason` `completed`/`cancelled`), and no new tokens are issued. Tokens already issued run out within the TTL.
+  - `POST /api/v1/agora/webhook`: verifies `Agora-Signature-V2` (HMAC-SHA256 with `AGORA_NCS_SECRET`, `400` otherwise) and handles each `noticeId` once. Join events 103/105/107 and leave events 104/106/108 write participants for the visit's dentist and patient; other uids are ignored. 102 ends the session (`channel_closed`).
+  - Tests: `TeleCallTest` (24), `Unit/AgoraTokenBuilderTest` (3), and the two session key columns added to `EncryptedColumnsTest`. 801 Pest tests pass; PHPStan max and Pint clean. OpenAPI refreshed.
+  - **Still to do outside the code:** turn on NCS in the Agora console for `https://<api host>/api/v1/agora/webhook` (needs a public host or a tunnel), subscribe it to events 102–108, and put its secret in `AGORA_NCS_SECRET`. Until then, sessions record start and end from the visit, but not who joined when.
+  - Not done here: closing the Agora channel from the server when a visit ends (needs Agora's REST customer key). Tokens expiring within 15 minutes covers it for now.
 - [ ] T3 Patient booking flow
 - [ ] T4 Patient call screen
 - [ ] T5 Dentist app

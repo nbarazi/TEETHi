@@ -11,6 +11,90 @@
         }
     ],
     "paths": {
+        "/v1/agora/webhook": {
+            "post": {
+                "operationId": "agora.webhook",
+                "tags": [
+                    "AgoraWebhook"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "null"
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "data": {
+                                            "type": "null"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "null"
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "errors": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "errors"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/v1/doctor/agreements": {
             "get": {
                 "operationId": "doctor.agreements.index",
@@ -10658,6 +10742,210 @@
                 }
             }
         },
+        "/v1/patient/appointments/{appointment}/call-token": {
+            "post": {
+                "operationId": "patient.appointments.call-token",
+                "summary": "Join a teledentistry call (T2): a short-lived token for this visit's\ncall, for the patient's account. Open from 15 minutes before the\nvisit until an hour after it, and at any time once the dentist has\nstarted it (`409` otherwise). The dentist must be licensed in\n`current_state` (`409`). Call again before `expires_at` to renew",
+                "tags": [
+                    "TeleCall"
+                ],
+                "parameters": [
+                    {
+                        "name": "appointment",
+                        "in": "path",
+                        "required": true,
+                        "description": "The appointment ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/JoinTeleCallRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "null"
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/TeleCallCredentialsResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "example": ""
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/doctor/appointments/{appointment}/call-token": {
+            "post": {
+                "operationId": "doctor.appointments.call-token",
+                "summary": "Start or rejoin a teledentistry call (T2) as its host. The first\ncall on an accepted visit starts it (`in_progress`, like \"Start\n     * visit\") and tells the patient the call is ready. Open from 15\nminutes before the visit until an hour after it, and at any time\nonce started (`409` otherwise). Call again before `expires_at` to\nrenew the token. End the visit with the usual Complete visit",
+                "tags": [
+                    "TeleCall"
+                ],
+                "parameters": [
+                    {
+                        "name": "appointment",
+                        "in": "path",
+                        "required": true,
+                        "description": "The appointment ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "null"
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/TeleCallCredentialsResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/v1/doctor/treatment-plans/{treatmentPlan}/tooth-chart": {
             "post": {
                 "operationId": "doctor.treatment-plans.tooth-chart.store",
@@ -13209,6 +13497,19 @@
                 ],
                 "title": "InvoiceStatus"
             },
+            "JoinTeleCallRequest": {
+                "type": "object",
+                "properties": {
+                    "current_state": {
+                        "description": "T11: the US state the patient is in right now. The dentist\nmust be licensed there, whatever was said at booking.",
+                        "$ref": "#/components/schemas/UsState"
+                    }
+                },
+                "required": [
+                    "current_state"
+                ],
+                "title": "JoinTeleCallRequest"
+            },
             "LegalDocumentResource": {
                 "type": "object",
                 "properties": {
@@ -15486,6 +15787,80 @@
                     "role_ids"
                 ],
                 "title": "SyncStaffRolesRequest"
+            },
+            "TeleCallCredentialsResource": {
+                "type": "object",
+                "properties": {
+                    "appointment_id": {
+                        "type": "string"
+                    },
+                    "provider": {
+                        "type": "string",
+                        "description": "`agora`, or `fake` where the backend has no Agora keys."
+                    },
+                    "app_id": {
+                        "type": "string"
+                    },
+                    "channel_name": {
+                        "type": "string"
+                    },
+                    "uid": {
+                        "type": "integer"
+                    },
+                    "token": {
+                        "type": "string"
+                    },
+                    "expires_at": {
+                        "type": "string"
+                    },
+                    "role": {
+                        "type": "string",
+                        "description": "`host` for the dentist, `patient` for the patient's account."
+                    },
+                    "call_mode": {
+                        "type": "string",
+                        "description": "`video` or `audio`: an audio call never turns the camera on."
+                    },
+                    "encryption": {
+                        "type": "object",
+                        "description": "Turn on before joining; both apps must use the same values.",
+                        "properties": {
+                            "mode": {
+                                "type": "string",
+                                "const": "aes_128_gcm2"
+                            },
+                            "key": {
+                                "type": "string"
+                            },
+                            "salt": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "mode",
+                            "key",
+                            "salt"
+                        ]
+                    },
+                    "started_at": {
+                        "type": "string",
+                        "description": "When the dentist started the call (the timer's zero); null\nwhile the patient waits for them."
+                    }
+                },
+                "required": [
+                    "appointment_id",
+                    "provider",
+                    "app_id",
+                    "channel_name",
+                    "uid",
+                    "token",
+                    "expires_at",
+                    "role",
+                    "call_mode",
+                    "encryption",
+                    "started_at"
+                ],
+                "title": "TeleCallCredentialsResource"
             },
             "ToothChartEntryResource": {
                 "type": "object",
