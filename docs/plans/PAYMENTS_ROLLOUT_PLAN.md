@@ -33,12 +33,12 @@ These are the questions from the business summary. A phase doesn't start until i
 
 | # | Decision | Gates | Answer |
 |---|---|---|---|
-| D1 | Which US states do we launch in? (with a healthcare lawyer) | P1 go-live | _open_ |
+| D1 | Which US states do we launch in? (with a healthcare lawyer) | P1 go-live | **California** (decided 2026-11-11, "for now"). Still open: a California healthcare lawyer's review before go-live |
 | D2 | How TEETHi earns: commission per visit, flat fee per booking, or dentist subscription. Many states restrict a percentage of dental fees. | P7 | _open_ |
 | D3 | Dentists paid per visit, or on salary or fixed fees | P7 (salary: P7 shrinks to an earnings view, P8 is dropped) | _open_ |
-| D4 | Seller to the patient: TEETHi or the dentist | P8 | _open_ |
+| D4 | Seller to the patient: TEETHi or the dentist | P8 | **TEETHi** (decided 2026-11-11, "for now"). TEETHi's name is on the card statement and TEETHi owns refunds and disputes. The lawyer must confirm a non-dentist company can be the seller of dental care in California |
 | D5 | Who absorbs Stripe's processing fees and lost card disputes | P7 | _open_ |
-| D6 | Patients pay before or after the visit; can the price change during the visit | P3, P4 | _open_ (recommended: after, yes) |
+| D6 | Patients pay before or after the visit; can the price change during the visit | P3, P4 | **After the visit; yes, the price can change** (decided 2026-11-11, "for now"). Still open: how much it can rise without the patient approving in the app (P3) |
 | D7 | Late-cancellation and no-show policy: window, fee amount, who can waive it | P6 | _open_ |
 | D8 | Keep pay later? Allow cash at the door? | P5 | _open_ |
 
@@ -256,7 +256,7 @@ These are the questions from the business summary. A phase doesn't start until i
 **Start when:** manual payouts cost finance real time, or the dentist count makes bank transfers error-prone. Needs D4.
 
 **Outline only, to be detailed then:**
-- Backend: connected accounts per dentist, onboarding links, account status webhooks, payment split per the P7 fee model (charge type follows D4), payouts and 1099s through Stripe. The P7 ledger stays as the record and reconciles against Stripe's transfers.
+- Backend: connected accounts per dentist, onboarding links, account status webhooks, payment split per the P7 fee model (D4: TEETHi is the merchant, so the charge stays on TEETHi's account and the dentist's share is transferred), payouts and 1099s through Stripe. The P7 ledger stays as the record and reconciles against Stripe's transfers.
 - Admin dashboard: dentist payout status, onboarding state, transfer failures.
 - Dentist app: "Set up payouts" onboarding, payout status, bank details managed in Stripe's hosted flow.
 - Patient app: no change, unless D4 changes the name on the card statement.
@@ -267,4 +267,4 @@ These are the questions from the business summary. A phase doesn't start until i
 
 - Buy now, pay later and dental financing partners. They are payment-method settings or partner agreements; revisit after P4.
 - Insurance. See the insurance summary; P2's receipt is its first building block.
-- Sales tax. Dental services are generally untaxed in most states; the accountant confirms for the launch states (D1).
+- Sales tax. Dental services are generally untaxed in most states; the accountant confirms for California (D1).
