@@ -20,6 +20,7 @@ The workspace root `D:\Projects\TEETHi Project` is its own git repo (`main`). It
 | [plans/PATIENT_APP_FRONTEND_PLAN.md](plans/PATIENT_APP_FRONTEND_PLAN.md) | Patient app API contract and phase tracker |
 | [plans/DENTIST_APP_FRONTEND_PLAN.md](plans/DENTIST_APP_FRONTEND_PLAN.md) | Dentist app API contract and phase tracker |
 | [plans/ADMIN_DASHBOARD_FRONTEND_PLAN.md](plans/ADMIN_DASHBOARD_FRONTEND_PLAN.md) | Admin dashboard API contract and phase tracker. Merged from the two copies that had diverged. |
+| [plans/PAYMENTS_ROLLOUT_PLAN.md](plans/PAYMENTS_ROLLOUT_PLAN.md) | Cross-project payments plan: card on file, 24-hour hold, receipts, dentist earnings. Each phase covers the backend, dashboard and apps together. |
 | [api/openapi.json](api/openapi.json) | Generated OpenAPI 3.1 spec, the machine-readable contract for all clients |
 | [architecture/PATIENT_APP_ARCHITECTURE.md](architecture/PATIENT_APP_ARCHITECTURE.md) | Flutter layering conventions shared by both apps |
 | [architecture/DENTIST_APP_ARCHITECTURE.md](architecture/DENTIST_APP_ARCHITECTURE.md) | Dentist-app specifics. Its feature-status table is out of date; see the report, M9. |
