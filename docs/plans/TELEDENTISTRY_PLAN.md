@@ -312,6 +312,7 @@ T3 can start once T1's contract is fixed, in parallel with T2. In total, about *
     - **Confirmed** from the database and Agora's own log on each device:
       - The dentist's Start call started the visit (`accepted` to `in_progress`) and set `started_at`; the patient joined 43 seconds later. One token issue each in the PHI access log, and the patient's state (CA) was recorded.
       - Both sides joined the same channel with encryption on before the join (`encryptionMode` 7, AES-128-GCM2), and each rendered the other's video. So calls work without Agora's screen-sharing module.
+      - Video and sound came through properly on both devices (confirmed by Nawar, who ran the call).
       - Mute on both sides, and the patient's Stop video and start again, reached the engine and showed on the other side. Both left cleanly.
       - `agoraapi.log` holds the channel name and the two account ids, but no key or salt, and the token only masked (`0****=`). `agorasdk.log` is not plain text; none of those values appear in it. The files are in the app's own external folder (`Android/data/<package>/files`).
     - **Still open:**
@@ -319,4 +320,3 @@ T3 can start once T1's contract is fixed, in parallel with T2. In total, about *
       - Leaving and rejoining, Switch camera, and an audio call.
       - A call longer than 15 minutes, for the token renewal; and that an expired token drops a participant once the visit is completed.
       - NCS sends `uid`, `ts` and `eventType` as JSON integers (needs `AGORA_NCS_SECRET`, T0).
-      - How it looked and sounded to the people on the call.
