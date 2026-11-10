@@ -177,6 +177,8 @@ T3 can start once T1's contract is fixed, in parallel with T2. In total, about *
 
 ## 10. Progress
 
+**Merged 2026-11-11** (fast-forward, local only, not pushed): TEETHi-Backend `master` is at `8f607a8`, TEETHi-Patient-App `master` at `866e755`, TEETHi-Frontend `master` at `73ef12b`. The "not merged yet" notes below predate this. **TEETHI-Dentist-App is not merged:** `feat/teledentistry` (`387962c`) is still only in the worktree, because the main checkout has uncommitted work in seven files the branch also changes (home, schedule, the strings).
+
 - [ ] T0 Agora account and BAA — in progress (2026-11-09)
   - [x] Agora project in secure mode. `AGORA_APP_ID` and `AGORA_APP_CERTIFICATE` are in TEETHi-Backend `.env` (gitignored): both are 32-character hex and different from each other. They aren't proven against Agora yet; the first token that joins a channel in T2 does that.
   - [x] Design file updated per §3.3 (Claude Design "TEETHi Patient app", version 4):
