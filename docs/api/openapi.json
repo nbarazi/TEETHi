@@ -10745,7 +10745,7 @@
         "/v1/patient/appointments/{appointment}/call-token": {
             "post": {
                 "operationId": "patient.appointments.call-token",
-                "summary": "Join a teledentistry call (T2): a short-lived token for this visit's\ncall, for the patient's account. Open from 15 minutes before the\nvisit until an hour after it, and at any time once the dentist has\nstarted it (`409` otherwise). The dentist must be licensed in\n`current_state` (`409`). Call again before `expires_at` to renew",
+                "summary": "Join a teledentistry call (T2): a short-lived token for this visit's\ncall, for the patient's account. Open from 15 minutes before the\nvisit until an hour after it, and at any time once the dentist has\nstarted it, up to four hours after its time (`409` otherwise). The\ndentist must be licensed in `current_state` (`409`), which is kept\non the call's record. Call again before `expires_at` to renew",
                 "tags": [
                     "TeleCall"
                 ],
@@ -10862,7 +10862,7 @@
         "/v1/doctor/appointments/{appointment}/call-token": {
             "post": {
                 "operationId": "doctor.appointments.call-token",
-                "summary": "Start or rejoin a teledentistry call (T2) as its host. The first\ncall on an accepted visit starts it (`in_progress`, like \"Start\n     * visit\") and tells the patient the call is ready. Open from 15\nminutes before the visit until an hour after it, and at any time\nonce started (`409` otherwise). Call again before `expires_at` to\nrenew the token. End the visit with the usual Complete visit",
+                "summary": "Start or rejoin a teledentistry call (T2) as its host. The first\ncall on an accepted visit starts it (`in_progress`, like \"Start\n     * visit\") and tells the patient the call is ready. Open from 15\nminutes before the visit until an hour after it, and at any time\nonce started, up to four hours after its time (`409` otherwise). The\ndentist must still be licensed in the visit's `patient_state`\n(`409`). Call again before `expires_at` to\nrenew the token. End the visit with the usual Complete visit",
                 "tags": [
                     "TeleCall"
                 ],

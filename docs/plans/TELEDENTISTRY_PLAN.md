@@ -281,4 +281,34 @@ T3 can start once T1's contract is fixed, in parallel with T2. In total, about *
   - English and Arabic strings.
   - Tests: `visit-cells.spec.ts` (4) and new cases in the appointments list and service specs; 212 dashboard tests pass and `ng build` is clean.
   - **Verified 2026-11-10** in the dev preview as the seeded admin: the Teledentistry filter listed only test visit 23, shown as "Teledentistry / Audio call" with "Not started" in the Call column; the Virtual Consultation showed the Teledentistry flag, and its edit form opened with the box ticked (closed without saving). The badge first used dark text at about 3.9:1 contrast and now uses white (about 4.7:1, WCAG AA). A filled call log (duration, joins) was checked only in tests, since no call has run yet (T8).
-- [ ] T8 Security review and live run
+- [ ] T8 Security review and live run — the review is done (2026-11-10); the live run on two phones is not.
+  - [x] **Security review** by the `security-reviewer` agent, one pass on the backend and one on the three clients. No critical or high finding: no PHI leak, no cross-account access, no leaked key, and media is encrypted before every join. Each finding was checked against the code before fixing.
+  - **Fixed in the backend** (TEETHi-Backend `8f607a8` on `feat/teledentistry-calls`):
+    - Agora's "channel closed" event (sent whenever the last person leaves) used to end the call log for good. A patient who waited alone and dropped left the real call with no duration. It is now provisional: a new token or a later join reopens the log; completed and cancelled stay final.
+    - `POST /doctor/appointments/{id}/start` let the dentist start a tele visit two hours early or days late, which left its call open with no end. Tele visits now start only inside the call window, and a started call closes four hours after the visit time (`Appointment::CALL_STARTED_MAX_MINUTES`).
+    - The dentist's call token now checks they are still licensed in the visit's `patient_state` (`409`).
+    - The state the patient gives at Join is kept: `tele_sessions.patient_state_attested` and `_at` (new migration).
+    - The token lifetime is capped at an hour, whatever `AGORA_TOKEN_TTL_SECONDS` says.
+    - The admin appointment lists (directory and patient tab) write the PHI access log; they return the consult reason and description.
+    - The Agora webhook has a rate limit (600 a minute), so unsigned posts can't flood the log.
+    - Tests for all of these, plus an admin or signed-out caller on both token routes and a webhook with no secret configured. 818 Pest tests pass; PHPStan and Pint are clean.
+  - **Fixed in both apps** (TEETHi-Patient-App `866e755` on `feat/teledentistry-call`, TEETHI-Dentist-App `387962c` on `feat/teledentistry`):
+    - After a dropped call, Try again joined with the microphone live while the button still showed muted, and turned a stopped camera back on. Mute and Stop video now carry over.
+    - A join that fails releases the engine, so the camera isn't left running behind the error screen.
+    - The mute and camera buttons change only after the engine has changed.
+    - The app refuses to join unless the mode is `aes_128_gcm2`, the key is 32 bytes of hex and the salt is 32 bytes (it relied on the SDK to refuse before).
+    - Calls are refused on desktop builds as well as web, before any token request.
+    - Android: Agora's screen-sharing module (a media-projection service) and `READ_PHONE_STATE` were being merged into the APK. Both are removed; the rebuilt debug APKs' merged manifests have neither.
+    - The debug request log hides `channel_name`.
+    - 206 patient and 246 dentist Flutter tests pass; both debug APKs build.
+  - **Dashboard:** nothing to fix (no `innerHTML`, guards unchanged, the call log has no channel or key fields).
+  - **Left for a decision (not fixed):**
+    - Licensed states are self-declared by the dentist with no admin check (decision T11). A dentist can list every state.
+    - Joins are recorded in `tele_session_participants`, not in the PHI access log; §5.3 says "each token issue and each join". Token issues are in the access log.
+    - The call screen can be screenshotted and shows in the app switcher (no `FLAG_SECURE`); there is still no Android foreground service or ongoing-call notification.
+    - Agora's region isn't pinned (`areaCode`), so relays are global. Media is encrypted with the visit key either way. Decide with the BAA.
+  - [ ] **Live run on two phones.** Not done: no phone was connected. It also has to confirm what the review could not:
+    - Calls still work without Agora's screen-sharing module (only the build was checked).
+    - What Agora's on-device log files contain after a call (`agorasdk*.log`, `agoraapi*.log`: look for `tele_`, a token starting `007`, the hex key).
+    - An expired token really drops a participant after the visit is completed.
+    - NCS sends `uid`, `ts` and `eventType` as JSON integers (needs `AGORA_NCS_SECRET`, T0).
