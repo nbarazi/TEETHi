@@ -307,8 +307,16 @@ T3 can start once T1's contract is fixed, in parallel with T2. In total, about *
     - Joins are recorded in `tele_session_participants`, not in the PHI access log; §5.3 says "each token issue and each join". Token issues are in the access log.
     - The call screen can be screenshotted and shows in the app switcher (no `FLAG_SECURE`); there is still no Android foreground service or ongoing-call notification.
     - Agora's region isn't pinned (`areaCode`), so relays are global. Media is encrypted with the visit key either way. Decide with the BAA.
-  - [ ] **Live run on two phones.** Not done: no phone was connected. It also has to confirm what the review could not:
-    - Calls still work without Agora's screen-sharing module (only the build was checked).
-    - What Agora's on-device log files contain after a call (`agorasdk*.log`, `agoraapi*.log`: look for `tele_`, a token starting `007`, the hex key).
-    - An expired token really drops a participant after the visit is completed.
-    - NCS sends `uid`, `ts` and `eventType` as JSON integers (needs `AGORA_NCS_SECRET`, T0).
+  - [ ] **Live run on two devices** — first call run 2026-11-10; a few checks are still open.
+    - Setup: patient app on a Galaxy A56 (SM-A566B), dentist app on a Galaxy Tab A9+ (SM-X210), both Android 16, debug builds with the T8 fixes, the dev backend over `adb reverse` with the real Agora provider. Test visit 23, a video call.
+    - **Confirmed** from the database and Agora's own log on each device:
+      - The dentist's Start call started the visit (`accepted` to `in_progress`) and set `started_at`; the patient joined 43 seconds later. One token issue each in the PHI access log, and the patient's state (CA) was recorded.
+      - Both sides joined the same channel with encryption on before the join (`encryptionMode` 7, AES-128-GCM2), and each rendered the other's video. So calls work without Agora's screen-sharing module.
+      - Mute on both sides, and the patient's Stop video and start again, reached the engine and showed on the other side. Both left cleanly.
+      - `agoraapi.log` holds the channel name and the two account ids, but no key or salt, and the token only masked (`0****=`). `agorasdk.log` is not plain text; none of those values appear in it. The files are in the app's own external folder (`Android/data/<package>/files`).
+    - **Still open:**
+      - Complete visit after a call (visit 23 is still `in_progress`), and that the call log then shows the duration.
+      - Leaving and rejoining, Switch camera, and an audio call.
+      - A call longer than 15 minutes, for the token renewal; and that an expired token drops a participant once the visit is completed.
+      - NCS sends `uid`, `ts` and `eventType` as JSON integers (needs `AGORA_NCS_SECRET`, T0).
+      - How it looked and sounded to the people on the call.
