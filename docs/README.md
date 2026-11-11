@@ -15,6 +15,7 @@ The workspace root `D:\Projects\TEETHi Project` is its own git repo (`main`). It
 
 | File | What it is |
 |---|---|
+| [MASTER_ROADMAP.md](MASTER_ROADMAP.md) | **Start here.** Every open task, pending decision and owner action across the four projects, by category and in phases (2026-11-11) |
 | [CONSISTENCY_REPORT.md](CONSISTENCY_REPORT.md) | Status of each project and the issues between them (2026-10-17) |
 | [PAYMENTS_SECURITY_FINDINGS.md](PAYMENTS_SECURITY_FINDINGS.md) | Security review findings for the payments rollout (P1 to P3), ranked, with status |
 | [plans/IMPLEMENTATION_PLAN.md](plans/IMPLEMENTATION_PLAN.md) | Backend plan: data model, API surface, locked decisions, phase tracker |
