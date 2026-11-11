@@ -92,7 +92,7 @@ Nothing in a phase that depends on one of these should start until the answer is
 These need the owner, not code. Several gate phases in §5.
 
 **Now**
-- [x] **OPS** Push all five repos to their remotes (§1.2). `master` only (2026-11-11).
+- [ ] **OPS** Push all five repos to their remotes (§1.2). `master` only (2026-11-11). Docs repo done; the four GitLab projects reject the push (not found or no permission).
 - [ ] **OPS** When staff roles are created in production, grant `manage_appointments` / `view_messages` to those that need them (Super Admins already have them). CR §5.
 
 **Before payments go-live (P1)**
@@ -217,7 +217,7 @@ Each phase lists what to do, what it's waiting on, and when it's done. Phases 2 
 
 ### Phase A — Secure and tidy (now, about a day)
 **Goal:** nothing can be lost, and the docs tell the truth.
-- [x] Push all repos (§3 "Now"). `master` only; merged feature branches deleted locally (decided 2026-11-11).
+- [ ] Push all repos (§3 "Now"). `master` only; merged feature branches deleted locally (decided 2026-11-11). **Docs repo pushed 2026-11-11. The four GitLab pushes fail with "project not found or no permission"**: create the projects under `gitlab.com/teethi1` or fix the GitLab credentials on this machine, then push `master`.
 - [x] Settle the patient app's uncommitted work (merged as `20aa3e8`), the root `launch.json` (committed: E2E and port-8001 run configs) and the frontend `CLAUDE.md` (committed: `@AGENTS.md` pointer) (§4.1).
 - [x] Delete merged branches and stale worktrees; remove crash logs (§4.1).
 - [x] Fix the stale docs listed in §4.1; `CONSISTENCY_REPORT.md` is marked historical, with M1, M9 and M13 moved to resolved.
@@ -226,7 +226,7 @@ Each phase lists what to do, what it's waiting on, and when it's done. Phases 2 
 
 **Done when:** every repo is clean, `origin/master` matches local `master` everywhere, and the docs match the code.
 
-**Done 2026-11-11.**
+**Done 2026-11-11, except the GitLab pushes** (see the first item).
 
 ### Phase B — Verify what's merged (1–2 weeks)
 **Goal:** prove the money and call paths work for real before building on them.
