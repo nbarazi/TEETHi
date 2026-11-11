@@ -12,40 +12,53 @@ conventions; this file only tracks what's specific to the dentist app.
 
 ```
 lib/
-  core/        network (ApiClient), config, storage (token), error (Result/Failure), di, enums, utils
+  core/        network (ApiClient), config, storage (token), error (Result/Failure), di, enums (GET /enums),
+               utils, push (FCM, push_handler.dart), app_settings (maintenance / update gate),
+               calls (CallEngine + AgoraCallEngine), location
   theme/       AppColors / AppSpace+AppRadius / AppText / AppTheme — copied verbatim from the patient app
   widgets/     shared design-system widgets — copied verbatim except app_tab_bar.dart and tab_entrance.dart,
                which were generalized off the patient app's AppState-specific versions
   shell/       DentistShellState (tab index) + DentistShell (bottom nav + NavBar chrome), the RootShell equivalent
+  l10n/        English and Arabic (gen-l10n), with a locale controller
   features/
-    auth/               real backend — the only feature wired to TEETHi-Backend
-    common/              cross-feature domain entities (Patient, Visit, ClinicalNote, ToothChart,
-                          TreatmentPlanItem) + MockDentistData, the shared dummy-data pool every
-                          other feature's mock repository reads from
-    home/ requests/ patients/ patient_detail/ schedule/
-    dentist_profile/ expertise/ documents/ messages/
+    auth/ home/ requests/ patients/ patient_detail/ schedule/ dentist_profile/
+    expertise/ documents/ messages/ visit_workflow/ calls/
+    common/              cross-feature domain entities (Patient, Visit, ClinicalNote, ToothChart, TreatmentPlanItem)
 ```
 
-Every feature other than `auth` follows: `domain/repositories` (abstract
-interface) → `data/repositories/mock_<feature>_repository.dart` (returns
-canned `Result.success(...)` data from `common/data/mock_dentist_data.dart`
-after a short delay) → `presentation/providers/<feature>_view_model.dart`
-(`ChangeNotifier`) → `presentation/screens`. Swapping in a real backend
-later is a one-file change per feature: implement `<Feature>Repository`
-against a real `<Feature>RemoteDataSource` and point that feature's
-`injector.dart` at it instead of the mock.
+Every feature follows: `domain/repositories` (abstract interface) →
+`data/repositories/<feature>_repository_impl.dart` (calls the shared
+`ApiClient`, with JSON mapping in `data/mappers/`) →
+`presentation/providers/<feature>_view_model.dart` (`ChangeNotifier`) →
+`presentation/screens`. Each feature's `injector.dart` registers its pieces
+with `get_it`; tests swap in fakes there.
 
 ## Feature status
 
-| Feature | Backend | Notes |
-|---|---|---|
-| auth | **Real** — TEETHi-Backend `/register` (`role: doctor`), `/login`, `/me`, email/phone verify, password reset | Register collects account details only. A doctor-only `AuthPhase.onboarding` step follows it (registration no., date of birth, city, specialties) and writes `PATCH /doctor/profile` + `POST /doctor/specializations` via `DoctorOnboardingRepository` — the city/specialty catalogs need the token register issues, hence a separate step |
-| home, requests, patients, patient_detail, schedule, dentist_profile, expertise, documents, messages | Dummy | `Mock<Feature>Repository` per feature, per the table above |
+Every feature is wired to TEETHi-Backend. The mock repositories and
+`MockDentistData` were removed during Phases 1–10 (2026-09-20 to 09-21).
+The phase-by-phase record, with what each phase verified, is in
+`docs/plans/DENTIST_APP_FRONTEND_PLAN.md` §15; open work is in
+`docs/MASTER_ROADMAP.md`.
+
+| Feature | Backend endpoints (main) |
+|---|---|
+| auth | `/register`, `/login`, `/me`, email/phone verify, password reset, `DELETE /account`; onboarding writes `PATCH /doctor/profile`, `POST /doctor/specializations` |
+| home | `GET /doctor/dashboard` |
+| requests | `/doctor/requests/open`, `/pending`, `/accepted`, accept/decline/start, shared reschedule/cancel, `/doctor/requests/{id}/medical-history` |
+| patients, patient_detail | `GET /doctor/patients`, `/doctor/patients/{id}`, private notes |
+| schedule | `/doctor/availability` (incl. `tele`), `/doctor/availability/open-slots`, exceptions |
+| dentist_profile | `/doctor/profile` (incl. `licensed_states`), photo, address, specializations |
+| expertise | `/treatments`, `/doctor/services` |
+| documents | `/doctor/agreements`, `/licenses`, `/liability-insurance`, `/nondiscrimination` |
+| messages | `/conversations`, `/notifications` |
+| visit_workflow | clinical notes, treatment plan + tooth chart, prescriptions, recommendations, visit outcome (with final `treatments`) |
+| calls | `POST /doctor/appointments/{id}/call-token` (Agora, teledentistry) |
 
 ## Navigation
 
 No go_router. `main.dart`'s `_AppGate` watches `AuthViewModel.phase`
-(`login`/`register`/`verifyEmail`/`verifyPhone`/`app`) and mounts either an
+(`login`/`register`/`onboarding`/`verifyEmail`/`verifyPhone`/`app`) and mounts either an
 auth screen or `DentistShell`. `DentistShell` owns the 5-tab bottom nav
 (Home / Schedule / Requests / Patients / Profile — `DentistShellState`) via
 a cross-fading `_FadeTabSwitcher`; anything else (Patient Detail, Documents,

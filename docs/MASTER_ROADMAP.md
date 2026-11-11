@@ -92,8 +92,8 @@ Nothing in a phase that depends on one of these should start until the answer is
 These need the owner, not code. Several gate phases in §5.
 
 **Now**
-- [ ] **OPS** Push all five repos to their remotes (§1.2). Decide whether feature branches are pushed too or only `master`.
-- [ ] **OPS** Grant `manage_appointments` / `view_messages` to the dashboard roles that need them (Super Admins already have them). CR §5.
+- [x] **OPS** Push all five repos to their remotes (§1.2). `master` only (2026-11-11).
+- [ ] **OPS** When staff roles are created in production, grant `manage_appointments` / `view_messages` to those that need them (Super Admins already have them). CR §5.
 
 **Before payments go-live (P1)**
 - [ ] **OPS** Verified live Stripe account for the launch entity; restricted live key (`rk_live_`) with only the gateway's permissions. PAY P1.
@@ -120,12 +120,12 @@ These need the owner, not code. Several gate phases in §5.
 ## 4. All open work by category
 
 ### 4.1 Repo and docs hygiene
-- [ ] **PA** Decide on the 10 uncommitted files on `master` (inline error banners replaced by `ToastOnError`, regenerated Linux/macOS/Windows plugin registrants): finish and commit on a branch, or discard.
-- [ ] **DOCS** Commit or revert the root `.claude/launch.json` change. Decide about the untracked `TEETHi-Frontend/CLAUDE.md`.
-- [ ] **ALL** Delete merged feature branches; `git worktree prune` the backend's `claude/mystifying-rhodes-2e8412`; remove the four `D:/Projects/TEETHi-worktrees/*` worktrees whose branches are merged. CR M12.
-- [ ] **PA** Delete `hs_err_pid*.log` and `flutter_01.log` from the repo root (and gitignore them). CR M12.
+- [x] **PA** Decide on the 10 uncommitted files on `master` (inline error banners replaced by `ToastOnError`, regenerated Linux/macOS/Windows plugin registrants): finish and commit on a branch, or discard.
+- [x] **DOCS** Commit or revert the root `.claude/launch.json` change. Decide about the untracked `TEETHi-Frontend/CLAUDE.md`.
+- [x] **ALL** Delete merged feature branches; `git worktree prune` the backend's `claude/mystifying-rhodes-2e8412`; remove the four `D:/Projects/TEETHi-worktrees/*` worktrees whose branches are merged. CR M12.
+- [x] **PA** Delete `hs_err_pid*.log` and `flutter_01.log` from the repo root (and gitignore them). CR M12.
 - [ ] **DB** Remove unused CoreUI demo views. CR M12.
-- [ ] **DOCS** Fix stale docs:
+- [x] **DOCS** Fix stale docs:
   - `README.md` "Not yet done" says no repo has a remote. They all do now; it should say "not pushed".
   - `CONSISTENCY_REPORT.md` was last updated 2026-10-19. Its status table and open list are out of date: **M1 (no Arabic on mobile) is done** (both apps have `app_ar.arb` and a language switch); **M13 is fixed** (R8-24); H5 is partly fixed; test counts are old. Refresh it or mark it historical and point here.
   - `architecture/DENTIST_APP_ARCHITECTURE.md` still says every feature but auth is mock (CR M9).
@@ -134,7 +134,7 @@ These need the owner, not code. Several gate phases in §5.
   - Phase 18 (app settings) notes in IMP, PAP, DAP and ADP say "not committed". Check they're merged and update.
   - `PATIENT_APP_FRONTEND_PLAN.md` §16 "Verified: _(fill in once wired)_".
   - `DENTIST_APP_FRONTEND_PLAN.md` Phase 5 "confirm a saved schedule is bookable" was effectively covered by the E2E run (Layla's slots were booked). Tick it with a note.
-- [ ] **BE** `composer test` stops at `rector --dry-run` (flags ~169 files on `master`). Either run Rector and commit, or drop it from the script. IMP Phase 13, TELE T1.
+- [x] **BE** `composer test` stops at `rector --dry-run` (flags ~169 files on `master`). Either run Rector and commit, or drop it from the script. IMP Phase 13, TELE T1.
 
 ### 4.2 Verification debt (built, never run for real)
 - [ ] **BE+PA** Stripe webhook end to end with the Stripe CLI, test mode: pay, cancel the sheet, refund, redelivered event, out-of-order event, dispute created/closed. PAY P1, IMP Phase 11.
@@ -217,14 +217,16 @@ Each phase lists what to do, what it's waiting on, and when it's done. Phases 2 
 
 ### Phase A — Secure and tidy (now, about a day)
 **Goal:** nothing can be lost, and the docs tell the truth.
-- [ ] Push all repos (§3 "Now").
-- [ ] Settle the patient app's uncommitted work, the root `launch.json` and the frontend `CLAUDE.md` (§4.1).
-- [ ] Delete merged branches and stale worktrees; remove crash logs (§4.1).
-- [ ] Fix the stale docs listed in §4.1; refresh `CONSISTENCY_REPORT.md` or mark it historical.
-- [ ] Rector: fix or drop from `composer test` (§4.1).
-- [ ] Grant `manage_appointments` / `view_messages` to the right roles.
+- [x] Push all repos (§3 "Now"). `master` only; merged feature branches deleted locally (decided 2026-11-11).
+- [x] Settle the patient app's uncommitted work (merged as `20aa3e8`), the root `launch.json` (committed: E2E and port-8001 run configs) and the frontend `CLAUDE.md` (committed: `@AGENTS.md` pointer) (§4.1).
+- [x] Delete merged branches and stale worktrees; remove crash logs (§4.1).
+- [x] Fix the stale docs listed in §4.1; `CONSISTENCY_REPORT.md` is marked historical, with M1, M9 and M13 moved to resolved.
+- [x] Rector: applied once and committed (TEETHi-Backend `ff9e731`). Three rules are skipped in `rector.php` because they broke code; `composer test` passes end to end (874 tests).
+- [x] Grant `manage_appointments` / `view_messages` to the right roles. Nothing to grant locally: the only role is Super Admin, which already has everything. Moved to go-live (§3): grant them when staff roles are created.
 
 **Done when:** every repo is clean, `origin/master` matches local `master` everywhere, and the docs match the code.
+
+**Done 2026-11-11.**
 
 ### Phase B — Verify what's merged (1–2 weeks)
 **Goal:** prove the money and call paths work for real before building on them.

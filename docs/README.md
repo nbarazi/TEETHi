@@ -16,7 +16,7 @@ The workspace root `D:\Projects\TEETHi Project` is its own git repo (`main`). It
 | File | What it is |
 |---|---|
 | [MASTER_ROADMAP.md](MASTER_ROADMAP.md) | **Start here.** Every open task, pending decision and owner action across the four projects, by category and in phases (2026-11-11) |
-| [CONSISTENCY_REPORT.md](CONSISTENCY_REPORT.md) | Status of each project and the issues between them (2026-10-17) |
+| [CONSISTENCY_REPORT.md](CONSISTENCY_REPORT.md) | Historical status report (2026-10-17 to 10-19) and the issue IDs (C, H, M, E) the plans refer to |
 | [PAYMENTS_SECURITY_FINDINGS.md](PAYMENTS_SECURITY_FINDINGS.md) | Security review findings for the payments rollout (P1 to P3), ranked, with status |
 | [plans/IMPLEMENTATION_PLAN.md](plans/IMPLEMENTATION_PLAN.md) | Backend plan: data model, API surface, locked decisions, phase tracker |
 | [plans/PATIENT_APP_FRONTEND_PLAN.md](plans/PATIENT_APP_FRONTEND_PLAN.md) | Patient app API contract and phase tracker |
@@ -25,7 +25,7 @@ The workspace root `D:\Projects\TEETHi Project` is its own git repo (`main`). It
 | [plans/PAYMENTS_ROLLOUT_PLAN.md](plans/PAYMENTS_ROLLOUT_PLAN.md) | Cross-project payments plan: card on file, 24-hour hold, receipts, dentist earnings. Each phase covers the backend, dashboard and apps together. |
 | [api/openapi.json](api/openapi.json) | Generated OpenAPI 3.1 spec, the machine-readable contract for all clients |
 | [architecture/PATIENT_APP_ARCHITECTURE.md](architecture/PATIENT_APP_ARCHITECTURE.md) | Flutter layering conventions shared by both apps |
-| [architecture/DENTIST_APP_ARCHITECTURE.md](architecture/DENTIST_APP_ARCHITECTURE.md) | Dentist-app specifics. Its feature-status table is out of date; see the report, M9. |
+| [architecture/DENTIST_APP_ARCHITECTURE.md](architecture/DENTIST_APP_ARCHITECTURE.md) | Dentist-app specifics: layering and which endpoints each feature uses |
 
 ## Rules
 
@@ -48,4 +48,4 @@ The workspace root `D:\Projects\TEETHi Project` is its own git repo (`main`). It
    ```
 
 ## Not yet done
-- No repo here has a remote yet: not this root repo, and not any of the four project repos. Everything exists only on this machine. Add private remotes and push, including one for this docs repo (for example `teethi-docs`).
+- Remotes: this docs repo is on GitHub (`nbarazi/TEETHi`); the four projects are on GitLab (`teethi1/teethi-backend`, `teethi-frontend`, `teethi-patient-app`, `teethi-dentist-app`). Push `master` after each merge; feature branches stay local and are deleted once merged (decided 2026-11-11).

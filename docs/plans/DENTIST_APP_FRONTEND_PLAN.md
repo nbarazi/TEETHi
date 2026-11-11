@@ -406,7 +406,7 @@ The app's structure (per-feature `domain/repositories` interface + `injector.dar
 - [x] Day on/off and closed hours; remember `day_of_week` 0 = Sunday
 - [x] At-home / Emergency toggles (built as delete/re-add through the same diff, not `is_active` PATCHes — N calls, §6)
 - [x] One-off closures / extra hours → `POST /doctor/availability/exceptions` (write-only; no list, §16)
-- [ ] Confirm a saved schedule is bookable by fetching `GET /patient/availability` from a patient test account
+- [x] Confirm a saved schedule is bookable by fetching `GET /patient/availability` from a patient test account. Covered by the 2026-10-23 E2E run: Layla saved her weekly hours in the app and patient Omar booked one of her slots (`E2E_REPORT_2026-10-23.md` §2)
 
 **Built (2026-09-20, not yet verified against a live backend)**: `ScheduleRepositoryImpl` + a pure grid layer (`domain/entities/availability.dart`, unit-tested in `test/features/schedule_test.dart`, 13 cases). The screen edits **recurring weekly hours** per visit type: a Monday-first weekday strip, an at-home / emergency selector (tap a row to choose which type the grid edits; the switch turns the whole type on/off), and an hour grid 07:00–20:00. Save writes only the (visit type, weekday) groups that changed, reusing existing rows (`PATCH` re-time + `is_active:true`), adding (`POST`) or removing (`DELETE`, run first) as needed. Windows the grid can't represent (off-hour boundaries) are preserved unless that weekday is edited, in which case they are replaced. Turning a type **on** from empty seeds Mon–Fri 09:00–17:00 to adjust. New **One-off change** screen posts an exception (close a date / add hours; write-only, nothing lists them). The base address and radius card now read the profile (Phase 2) and link to Travel and coverage. **Deviation from the mock**: the mock's strip showed specific dates; the API is weekly-recurring, so the strip is weekdays (the number is just the next occurrence's day-of-month) and the title reads "Every Monday". Mock repository and mock schedule data deleted; logging out also resets the schedule view model.
 
@@ -513,7 +513,7 @@ On every start the app calls the public `GET /app-settings/doctor` (`lib/core/ap
 - [x] Profile: **About TEETHi** (only when `app_about` is set) and **Privacy policy** show the dashboard's text, split into paragraphs at blank lines.
   Privacy still says "not available yet" until the dashboard has a policy. New `TextPageScreen` shows both.
 
-**Verified (2026-10-22), not committed (branch `feat/tooth-chart` working tree):** the same module and tests as the patient app (`test/features/app_settings_test.dart`, 11, including the `/app-settings/doctor` path). 143 tests pass; no analyzer findings in the new code. Not run on a device.
+**Verified (2026-10-22); merged to `master` with `feat/tooth-chart` as `8af074f`:** the same module and tests as the patient app (`test/features/app_settings_test.dart`, 11, including the `/app-settings/doctor` path). 143 tests pass; no analyzer findings in the new code. Not run on a device.
 
 ### Account deletion (App Store guideline 5.1.1(v), backend account deletion addendum, 2026-10-29)
 `DELETE /account` with `{password}` → `200` and the session is over on every device. `422` on `password` for a wrong one, `409` with a message while a visit is in progress. The backend cancels the dentist's pending and upcoming visits (each patient is told) and drops them from the directory; the records they wrote are kept.

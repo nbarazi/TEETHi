@@ -1,6 +1,6 @@
 # TEETHi — Teledentistry Plan (video and audio consultations)
 
-Status: **decisions approved 2026-11-09**, nothing built yet. Phase T0 (Agora BAA) gates any real patient call.
+Status: decisions approved 2026-11-09. **T1–T6 built and merged to `master` in all four repos (2026-11-11).** Still open: T0 (Agora BAA, NCS, consent text, launch states) and T8's live checks on two phones (§10). The BAA gates any real patient call.
 
 Covers all four repos: the backend, the patient app, the dentist app and the admin dashboard. The patient-side screens come from the Claude Design project "TEETHi Patient app" (`PatientAppV2.jsx`, Teledentistry branch). §3 lists where the approved decisions change that design. The dentist app reuses its existing patient/request page designs and the same call screen as the patient app (decision Q5).
 

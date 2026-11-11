@@ -158,7 +158,7 @@ This document tells a Flutter engineer/agent **what exists in the Teethi backend
 - ~~**There is no insurance eligibility/coverage-check integration.**~~ — resolved (product decision): there is no third-party eligibility API wired up and none is planned for this pass, so the flat client-computed coverage estimate on the confirm/payment screens stays exactly as it is today (same client-side math, no backend call) — but every screen that shows it must visibly label it as a rough estimate, not a real quote (e.g. "Estimated coverage — not a quote from your insurer"), so it can't be mistaken for a real eligibility check. The "We check your cover before your visit" copy should be softened/reworded to match (it currently implies a real check that doesn't exist).
 - **`verified_at`** exists on the model/resource but nothing currently sets it — no admin/backend workflow verifies an insurance record yet. Don't build UI around a "verified" badge changing state.
 
-**Verified**: _(fill in once wired)_
+**Verified**: wired in Phase 3 (2026-09-14, see §14 Phase 3); Home reads only `GET /patient/dashboard`.
 
 ---
 
@@ -731,7 +731,7 @@ On every start the app calls the public `GET /app-settings/patient` (`lib/core/a
 - [x] Profile: **About TEETHi** (only when `app_about` is set) and **Privacy policy** show the dashboard's text, split into paragraphs at blank lines.
   Privacy falls back to the bundled text until the dashboard has a policy.
 
-**Verified (2026-10-22), not committed (branch `feat/tooth-chart` working tree):** `test/features/app_settings_test.dart` (11: the request path, version compare, each gate, platform links, fail-open, paragraphs, and widget tests for the maintenance, required and recommended screens). `widget_test.dart` now gives the boot test an offline settings source. 90 tests pass; analyzer unchanged at 17 infos. Not run on a device.
+**Verified (2026-10-22); merged to `master` with `feat/tooth-chart` as `9121be3`:** `test/features/app_settings_test.dart` (11: the request path, version compare, each gate, platform links, fail-open, paragraphs, and widget tests for the maintenance, required and recommended screens). `widget_test.dart` now gives the boot test an offline settings source. 90 tests pass; analyzer unchanged at 17 infos. Not run on a device.
 
 ### Account deletion (App Store guideline 5.1.1(v), backend account deletion addendum, 2026-10-29)
 `DELETE /account` with `{password}` → `200` and the session is over on every device. `422` on `password` for a wrong one, `409` with a message while a visit is in progress. Upcoming visits for the account and its dependents are cancelled by the backend; records are kept.

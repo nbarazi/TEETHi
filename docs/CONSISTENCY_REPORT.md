@@ -1,5 +1,7 @@
 # TEETHi — Cross-Project Status & Consistency Report
 
+> **Historical record (status as of 2026-10-19, open list refreshed 2026-11-11).** For current open work and decisions, use [MASTER_ROADMAP.md](MASTER_ROADMAP.md). The issue IDs here (C, H, M, E) are still the ones the roadmap and plans refer to.
+
 **Last updated:** 2026-10-19, after merging H4 push notifications (first written 2026-10-17) · **Scope:** TEETHi-Backend, TEETHi-Frontend (admin dashboard), TEETHi-Patient-App, TEETHI-Dentist-App
 
 **How this was checked**
@@ -45,13 +47,11 @@ None open. C2 (mock medical history) is fixed; see §3.
 ### Medium
 | # | Projects | Issue |
 |---|---|---|
-| M1 | Mobile apps | **No Arabic on mobile.** The backend and the dashboard support Arabic; both mobile apps are English-only, with `ApiClient.locale` hardcoded to `'en'`. This is a product decision. |
-| M13 | Backend, Patient | **Patients receive private doctor fields.** `DoctorProfileResource`, embedded in a patient's appointments and conversations, includes the doctor's date of birth, mobile number and health-authority registration number. The patient app doesn't show them, but they're on the wire. A patient-facing doctor shape (like `ProviderResource`) would fix it. Found 2026-10-20. |
+| ~~M13~~ | Backend, Patient | **Fixed 2026-10-26 by R8-24 (TEETHi-Backend `8671a80`).** Was: **Patients receive private doctor fields.** `DoctorProfileResource`, embedded in a patient's appointments and conversations, includes the doctor's date of birth, mobile number and health-authority registration number. The patient app doesn't show them, but they're on the wire. A patient-facing doctor shape (like `ProviderResource`) would fix it. Found 2026-10-20. |
 | M3 | Dashboard, Patient | **Hardcoded labels.** `GET /enums` exists, but the dashboard (Phase 0) and parts of the patient app hardcode labels, so wording can differ between apps, especially in Arabic. |
 | M5 | Dashboard | **No 429 handling.** The dashboard has no rate-limit (`429`) surface. |
 | M6 | Dashboard | **Missing appointment detail.** The scope promises list **and detail** views for appointments; there's only a list. The backend already serves `GET /appointments/{id}` to admins. The dashboard home page is still a placeholder. |
 | M7 | Patient | **Leftover mock state.** `lib/state/app_state.dart`, `lib/data/mock_data.dart` and `lib/models/models.dart` are still referenced by 29 files: the booking draft, notifications, the payment options and parts of profile. Consent no longer uses them. |
-| M9 | Docs | **Dentist architecture doc is out of date.** `docs/architecture/DENTIST_APP_ARCHITECTURE.md` still says only auth is real and everything else is mock. |
 | M10 | Dentist | **One-commit history.** Phases 0–10 of the dentist app are a single commit, so its plan can't be audited through git history. |
 
 ### Low
@@ -88,6 +88,8 @@ None open. C2 (mock medical history) is fixed; see §3.
 | R8-04 | Verification-code entry (both apps): Clear, resend and the email-to-phone step reset the boxes but not the hidden field, so new digits were silently dropped and sign-up could stall. Found in the 2026-10-23 E2E run ([E2E_REPORT_2026-10-23.md](E2E_REPORT_2026-10-23.md)) | `CodeEntryField` owns its controller and focus node and follows `code`; the booking step's resend clears the code | Dentist app `c0ceb52`, patient app `22be409` | 4 widget tests per app (3 fail on the old widget). Live in the dentist app's password reset. Web + mouse: after clicking Clear the user taps the boxes once to refocus |
 | M8 | Patient smoke test failed | Test now registers dependencies | Patient app `82a0509` | Suite passes |
 | C2 | Medical history was hardcoded ("Penicillin" for everyone), so dentists never got real allergies | Medical tab wired to `GET/PUT /patient/medical-history`, with an edit sheet | Patient app `64a2539` | Live: the patient saved Latex / Metformin 500mg, and the dentist's record showed the same |
+| M1 | Both mobile apps were English-only | gen-l10n English and Arabic with an in-app language switch; `ApiClient.locale` follows it | Patient and dentist apps (`feature/gen-l10n`, `feature/arabic-rtl`) | Checked 2026-11-11: `lib/l10n/app_ar.arb` in both apps |
+| M9 | The dentist architecture doc said every feature but auth was mock | Rewritten for the wired app | Root docs repo, 2026-11-11 | — |
 | E3 | The dashboard showed AED while the patient app showed $ | Decision #9: the backend sends `currency` (USD). Dashboard `money` pipe; patient app `formatMoney()` | Backend `7860aee`, dashboard `3df5016`, patient app `3d2a4b1` | Live: dashboard invoices "$250.00 / $100.00" |
 | E5 | The dentist and admin saw "Patient" / "#1" | Decision #10: profile names pre-filled from the account name and backfilled; `full_name` used in every app; booking requires a name | Backend `422ceb4` / `7860aee`, dashboard `3df5016`, dentist app `b14a731`, patient app `3d2a4b1` | Live: "Sample Patient" in the dentist Pending list, the Patients tab and the dashboard Appointments list |
 | E6 | No invoice existed until the patient paid | Decision #11: invoice created at booking (direct requests) or when a dentist claims an open request; an unpaid invoice is cancelled with its visit | Backend `422ceb4` | Live: new booking #3's $250 invoice existed immediately; tests cover the claim, cancel and partly-paid cases |
@@ -131,7 +133,7 @@ None open. C2 (mock medical history) is fixed; see §3.
 - **#15 Sign in with Google and Apple:** the apps get the provider's ID token and the backend verifies it (`POST /auth/social`, sign-in and sign-up in one). One email is one account, with automatic linking by verified email. The role must match the app, and never admin. Android and iOS only, no web (2026-10-20). Planned as backend Phase 16, patient Phase 11, dentist Phase 12; not built.
 
 **Still needed:**
-1. **M1:** Arabic on mobile (product decision).
+1. ~~**M1:** Arabic on mobile~~ — done: both apps ship English and Arabic with a language switch.
 2. **Product note:** the backend allows one active consent form per template type, while the old mock had four patient forms. Decide whether one combined form is enough.
 
 ### Suggested order of work
