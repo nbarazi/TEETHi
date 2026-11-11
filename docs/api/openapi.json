@@ -5484,7 +5484,7 @@
         "/v1/admin/invoices": {
             "get": {
                 "operationId": "admin.invoices.index",
-                "summary": "`?filter[status]=`/`?filter[patient_profile_id]=`/\n`?filter[doctor_profile_id]=`, `?sort=standard_amount` (or\n`-standard_amount`, `created_at`, `-created_at`) \u2014 \"search/filter\"\nper \u00a75.3's sketch, upgraded from a handful of `when()` clauses to\n`spatie/laravel-query-builder` once Phase 9 introduced it (\u00a76)",
+                "summary": "`?filter[status]=`/`?filter[patient_profile_id]=`/\n`?filter[doctor_profile_id]=`/`?filter[disputed]=1`, `?sort=standard_amount` (or\n`-standard_amount`, `created_at`, `-created_at`) \u2014 \"search/filter\"\nper \u00a75.3's sketch, upgraded from a handful of `when()` clauses to\n`spatie/laravel-query-builder` once Phase 9 introduced it (\u00a76)",
                 "tags": [
                     "Invoice"
                 ],
@@ -5614,14 +5614,96 @@
                             }
                         }
                     },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
                     "404": {
                         "$ref": "#/components/responses/ModelNotFoundException"
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/admin/invoices/{invoice}/refund-difference": {
+            "post": {
+                "operationId": "admin.invoices.refund-difference",
+                "summary": "Pays back `refund_due` to the patient's card, or with\n`record_only` records a refund already made outside TEETHi\n(security finding S7). `422` when the card refund fails or no card\npayment covers it; nothing changes then",
+                "tags": [
+                    "Invoice"
+                ],
+                "parameters": [
+                    {
+                        "name": "invoice",
+                        "in": "path",
+                        "required": true,
+                        "description": "The invoice ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "record_only": {
+                                        "type": "boolean"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "null"
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/InvoiceResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
                     }
                 }
             }
@@ -8972,6 +9054,313 @@
                                         "data",
                                         "meta",
                                         "links"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/receipts/{receipt}/pdf": {
+            "get": {
+                "operationId": "receipts.pdf",
+                "summary": "The PDF itself. No token: the link is signed and expires\n(`ReceiptResource.download_url`)",
+                "tags": [
+                    "Receipt"
+                ],
+                "parameters": [
+                    {
+                        "name": "receipt",
+                        "in": "path",
+                        "required": true,
+                        "description": "The receipt ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/pdf": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "headers": {
+                            "Content-Disposition": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            },
+                            "Cache-Control": {
+                                "schema": {
+                                    "type": "string",
+                                    "const": "private, no-store"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    }
+                }
+            }
+        },
+        "/v1/patient/invoices/{invoice}/receipts": {
+            "get": {
+                "operationId": "patient.invoices.receipts",
+                "summary": "A patient's receipts for one of their invoices (their own or a\ndependent's), each with a fresh download link",
+                "tags": [
+                    "Receipt"
+                ],
+                "parameters": [
+                    {
+                        "name": "invoice",
+                        "in": "path",
+                        "required": true,
+                        "description": "The invoice ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "null"
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/ReceiptResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "example": ""
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/admin/invoices/{invoice}/receipts/{receipt}/pdf": {
+            "get": {
+                "operationId": "admin.invoices.receipts.pdf",
+                "summary": "Staff open a receipt's PDF. Needs `view_invoices` and `view_patients`\n(it names the patient), and is logged as a PHI access (security\nfinding S5)",
+                "tags": [
+                    "Receipt"
+                ],
+                "parameters": [
+                    {
+                        "name": "invoice",
+                        "in": "path",
+                        "required": true,
+                        "description": "The invoice ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "receipt",
+                        "in": "path",
+                        "required": true,
+                        "description": "The receipt ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/pdf": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "headers": {
+                            "Content-Disposition": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            },
+                            "Cache-Control": {
+                                "schema": {
+                                    "type": "string",
+                                    "const": "private, no-store"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/admin/invoices/{invoice}/receipts/{receipt}/resend": {
+            "post": {
+                "operationId": "admin.invoices.receipts.resend",
+                "summary": "Staff email the receipt to the patient's account again",
+                "tags": [
+                    "Receipt"
+                ],
+                "parameters": [
+                    {
+                        "name": "invoice",
+                        "in": "path",
+                        "required": true,
+                        "description": "The invoice ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "receipt",
+                        "in": "path",
+                        "required": true,
+                        "description": "The receipt ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "null"
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/ReceiptResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "null"
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "errors": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "errors"
                                     ]
                                 }
                             }
@@ -13458,6 +13847,43 @@
                 ],
                 "title": "InsuranceRelationship"
             },
+            "InvoiceItemResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "treatment_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "amount": {
+                        "type": "string"
+                    },
+                    "added_at_visit": {
+                        "type": "boolean",
+                        "description": "Added by the dentist when completing the visit."
+                    },
+                    "removed": {
+                        "type": "boolean",
+                        "description": "Booked but not done: shown struck through, not in the total."
+                    }
+                },
+                "required": [
+                    "id",
+                    "treatment_id",
+                    "name",
+                    "amount",
+                    "added_at_visit",
+                    "removed"
+                ],
+                "title": "InvoiceItemResource"
+            },
             "InvoiceResource": {
                 "type": "object",
                 "properties": {
@@ -13488,10 +13914,30 @@
                     "due_at": {
                         "type": "string"
                     },
+                    "refund_due": {
+                        "type": "string",
+                        "description": "Paid beyond the final total after the dentist removed a\ntreatment (payments rollout P3). \"0.00\" when nothing is owed."
+                    },
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/InvoiceItemResource"
+                        }
+                    },
+                    "disputed": {
+                        "type": "boolean",
+                        "description": "A cardholder disputed a payment and it is still open, or was\nlost. Staff follow it up in Stripe's dashboard."
+                    },
                     "payments": {
                         "type": "array",
                         "items": {
                             "$ref": "#/components/schemas/PaymentResource"
+                        }
+                    },
+                    "receipts": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ReceiptResource"
                         }
                     },
                     "created_at": {
@@ -13508,6 +13954,7 @@
                     "currency",
                     "status",
                     "due_at",
+                    "refund_due",
                     "created_at"
                 ],
                 "title": "InvoiceResource"
@@ -14035,6 +14482,12 @@
                     "paid_at": {
                         "type": "string"
                     },
+                    "dispute_status": {
+                        "type": "string"
+                    },
+                    "disputed_at": {
+                        "type": "string"
+                    },
                     "created_at": {
                         "type": "string"
                     }
@@ -14047,6 +14500,8 @@
                     "provider_reference",
                     "status",
                     "paid_at",
+                    "dispute_status",
+                    "disputed_at",
                     "created_at"
                 ],
                 "title": "PaymentResource"
@@ -14375,6 +14830,58 @@
                     "available_today"
                 ],
                 "title": "ProviderResource"
+            },
+            "ReceiptResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "number": {
+                        "type": "string"
+                    },
+                    "invoice_id": {
+                        "type": "integer"
+                    },
+                    "payment_id": {
+                        "type": "integer"
+                    },
+                    "kind": {
+                        "type": "string"
+                    },
+                    "amount": {
+                        "type": "string"
+                    },
+                    "currency": {
+                        "type": "string"
+                    },
+                    "voided": {
+                        "type": "boolean"
+                    },
+                    "emailed_at": {
+                        "type": "string"
+                    },
+                    "issued_at": {
+                        "type": "string"
+                    },
+                    "download_url": {
+                        "type": "string",
+                        "description": "Patients only: signed and short-lived, like every other file\nlink; fetch the receipts again for a fresh one. Staff open\nthe PDF through `GET admin/invoices/{invoice}/receipts/{receipt}/pdf`,\nwhich is authenticated and audited (security finding S5)."
+                    }
+                },
+                "required": [
+                    "id",
+                    "number",
+                    "invoice_id",
+                    "payment_id",
+                    "kind",
+                    "amount",
+                    "currency",
+                    "voided",
+                    "emailed_at",
+                    "issued_at"
+                ],
+                "title": "ReceiptResource"
             },
             "ReconcileInvoiceRequest": {
                 "type": "object",
@@ -15555,7 +16062,8 @@
                         "type": [
                             "integer",
                             "null"
-                        ]
+                        ],
+                        "description": "Active only: a retired treatment can't be offered, or billed\nat a visit (security finding S3)."
                     },
                     "custom_title": {
                         "type": [
@@ -15765,6 +16273,15 @@
                         "items": {
                             "type": "string"
                         }
+                    },
+                    "treatments": {
+                        "type": "array",
+                        "description": "The final treatment list (payments rollout P3): treatment ids.\nWithout it the booked list stands.",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "minItems": 1,
+                        "maxItems": 20
                     }
                 },
                 "title": "StoreVisitOutcomeRequest"

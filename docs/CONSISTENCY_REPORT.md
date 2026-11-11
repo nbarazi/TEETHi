@@ -178,6 +178,8 @@ Beyond H6, H7 and M4, the pass found and fixed the following. All are merged (ba
 - `OTP_EXPOSE_IN_RESPONSE=false`
 - `CORS_ALLOWED_ORIGINS` set to the dashboard origin
 - a `SANCTUM_TOKEN_EXPIRATION` value (tokens otherwise last until logout)
+- `MAIL_MAILER` set to a real transport (not `log` or `array`); production refuses to boot otherwise (payments security finding S4)
+- `STRIPE_SECRET_KEY` set; production refuses to fall back to the fake gateway otherwise (payments rollout P1)
 
 ### Merge check (2026-10-19, backend Phase 10)
 `feat/phase-10-hardening` was fast-forwarded into backend `master` (`32fe915`, 8 commits).

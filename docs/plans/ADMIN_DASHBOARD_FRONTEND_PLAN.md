@@ -344,8 +344,11 @@ Backend Phase 7 built the payment/invoicing domain. Most of it is patient-facing
 
 | Method & path | Purpose | Body | Permission |
 |---|---|---|---|
-| `GET /admin/invoices` | Paginated list, each with its `payments` eager-loaded. Filter: `?filter[status]=`, `?filter[patient_profile_id]=`, `?filter[doctor_profile_id]=`. Sort: `?sort=standard_amount` / `-standard_amount` / `created_at` / `-created_at` (default `-created_at`) | — | `view_invoices` |
+| `GET /admin/invoices` | Paginated list, each with its `payments` eager-loaded. Filter: `?filter[status]=`, `?filter[patient_profile_id]=`, `?filter[doctor_profile_id]=`, `?filter[disputed]=1` (a payment's dispute is open or lost; payments rollout P1). Sort: `?sort=standard_amount` / `-standard_amount` / `created_at` / `-created_at` (default `-created_at`) | — | `view_invoices` |
 | `POST /admin/invoices/{invoice}/reconcile` | Record an out-of-band correction to an invoice | `{ status, amount_collected? }` | `manage_invoices` |
+| `GET /admin/invoices/{invoice}/receipts/{receipt}/pdf` | The receipt PDF, logged as a PHI access (security finding S5). Fetch it as a blob; `404` when the receipt is another invoice's | — | `view_invoices` + `view_patients` |
+| `POST /admin/invoices/{invoice}/refund-difference` | Pays back `refund_due`: to the card, or with `record_only: true` records a refund made elsewhere (security finding S7). Returns the `InvoiceResource`. `422` when the card refund fails or no card payment covers it; nothing changes then | `{ record_only?: boolean }` | `manage_invoices` |
+| `POST /admin/invoices/{invoice}/receipts/{receipt}/resend` | Email a receipt to the patient's account again (payments rollout P2). Returns the `ReceiptResource`. `422` when the account has no email, `404` when the receipt is another invoice's | — | `manage_invoices` |
 
 - **`GET /admin/invoices` uses `spatie/laravel-query-builder`** — filters are `?filter[key]=value`, sorts are `?sort=key` (prefix `-` for descending). This is the query-string convention for the four Phase 7/9 directory list endpoints (§4.7 invoices, §4.8 appointments, §4.9 patients, §4.10 doctors — but *not* §4.11 cities or §4.12 PHI logs, which don't use the library). An unknown `filter[]`/`sort` key returns `400` (§1.1d), not a silent ignore.
 - **`reconcile` body**: `status` is required, one of the `invoice_status` enum values (§5 — `pending`, `partially_paid`, `paid`, `refunded`, `cancelled`). `amount_collected` is optional (`numeric`, `min: 0.01`) — send it when recording a real cash/transfer collection against a `pay_later` invoice, which creates a `succeeded` payment row for that amount and moves the invoice toward `paid`. Setting `status: "refunded"` triggers a genuine gateway refund of the invoice's most recent successful card/Apple-Pay payment (only that one payment's amount, not the whole balance) and appends a `refunded` payment row. Every other status value is applied directly — this is an admin correction tool, not a state machine, so there's no "invalid transition" `409` here.
@@ -360,6 +363,7 @@ Backend Phase 7 built the payment/invoicing domain. Most of it is patient-facing
   "standard_amount": "450.00", "advance_paid": "200.00", "remaining_amount": "250.00",
   "status": "partially_paid",
   "due_at": "2026-09-20T00:00:00+00:00",
+  "disputed": false,                // payments rollout P1: a payment's dispute is open or lost
   "payments": [ /* PaymentResource[], only when eager-loaded (the admin endpoints always load it) */ ],
   "created_at": "..."
 }
@@ -370,7 +374,23 @@ Backend Phase 7 built the payment/invoicing domain. Most of it is patient-facing
   "id": 15, "invoice_id": 7, "amount": "200.00",
   "method": "credit_card",          // payment_method_type enum (§5): apple_pay | credit_card | pay_later
   "provider_reference": "fake_ch_9c1e...", "status": "succeeded",   // payment_status enum (§5)
-  "paid_at": "2026-09-13T10:04:00+00:00", "created_at": "..."
+  "paid_at": "2026-09-13T10:04:00+00:00",
+  "dispute_status": null,           // payments rollout P1: null | open | won | lost (payment_dispute_status enum)
+  "disputed_at": null, "created_at": "..."
+}
+```
+- **Final treatments (payments rollout P3).** `InvoiceResource.items` is `InvoiceItemResource[]`: `{ id, treatment_id, name, amount, added_at_visit, removed }`, loaded on the admin list and on `reconcile`'s response. A removed line is not in the total. `refund_due` is a decimal string, `"0.00"` when nothing is owed; above zero, staff refund the difference in Stripe's dashboard until P6.
+- **Receipts (payments rollout P2).** `InvoiceResource.receipts` is loaded on the admin list and on `reconcile`'s response. Admin receipts have no `download_url` (security finding S5): open the PDF through the authenticated `.../receipts/{receipt}/pdf` route. `reconcile` → `refunded` returns `422` when Stripe declines the refund (S7).
+- **Disputes (payments rollout P1, TEETHi-Backend `2ebb75c`, TEETHi-Frontend `0d0af53`).** Stripe's dispute webhooks set `dispute_status` on the payment. The invoice balance is not changed: staff respond in Stripe's dashboard using `provider_reference`, then correct the invoice with `reconcile` if the dispute is lost.
+`ReceiptResource` (payments rollout P2):
+```json
+{
+  "id": 3, "number": "R-000003", "invoice_id": 7, "payment_id": 15,
+  "kind": "payment",                 // payment | refund (receipt_kind enum)
+  "amount": "200.00", "currency": "USD",
+  "voided": false,                   // true for a refund Stripe accepted and later failed
+  "emailed_at": "2026-11-11T10:04:05+00:00", "issued_at": "2026-11-11T10:04:00+00:00"
+  // no download_url in admin responses (security finding S5)
 }
 ```
 - **Money is always a decimal string** (`"450.00"`), not a JS number — parse it deliberately, don't `+` it.
