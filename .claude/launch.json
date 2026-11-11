@@ -2,6 +2,38 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "backend-e2e",
+      "runtimeExecutable": "C:/Users/ASUS/.config/herd-lite/bin/php.exe",
+      "runtimeArgs": [
+        "artisan",
+        "serve",
+        "--host=127.0.0.1",
+        "--port=8000"
+      ],
+      "cwd": "TEETHi-Backend",
+      "env": {
+        "MAIL_MAILER": "log",
+        "SMS_PROVIDER": "log"
+      },
+      "port": 8000
+    },
+    {
+      "name": "queue-worker-e2e",
+      "runtimeExecutable": "C:/Users/ASUS/.config/herd-lite/bin/php.exe",
+      "runtimeArgs": [
+        "artisan",
+        "queue:work",
+        "--tries=3",
+        "--backoff=10"
+      ],
+      "cwd": "TEETHi-Backend",
+      "env": {
+        "MAIL_MAILER": "log",
+        "SMS_PROVIDER": "log"
+      },
+      "port": 0
+    },
+    {
       "name": "backend",
       "runtimeExecutable": "C:/Users/ASUS/.config/herd-lite/bin/php.exe",
       "runtimeArgs": [
@@ -62,6 +94,36 @@
       ],
       "cwd": "TEETHI-Dentist-App",
       "port": 8765
+    },
+    {
+      "name": "patient-app-8001",
+      "runtimeExecutable": "flutter",
+      "runtimeArgs": [
+        "run",
+        "-d",
+        "web-server",
+        "--web-port",
+        "8918",
+        "--dart-define=API_BASE_URL=http://127.0.0.1:8001/api/v1"
+      ],
+      "cwd": "TEETHi-Patient-App",
+      "port": 8918,
+      "autoPort": false
+    },
+    {
+      "name": "dentist-app-8001",
+      "runtimeExecutable": "flutter",
+      "runtimeArgs": [
+        "run",
+        "-d",
+        "web-server",
+        "--web-port",
+        "8919",
+        "--dart-define=API_BASE_URL=http://127.0.0.1:8001/api/v1"
+      ],
+      "cwd": "TEETHI-Dentist-App",
+      "port": 8919,
+      "autoPort": false
     }
   ]
 }
