@@ -243,7 +243,7 @@ Each phase lists what to do, what it's waiting on, and when it's done. Phases 2 
 ### Phase C — Hardening backlog (1–2 weeks, parallel with D)
 **Goal:** close the known low-severity money and correctness gaps before P4 adds more money movement.
 - [ ] S9, S8, S12, S10, S11, S13 (§4.3). Run `security-reviewer` before merging.
-- [ ] `charge.refunded` mirroring and stale PaymentIntent cleanup. **B1-01 first:** a pay-later collection (`InvoiceService::reconcile()`) leaves the old card intent open in Stripe; cancel open intents there.
+- [ ] `charge.refunded` mirroring and stale PaymentIntent cleanup. B1-01 fixed 2026-11-12 (TEETHi-Backend `4f8e9d1`): reconcile and visit cancellation now cancel open intents. Still open: mirroring refunds made in Stripe's dashboard, and intents abandoned without any later action (they expire in Stripe but stay `initiated` here).
 - [x] **B1-05 (Medium):** refuse payments on cancelled, refunded and paid invoices (backend `409`), and show the app's Pay button only for pending and partially paid invoices. Fixed 2026-11-12 and merged to `master` (pushed): TEETHi-Backend `f553122`, TEETHi-Patient-App `e20fcac` (with the B1-06 sheet fix `e96d4b9`).
 - [ ] B1-02 to B1-04 (Lows from the 2026-11-12 run; B1-02 needs a product call). B1-07 fixed 2026-11-12 (TEETHi-Backend `2d23774`).
 - [ ] Timezone follow-ups (§4.3).
