@@ -6,7 +6,7 @@ Findings from the `security-reviewer` passes over the payments rollout (`plans/P
 |---|---|---|
 | P1 + P2 | 2026-11-11 | TEETHi-Backend `59d32cf`, `8f55b38`; TEETHi-Frontend `e729228`, `86dd5dd`; TEETHi-Patient-App `32889c3` |
 | P3 | 2026-11-11 | TEETHi-Backend `efb1a4a`; TEETHi-Frontend `0039054`; TEETHi-Patient-App `083494d`; TEETHI-Dentist-App `2131c7a` |
-| Phase C | 2026-11-13 | TEETHi-Backend `833fc48`..`d8bf11f` on `phase-c/hardening` |
+| Phase C | 2026-11-13 | TEETHi-Backend `833fc48`..`383bbe0`, merged to `master` |
 
 ## Summary
 
@@ -76,7 +76,7 @@ Findings from the `security-reviewer` passes over the payments rollout (`plans/P
 - **Where:** `Patient/AppointmentController::pay()` (reads `remaining_amount` with no lock); `InvoiceService::confirmTreatments()` (cancels only the PaymentIntents it sees).
 - **Issue:** if the patient starts paying while the dentist lowers the total, the PaymentIntent can be created for the old amount after the cancel loop, and the patient pays the old balance (ending as S7's refund due). Stripe calls also run while the invoice row is locked.
 - **Fix:** lock and re-read the invoice in `pay()` before creating the payment. Better: when a gateway payment completes, refund anything above the current balance automatically.
-- **Fixed: TEETHi-Backend `e04839a` (2026-11-13, on `phase-c/hardening`).** `pay()` reads status and balance under the invoice lock and calls Stripe outside it; `attachIntent()` re-checks under the lock once the intent exists and cancels it with a `409 payments.invoice_changed` if the attempt was replaced, the invoice closed or the balance fell below the amount. The automatic refund of overpayments was not built; S7's refund-due flag covers that case.
+- **Fixed: TEETHi-Backend `e04839a` (2026-11-13, merged).** `pay()` reads status and balance under the invoice lock and calls Stripe outside it; `attachIntent()` re-checks under the lock once the intent exists and cancels it with a `409 payments.invoice_changed` if the attempt was replaced, the invoice closed or the balance fell below the amount. The automatic refund of overpayments was not built; S7's refund-due flag covers that case.
 
 ### S9. Low (P1): the fake-gateway guard only recognises `production`
 - **Where:** `TEETHi-Backend/app/Providers/AppServiceProvider.php`.

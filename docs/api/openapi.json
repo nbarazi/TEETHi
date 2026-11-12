@@ -1106,25 +1106,6 @@
                     "403": {
                         "$ref": "#/components/responses/AuthorizationException"
                     },
-                    "409": {
-                        "description": "An error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "description": "Error overview."
-                                        }
-                                    },
-                                    "required": [
-                                        "message"
-                                    ]
-                                }
-                            }
-                        }
-                    },
                     "404": {
                         "$ref": "#/components/responses/ModelNotFoundException"
                     },
@@ -1133,6 +1114,28 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
+                    },
+                    "409": {
+                        "description": "The invoice is paid, refunded or cancelled, or its amount changed while paying.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -12721,6 +12724,7 @@
         "/v1/doctor/appointments/{appointment}/visit-outcome": {
             "post": {
                 "operationId": "doctor.appointments.visit-outcome.store",
+                "description": "Treatments, outcome and completion are one transaction with the\nappointment locked and its status read inside it, so a failure\nleaves nothing half done and a second request waits for the first\n(SEC S12). Pushes go out after commit.",
                 "summary": "Written once at the end of a visit; resubmitting overwrites the\nexisting row in place (`VisitOutcome`'s docblock) rather than\nrejecting the second call as a conflict",
                 "tags": [
                     "VisitOutcome"
@@ -12783,25 +12787,6 @@
                             }
                         }
                     },
-                    "409": {
-                        "description": "An error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "description": "Error overview."
-                                        }
-                                    },
-                                    "required": [
-                                        "message"
-                                    ]
-                                }
-                            }
-                        }
-                    },
                     "403": {
                         "$ref": "#/components/responses/AuthorizationException"
                     },
@@ -12813,6 +12798,28 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
+                    },
+                    "409": {
+                        "description": "The visit is not in progress, or its treatments can no longer change.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -14122,6 +14129,7 @@
             },
             "LoginRequest": {
                 "type": "object",
+                "description": "`role` is the app signing in (`patient`, `doctor` or `admin`). Optional\nfor older app builds; when sent, an account of another role gets no\ntoken (E2E R8-09).",
                 "properties": {
                     "email": {
                         "type": "string",
@@ -14129,6 +14137,9 @@
                     },
                     "password": {
                         "type": "string"
+                    },
+                    "role": {
+                        "$ref": "#/components/schemas/UserRole"
                     }
                 },
                 "required": [
@@ -17654,6 +17665,15 @@
                     "updated_at"
                 ],
                 "title": "UserResource"
+            },
+            "UserRole": {
+                "type": "string",
+                "enum": [
+                    "patient",
+                    "doctor",
+                    "admin"
+                ],
+                "title": "UserRole"
             },
             "UserStatus": {
                 "type": "string",
