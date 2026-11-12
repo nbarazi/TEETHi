@@ -1038,7 +1038,7 @@
         "/v1/patient/appointments/{appointment}/payment": {
             "post": {
                 "operationId": "patient.appointments.pay",
-                "description": "A card payment answers with an `initiated` payment and a\n`payment_sheet` for the app to present; the invoice changes once\nStripe's webhook confirms it. The paying account's own profile is\nthe Stripe customer, so cards saved in the sheet work for every\nprofile the account manages, not just the one this visit is for.",
+                "description": "A card payment answers with an `initiated` payment and a\n`payment_sheet` for the app to present; the invoice changes once\nStripe's webhook confirms it. The paying account's own profile is\nthe Stripe customer, so cards saved in the sheet work for every\nprofile the account manages, not just the one this visit is for.\n\nOnly a `pending` or `partially_paid` invoice takes a payment. A paid,\nrefunded or cancelled one answers `409` (Phase B finding B1-05).",
                 "summary": "Card/Apple Pay through Stripe's payment sheet, or pay-later (\u00a75.1).\nNot `LogsPhiAccess` \u2014 invoices/payments are billing records, not\none of the PHI categories \u00a74.12 lists (patient profiles, medical\nhistory, clinical notes, treatment plans/tooth charts,\nprescriptions, insurance, legal documents, messages)",
                 "tags": [
                     "Appointment"
@@ -1105,6 +1105,25 @@
                     },
                     "403": {
                         "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "409": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview."
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
                     },
                     "404": {
                         "$ref": "#/components/responses/ModelNotFoundException"
