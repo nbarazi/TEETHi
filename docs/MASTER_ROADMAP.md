@@ -235,7 +235,7 @@ Each phase lists what to do, what it's waiting on, and when it's done. Phases 2 
 - [x] Patient app Stripe pass on Android (iOS when a Mac is available). Android done 2026-11-12, all checks passed; found B1-05 (cancelled invoice payable) and B1-06 (sheet Confirm under the nav bar, fixed on `fix/sheet-nav-bar`). iOS still open.
 - [x] Payments P1–P3 "done when" checks, dashboard screens opened in a browser. Done 2026-11-12 through the API and the dashboard (mail to the log, not SendGrid); phone parts stay with the item above. Found B1-01 (Medium) to B1-04.
 - [x] Teledentistry T8 leftovers on the two Android devices; then tick T8. Done 2026-11-12, all passed except the NCS check (waits on T0). Found B1-07 (Low).
-- [ ] Push on Android.
+- [ ] Push on Android. Skipped 2026-11-12: the local gcloud application-default sign-in has expired, so the backend skips every push. Re-run `gcloud auth application-default login` first (owner action).
 - [ ] Full live E2E scenario on web plus the Android checks above; log new findings with a new prefix in a new E2E report.
 
 **Done when:** PAY P1's "done when" holds in test mode, TELE T8 is ticked, and the new E2E report has no High findings open.
