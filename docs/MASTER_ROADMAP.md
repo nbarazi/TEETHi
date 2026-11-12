@@ -166,8 +166,8 @@ Timezone follow-ups (IMP Phase 13):
 Other:
 - [x] Server-side role check at login (the app says which app it is), so a wrong-app login never gets a token. E2E R8-09. Done 2026-11-13 (merged to `master` and pushed): TEETHi-Backend `d8bf11f`; TEETHi-Frontend `347a08e`, TEETHi-Patient-App `78a4466`, TEETHI-Dentist-App `5714205` send their role.
 - [ ] Close the Agora channel from the server when a visit ends (needs Agora's REST customer key). TELE T2.
-- [ ] Dentist-side API gaps: `GET`/`DELETE /doctor/availability/exceptions`; bulk enable/disable a visit type's windows; a way to clear a tooth-chart entry; `distance_km` on open requests. DAP §16.
-- [ ] Admin-side API gaps: an action on city requests (and wire `pending → notified` when the city is enabled); `filter[treatment_category_id]` on `GET /admin/treatments`; `AppointmentResource.invoice` is never populated; expose `account_deleted_at` (PR-10). ADP §7.
+- [x] Dentist-side API gaps: `GET`/`DELETE /doctor/availability/exceptions`; bulk enable/disable a visit type's windows; a way to clear a tooth-chart entry; `distance_km` on open requests. DAP §16. Done 2026-11-13 on TEETHi-Backend `phase-d/api-gaps` (not merged yet): `c4d3d56` (exceptions list/delete), `c5145e7` (visit type switch), `2b2b37b` (clear a tooth), `e60c996` (`distance_km`).
+- [ ] Admin-side API gaps: an action on city requests (and wire `pending → notified` when the city is enabled); `filter[treatment_category_id]` on `GET /admin/treatments`; `AppointmentResource.invoice` is never populated; expose `account_deleted_at` (PR-10). ADP §7. All but `account_deleted_at` (waits on PR-10) done 2026-11-13 on TEETHi-Backend `phase-d/api-gaps` (not merged yet): `96f758e` (city requests: `PATCH`, `dismissed`, notify on enable), `472d4fe` (category filter), `df044b4` (invoice on the appointment detail).
 
 ### 4.4 Admin dashboard backlog
 - [ ] Phase 0 leftovers: global `429` surface (string already exists), `GET /enums` cache feeding every label, typed envelope union. CR M5, M3; ADP Phase 0.
@@ -259,8 +259,8 @@ Each phase lists what to do, what it's waiting on, and when it's done. Phases 2 
 - [ ] Patient: Phase 2b (insurance and payment methods screens), M7 mock-state removal, R8-01 `404`, E8–E10, tele leftovers, review signal (§4.5).
 - [ ] Dentist: bookability gaps on Home, tele leftovers, change-password screen, smaller gaps (§4.6).
 - [ ] Dashboard: Phase 0 leftovers (429, `/enums`), appointment detail and Home page, R8-19 leftovers, label fix (§4.4).
-- [ ] Backend API gaps the clients need (§4.3 "Other"): availability exceptions list/delete first.
-- [ ] Run `contract-reviewer` and `/sync-api-contract` after the backend pieces.
+- [x] Backend API gaps the clients need (§4.3 "Other"): availability exceptions list/delete first. Done 2026-11-13 on TEETHi-Backend `phase-d/api-gaps` (not merged yet), except `account_deleted_at` (PR-10).
+- [ ] Run `contract-reviewer` and `/sync-api-contract` after the backend pieces. Run 2026-11-13 on the backend branch: spec re-exported (5 new endpoints, `distance_km`, `dismissed`), dentist contract tests 11/11 against the live backend, contract-reviewer found nothing breaking on the clients' `master`; its client follow-ups (dashboard `dismissed` badge, dentist `distance_km` and `city_available`) went to the Phase D client sessions. Re-run once the client branches land.
 
 **Done when:** H5, M3, M5, M6, M7, E8–E10 are closed in `CONSISTENCY_REPORT.md` and every client suite passes.
 

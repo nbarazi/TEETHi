@@ -2912,7 +2912,154 @@
                 }
             }
         },
+        "/v1/doctor/availability/visit-types/{visitType}": {
+            "patch": {
+                "operationId": "doctor.availability.visit-types.update",
+                "summary": "Switches all of the doctor's weekly windows of one visit type on or\noff in one call (\"turn off Emergency\", DAP \u00a716) and returns them.\nOff also takes that type out of the open-request list (R8-11)",
+                "tags": [
+                    "Availability"
+                ],
+                "parameters": [
+                    {
+                        "name": "visitType",
+                        "in": "path",
+                        "required": true,
+                        "description": "The visit type ID",
+                        "schema": {
+                            "$ref": "#/components/schemas/VisitType"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SetVisitTypeAvailabilityRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "null"
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/DoctorAvailabilitySlotResource"
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
         "/v1/doctor/availability/exceptions": {
+            "get": {
+                "operationId": "doctor.availability.exceptions.index",
+                "summary": "The doctor's own date exceptions from their local today onward,\nsoonest first (DAP \u00a716). Past dates no longer affect any slot",
+                "tags": [
+                    "Availability"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "null"
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/DoctorAvailabilityExceptionResource"
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "links": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data",
+                                        "meta",
+                                        "links"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
             "post": {
                 "operationId": "doctor.availability.exceptions.store",
                 "tags": [
@@ -2971,6 +3118,33 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/v1/doctor/availability/exceptions/{exception}": {
+            "delete": {
+                "operationId": "doctor.availability.exceptions.destroy",
+                "summary": "Removes one of the doctor's own exceptions, so that date goes back\nto the weekly schedule. Another doctor's id is a 404",
+                "tags": [
+                    "Availability"
+                ],
+                "parameters": [
+                    {
+                        "name": "exception",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
                     }
                 }
             }
@@ -3110,6 +3284,7 @@
         "/v1/admin/cities/{city}": {
             "patch": {
                 "operationId": "admin.cities.update",
+                "summary": "Making a city available notifies the doctors who asked for it by\nname, and closes their requests as `notified` (ADP \u00a77)",
                 "tags": [
                     "City"
                 ],
@@ -3186,7 +3361,7 @@
         "/v1/admin/city-requests": {
             "get": {
                 "operationId": "admin.city-requests.index",
-                "summary": "Read-only (\u00a75.3 only ever lists `GET /city-requests`, no admin\nmutation of a request's own `status` \u2014 presumably it flips to\n`notified` as a side effect of the requested city actually being\nadded via `update()` above, not a direct admin action on the\nrequest row itself)",
+                "summary": "Newest first. Each request closes as `notified` when its city is\nmade available, or by hand through `updateCityRequest()`",
                 "tags": [
                     "City"
                 ],
@@ -3247,6 +3422,84 @@
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/admin/city-requests/{cityRequest}": {
+            "patch": {
+                "operationId": "admin.city-requests.update",
+                "summary": "Staff close a pending request by hand: `notified` (served now,\nperhaps under another spelling) or `dismissed`. A closed one is a 409",
+                "tags": [
+                    "City"
+                ],
+                "parameters": [
+                    {
+                        "name": "cityRequest",
+                        "in": "path",
+                        "required": true,
+                        "description": "The city request ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateCityRequestStatusRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "null"
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/CityRequestResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
                     }
                 }
             }
@@ -11524,6 +11777,100 @@
                         "$ref": "#/components/responses/AuthenticationException"
                     }
                 }
+            },
+            "delete": {
+                "operationId": "doctor.tooth-charts.teeth.destroy",
+                "summary": "Clears one tooth's entry (\"no finding\", DAP \u00a716). Clearing a tooth\nthat has no entry is fine, so a retry never fails",
+                "tags": [
+                    "ToothChart"
+                ],
+                "parameters": [
+                    {
+                        "name": "toothChart",
+                        "in": "path",
+                        "required": true,
+                        "description": "The tooth chart ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "toothNumber",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "null"
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/ToothChartResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "example": ""
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
             }
         },
         "/v1/treatments": {
@@ -11615,6 +11962,7 @@
         "/v1/admin/treatments": {
             "get": {
                 "operationId": "admin.treatments.index",
+                "summary": "`?filter[treatment_category_id]=` narrows to one category on the\nserver (ADP \u00a77), so the dashboard's filter covers every page, not\njust the loaded one. Sorted by name",
                 "tags": [
                     "Treatment"
                 ],
@@ -13013,6 +13361,13 @@
                     },
                     "patient_state": {
                         "type": "string"
+                    },
+                    "distance_km": {
+                        "type": [
+                            "number",
+                            "null"
+                        ],
+                        "description": "Only on a doctor's open-request list (DAP \u00a716), in km from the practice address."
                     },
                     "call_opens_at": {
                         "type": [
@@ -15137,6 +15492,19 @@
                 ],
                 "title": "RoleResource"
             },
+            "SetVisitTypeAvailabilityRequest": {
+                "type": "object",
+                "description": "Switches every weekly window of one visit type on or off (DAP \u00a716).",
+                "properties": {
+                    "is_active": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "is_active"
+                ],
+                "title": "SetVisitTypeAvailabilityRequest"
+            },
             "SignConsentFormRequest": {
                 "type": "object",
                 "properties": {
@@ -16966,6 +17334,23 @@
                     }
                 },
                 "title": "UpdateCityRequest"
+            },
+            "UpdateCityRequestStatusRequest": {
+                "type": "object",
+                "description": "Staff close a pending city request: `notified` tells the doctor the city\nis served now, `dismissed` closes it without a message (ADP \u00a77).",
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "notified",
+                            "dismissed"
+                        ]
+                    }
+                },
+                "required": [
+                    "status"
+                ],
+                "title": "UpdateCityRequestStatusRequest"
             },
             "UpdateDependentRequest": {
                 "type": "object",
