@@ -1,6 +1,6 @@
 # TEETHi — Teledentistry Plan (video and audio consultations)
 
-Status: decisions approved 2026-11-09. **T1–T6 built and merged to `master` in all four repos (2026-11-11).** Still open: T0 (Agora BAA, NCS, consent text, launch states) and T8's live checks on two phones (§10). The BAA gates any real patient call.
+Status: decisions approved 2026-11-09. **T1–T6 built and merged to `master` in all four repos (2026-11-11).** Still open: T0 (Agora BAA, NCS, consent text, launch states). T8's live checks on two phones passed on 2026-11-12, except the NCS check, which waits on T0. The BAA gates any real patient call.
 
 Covers all four repos: the backend, the patient app, the dentist app and the admin dashboard. The patient-side screens come from the Claude Design project "TEETHi Patient app" (`PatientAppV2.jsx`, Teledentistry branch). §3 lists where the approved decisions change that design. The dentist app reuses its existing patient/request page designs and the same call screen as the patient app (decision Q5).
 
@@ -190,6 +190,7 @@ T3 can start once T1's contract is fixed, in parallel with T2. In total, about *
     - The call screen has no Chat or Share.
   - [ ] BAA signed with Agora (business; blocks real patient calls, not development).
   - [ ] NCS (webhook): turn it on in the Agora console once T2's webhook URL exists, then add `AGORA_NCS_SECRET` to `.env`.
+    Then check (moved from T8, 2026-11-12): NCS sends `uid`, `ts` and `eventType` as JSON integers, and joins and leaves fill `tele_session_participants`.
   - [ ] Teledentistry consent text from legal (a placeholder is seeded).
   - [ ] Launch states confirmed (seed assumes California).
 - [x] T1 Backend booking — built 2026-11-09 on TEETHi-Backend `feat/teledentistry-booking` (`4446128`), not merged yet.
@@ -283,7 +284,7 @@ T3 can start once T1's contract is fixed, in parallel with T2. In total, about *
   - English and Arabic strings.
   - Tests: `visit-cells.spec.ts` (4) and new cases in the appointments list and service specs; 212 dashboard tests pass and `ng build` is clean.
   - **Verified 2026-11-10** in the dev preview as the seeded admin: the Teledentistry filter listed only test visit 23, shown as "Teledentistry / Audio call" with "Not started" in the Call column; the Virtual Consultation showed the Teledentistry flag, and its edit form opened with the box ticked (closed without saving). The badge first used dark text at about 3.9:1 contrast and now uses white (about 4.7:1, WCAG AA). A filled call log (duration, joins) was checked only in tests, since no call has run yet (T8).
-- [ ] T8 Security review and live run — the review is done (2026-11-10); the live run on two phones is not.
+- [x] T8 Security review and live run — the review is done (2026-11-10); the live run on two phones passed on 2026-11-12. The one check left, NCS's integer fields, needs NCS turned on, so it moves to T0.
   - [x] **Security review** by the `security-reviewer` agent, one pass on the backend and one on the three clients. No critical or high finding: no PHI leak, no cross-account access, no leaked key, and media is encrypted before every join. Each finding was checked against the code before fixing.
   - **Fixed in the backend** (TEETHi-Backend `8f607a8` on `feat/teledentistry-calls`):
     - Agora's "channel closed" event (sent whenever the last person leaves) used to end the call log for good. A patient who waited alone and dropped left the real call with no duration. It is now provisional: a new token or a later join reopens the log; completed and cancelled stay final.
@@ -317,8 +318,13 @@ T3 can start once T1's contract is fixed, in parallel with T2. In total, about *
       - Video and sound came through properly on both devices (confirmed by Nawar, who ran the call).
       - Mute on both sides, and the patient's Stop video and start again, reached the engine and showed on the other side. Both left cleanly.
       - `agoraapi.log` holds the channel name and the two account ids, but no key or salt, and the token only masked (`0****=`). `agorasdk.log` is not plain text; none of those values appear in it. The files are in the app's own external folder (`Android/data/<package>/files`).
+    - **Second run, 2026-11-12** (same two devices, `master` builds: backend `f553122`, patient app `e20fcac`, dentist app `0d85281`; new test visits 27 (video) and 28 (audio); report `docs/E2E_REPORT_2026-11-12.md` §2):
+      - [x] Switch camera on both sides; the other side saw the change.
+      - [x] Leave and rejoin, the patient then the dentist; each reconnected and saw the other. The rejoin fetched a fresh token (access log).
+      - [x] A call over 15 minutes: both apps renewed their 15-minute token about 30 seconds before it ran out (dentist 00:26:39 → 00:41:09, patient 00:28:02 → 00:42:32) and the call carried on with no drop.
+      - [x] Complete after a call: the dentist left and completed visit 27 while the patient stayed in. The call log closed with `ended_reason = completed` and `duration_seconds = 1147` (start of the call to completion).
+      - [x] An expired token drops a participant once the visit is completed: at the patient's next renewal (00:57) the backend answered `409` and the app stopped the camera and microphone and left the call with a message. The message is the "can't be joined now, join from 15 minutes before" text, which is wrong for an ended visit (finding B1-07).
+      - [x] Audio call (visit 28): avatars instead of video, no Stop video or Switch camera, sound and Mute both ways; completed with `duration_seconds = 1029`.
+      - Joins are not in `tele_session_participants`: they come only from the NCS webhook, which isn't reachable locally. Expected until T0.
     - **Still open:**
-      - Complete visit after a call (visit 23 is still `in_progress`), and that the call log then shows the duration.
-      - Leaving and rejoining, Switch camera, and an audio call.
-      - A call longer than 15 minutes, for the token renewal; and that an expired token drops a participant once the visit is completed.
-      - NCS sends `uid`, `ts` and `eventType` as JSON integers (needs `AGORA_NCS_SECRET`, T0).
+      - NCS sends `uid`, `ts` and `eventType` as JSON integers (needs `AGORA_NCS_SECRET` and a public URL, T0).
