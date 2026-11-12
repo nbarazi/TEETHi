@@ -245,7 +245,7 @@ Each phase lists what to do, what it's waiting on, and when it's done. Phases 2 
 - [ ] S9, S8, S12, S10, S11, S13 (§4.3). Run `security-reviewer` before merging.
 - [ ] `charge.refunded` mirroring and stale PaymentIntent cleanup. **B1-01 first:** a pay-later collection (`InvoiceService::reconcile()`) leaves the old card intent open in Stripe; cancel open intents there.
 - [x] **B1-05 (Medium):** refuse payments on cancelled, refunded and paid invoices (backend `409`), and show the app's Pay button only for pending and partially paid invoices. Fixed 2026-11-12 and merged to `master` (pushed): TEETHi-Backend `f553122`, TEETHi-Patient-App `e20fcac` (with the B1-06 sheet fix `e96d4b9`).
-- [ ] B1-02 to B1-04 and B1-07 (Lows from the 2026-11-12 run; B1-02 needs a product call).
+- [ ] B1-02 to B1-04 (Lows from the 2026-11-12 run; B1-02 needs a product call). B1-07 fixed 2026-11-12 (TEETHi-Backend `2d23774`).
 - [ ] Timezone follow-ups (§4.3).
 - [ ] Server-side login role check.
 - [ ] Update `PAYMENTS_SECURITY_FINDINGS.md` statuses.
