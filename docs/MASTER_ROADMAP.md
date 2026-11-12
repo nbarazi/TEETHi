@@ -148,23 +148,23 @@ These need the owner, not code. Several gate phases in §5.
 
 ### 4.3 Backend backlog (no decision needed)
 Payments hardening (SEC):
-- [ ] **S9** Allow `FakePaymentGateway` only in `local` and `testing`, not "anything except production". Small; do first.
-- [ ] **S8** Lock and re-read the invoice in `pay()` before creating the PaymentIntent; better, auto-refund anything paid above the current balance.
-- [ ] **S12** One transaction for confirm treatments + outcome + completion with the appointment locked; notify after commit.
-- [ ] **S10** Receipt links: ~5-minute lifetime, `throttle:60,1`, `trustProxies` for the host.
-- [ ] **S11** Backfill: add an adjustment line when lines don't sum to the stored total; test it.
-- [ ] **S13** Update `appointments.treatment_id` when the list changes; generic message instead of `payments.invoice_closed` to dentists. (Prices to doctors: PR-7.)
-- [ ] Mirror refunds made in Stripe's dashboard (`charge.refunded`, idempotent). Today staff must record them by hand. SEC S7.
-- [ ] Scheduled cleanup of card PaymentIntents left `initiated` with no later attempt. IMP Phase 11 follow-up.
+- [x] **S9** Allow `FakePaymentGateway` only in `local` and `testing`, not "anything except production". Small; do first. Fixed 2026-11-13 on `phase-c/hardening` (not merged yet): TEETHi-Backend `833fc48`.
+- [x] **S8** Lock and re-read the invoice in `pay()` before creating the PaymentIntent; better, auto-refund anything paid above the current balance. Fixed 2026-11-13 on `phase-c/hardening` (not merged yet): TEETHi-Backend `e04839a`. Status and balance are read under the lock, and the attempt is re-checked once its intent exists (cancelled with a `409` if the total changed). The auto-refund of overpayments was not added; S7's refund-due flag still covers a payment that lands above the balance.
+- [x] **S12** One transaction for confirm treatments + outcome + completion with the appointment locked; notify after commit. Fixed 2026-11-13 on `phase-c/hardening` (not merged yet): TEETHi-Backend `d04e0b0`.
+- [x] **S10** Receipt links: ~5-minute lifetime, `throttle:60,1`, `trustProxies` for the host. Fixed 2026-11-13 on `phase-c/hardening` (not merged yet): TEETHi-Backend `cc7501e`, `383bbe0`. Also 404 once the account is deleted. `TRUSTED_PROXIES` must be set at deployment (CONSISTENCY_REPORT §5).
+- [x] **S11** Backfill: add an adjustment line when lines don't sum to the stored total; test it. Fixed 2026-11-13 on `phase-c/hardening` (not merged yet): TEETHi-Backend `d2e5d45`. Lines are scaled to the stored total instead of an adjustment line (which the first treatment change would drop). The edited migration has only run on the local database, where all invoices matched; no shared environment exists yet.
+- [x] **S13** Update `appointments.treatment_id` when the list changes; generic message instead of `payments.invoice_closed` to dentists. (Prices to doctors: PR-7.) First two points fixed 2026-11-13 on `phase-c/hardening` (not merged yet): TEETHi-Backend `8a0778f`. Prices to doctors still wait on PR-7.
+- [x] Mirror refunds made in Stripe's dashboard (`charge.refunded`, idempotent). Today staff must record them by hand. SEC S7. Done 2026-11-13 on `phase-c/hardening` (not merged yet): TEETHi-Backend `f7da07d`, `383bbe0` (`refund.created`/`refund.updated`, status re-read from Stripe); TEETHi-Frontend `88edd91`. The Stripe webhook endpoint must subscribe to `refund.created`.
+- [x] Scheduled cleanup of card PaymentIntents left `initiated` with no later attempt. IMP Phase 11 follow-up. Done 2026-11-13 on `phase-c/hardening` (not merged yet): TEETHi-Backend `7772976`, `383bbe0` (`payments:cancel-abandoned`, hourly, 24 h).
 
 Timezone follow-ups (IMP Phase 13):
-- [ ] Admin `filter[scheduled_from/to]` compare UTC dates, not local.
-- [ ] `AppointmentReminderNotification` payload lacks `timezone` / `scheduled_at_local`.
-- [ ] Today's open slots include slots already past (booking one fails `after:now`).
-- [ ] Spring-forward date: a window over the skipped hour yields a duplicate slot (only matters at 2 am).
+- [x] Admin `filter[scheduled_from/to]` compare UTC dates, not local. Fixed 2026-11-13 on `phase-c/hardening` (not merged yet): TEETHi-Backend `5f3f6ba` (a date is a whole local day in the default city zone).
+- [x] `AppointmentReminderNotification` payload lacks `timezone` / `scheduled_at_local`. Fixed 2026-11-13: TEETHi-Backend `5f3f6ba`.
+- [x] Today's open slots include slots already past (booking one fails `after:now`). Fixed 2026-11-13: TEETHi-Backend `5f3f6ba`.
+- [x] Spring-forward date: a window over the skipped hour yields a duplicate slot (only matters at 2 am). Fixed 2026-11-13: TEETHi-Backend `5f3f6ba`.
 
 Other:
-- [ ] Server-side role check at login (the app says which app it is), so a wrong-app login never gets a token. E2E R8-09.
+- [x] Server-side role check at login (the app says which app it is), so a wrong-app login never gets a token. E2E R8-09. Done 2026-11-13 on `phase-c/hardening` (not merged yet): TEETHi-Backend `d8bf11f`; TEETHi-Frontend `347a08e`, TEETHi-Patient-App `78a4466`, TEETHI-Dentist-App `5714205` send their role.
 - [ ] Close the Agora channel from the server when a visit ends (needs Agora's REST customer key). TELE T2.
 - [ ] Dentist-side API gaps: `GET`/`DELETE /doctor/availability/exceptions`; bulk enable/disable a visit type's windows; a way to clear a tooth-chart entry; `distance_km` on open requests. DAP §16.
 - [ ] Admin-side API gaps: an action on city requests (and wire `pending → notified` when the city is enabled); `filter[treatment_category_id]` on `GET /admin/treatments`; `AppointmentResource.invoice` is never populated; expose `account_deleted_at` (PR-10). ADP §7.
@@ -242,14 +242,15 @@ Each phase lists what to do, what it's waiting on, and when it's done. Phases 2 
 
 ### Phase C — Hardening backlog (1–2 weeks, parallel with D)
 **Goal:** close the known low-severity money and correctness gaps before P4 adds more money movement.
-- [ ] S9, S8, S12, S10, S11, S13 (§4.3). Run `security-reviewer` before merging.
-- [ ] `charge.refunded` mirroring and stale PaymentIntent cleanup. B1-01 fixed 2026-11-12 (TEETHi-Backend `4f8e9d1`): reconcile and visit cancellation now cancel open intents. Still open: mirroring refunds made in Stripe's dashboard, and intents abandoned with no later action (a sheet closed and never retried): they stay open in Stripe and `initiated` here until something cancels them, so a scheduled sweep of old ones is worth adding.
+- [x] S9, S8, S12, S10, S11, S13 (§4.3). Run `security-reviewer` before merging. `security-reviewer` ran 2026-11-13: 3 medium and 4 low findings in the new code, all fixed in `383bbe0` (see PAYMENTS_SECURITY_FINDINGS.md, Phase C review).
+- [x] `charge.refunded` mirroring and stale PaymentIntent cleanup. B1-01 fixed 2026-11-12 (TEETHi-Backend `4f8e9d1`): reconcile and visit cancellation now cancel open intents. Still open: mirroring refunds made in Stripe's dashboard, and intents abandoned with no later action (a sheet closed and never retried): they stay open in Stripe and `initiated` here until something cancels them, so a scheduled sweep of old ones is worth adding. Both done 2026-11-13 (§4.3).
 - [x] **B1-05 (Medium):** refuse payments on cancelled, refunded and paid invoices (backend `409`), and show the app's Pay button only for pending and partially paid invoices. Fixed 2026-11-12 and merged to `master` (pushed): TEETHi-Backend `f553122`, TEETHi-Patient-App `e20fcac` (with the B1-06 sheet fix `e96d4b9`).
 - [x] B1-02 to B1-04 (Lows from the 2026-11-12 run). B1-02 fixed 2026-11-12 (TEETHi-Frontend `a95dd2d`, Remaining shows "—" on refunded and cancelled invoices). B1-04 fixed 2026-11-12 (TEETHi-Backend `e92a7cd`, receipt PDF 858 KB → 20 KB). B1-03 fixed 2026-11-12 (TEETHi-Backend `ae02565`, TEETHi-Frontend `1b7c331`, TEETHi-Patient-App `7bab420`); B1-07 fixed (TEETHi-Backend `2d23774`).
-- [x] **OpenAPI export regressed.** `scramble:export` on `master` (2026-11-12) drops the response schema of 28 endpoints (admin doctors, patients and cities, patient and doctor profile, invoices, prescriptions, the pay endpoint, and others) and the `DoctorPatientNoteResource` schema. `docs/api/openapi.json` was left at its last good export (`7c99eb5`). Find the cause (the Phase A Rector run `ff9e731` is the main suspect; it is not the `DoctorProfileResource` closure type) and re-export. Fixed 2026-11-12 on branch `fix/openapi-route-actions` (TEETHi-Backend `65fdad8`, not yet merged): Rector's `ArrayToFirstClassCallableRector` had turned 31 route actions in `routes/api/v1.php` into `(new Controller())->method(...)` closures, which Scramble cannot document and `route:cache` cannot serialize. The array callables are back and the rule is skipped for `routes/`. The re-export matches `7c99eb5` except the intended B1-05 `409` on the pay endpoint.
-- [ ] Timezone follow-ups (§4.3).
-- [ ] Server-side login role check.
-- [ ] Update `PAYMENTS_SECURITY_FINDINGS.md` statuses.
+- [x] **OpenAPI export regressed.** `scramble:export` on `master` (2026-11-12) drops the response schema of 28 endpoints (admin doctors, patients and cities, patient and doctor profile, invoices, prescriptions, the pay endpoint, and others) and the `DoctorPatientNoteResource` schema. `docs/api/openapi.json` was left at its last good export (`7c99eb5`). Find the cause (the Phase A Rector run `ff9e731` is the main suspect; it is not the `DoctorProfileResource` closure type) and re-export. Fixed 2026-11-12 (TEETHi-Backend `65fdad8`, merged to `master` and pushed; spec re-exported in `3c87ce9`): Rector's `ArrayToFirstClassCallableRector` had turned 31 route actions in `routes/api/v1.php` into `(new Controller())->method(...)` closures, which Scramble cannot document and `route:cache` cannot serialize. The array callables are back and the rule is skipped for `routes/`. The re-export matches `7c99eb5` except the intended B1-05 `409` on the pay endpoint.
+- [x] Timezone follow-ups (§4.3). Done 2026-11-13 (§4.3).
+- [x] Server-side login role check. Done 2026-11-13 (§4.3).
+- [x] Update `PAYMENTS_SECURITY_FINDINGS.md` statuses. Done 2026-11-13.
+- [ ] **Rector dry-run is not clean on `master`.** With a cleared cache, `rector --dry-run` lists 41 files (mostly `EloquentMagicMethodToQueryBuilderRector`, plus attribute and `latest()`/`oldest()` rules), so `composer test` fails at its first step. Earlier runs reported 3 to 5 only because of Rector's cache. Found 2026-11-13; predates Phase C. Apply in its own commit and review the diff (the route rule is already skipped).
 
 **Done when:** SEC has no Open rows except those waiting on PR-7, and the backend suite, PHPStan and Pint pass.
 

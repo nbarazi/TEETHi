@@ -661,7 +661,7 @@ Verified: full Pest suite green (471 tests, +30: `tests/Feature/Api/V1/TimezoneC
 - **The zone-required rule is a regex on `scheduled_at`** (`Appointment::SCHEDULED_AT_PATTERN`: ISO-8601 date-time ending in `Z` or `±HH:MM`/`±HHMM`) with its own message, `booking.scheduled_at_needs_timezone`. The slot check is skipped when `scheduled_at` already failed a rule, so a zoneless time gets only that one error.
 - **Tests:** factory cities default to `America/Los_Angeles`, the same as the migration and config, so the existing booking, reschedule and availability tests now build their slot times in Los Angeles rather than UTC. The new tests freeze the clock with a UTC instant (`losAngelesTime()`): Carbon keeps the test clock's zone for `now()`, and freezing with a Los Angeles Carbon made the app's `now()` run in Los Angeles, which hides exactly the UTC-server bugs this phase is about.
 
-**Follow-ups found, not fixed:**
+**Follow-ups found, not fixed at the time (all four fixed 2026-11-13, TEETHi-Backend `5f3f6ba`, Phase C):**
 - `Admin\AppointmentController`'s `filter[scheduled_from]`/`filter[scheduled_to]` compare the raw string with the UTC `scheduled_at`, so a `YYYY-MM-DD` bound is a UTC date, not a local one (documented in the admin plan §4.8).
 - `AppointmentReminderNotification`'s payload carries only the UTC `scheduled_at`, not `timezone`/`scheduled_at_local`.
 - Open slots for today still include slots whose start has already passed; booking one then fails `after:now`.

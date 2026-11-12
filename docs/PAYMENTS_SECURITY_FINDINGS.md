@@ -6,6 +6,7 @@ Findings from the `security-reviewer` passes over the payments rollout (`plans/P
 |---|---|---|
 | P1 + P2 | 2026-11-11 | TEETHi-Backend `59d32cf`, `8f55b38`; TEETHi-Frontend `e729228`, `86dd5dd`; TEETHi-Patient-App `32889c3` |
 | P3 | 2026-11-11 | TEETHi-Backend `efb1a4a`; TEETHi-Frontend `0039054`; TEETHi-Patient-App `083494d`; TEETHI-Dentist-App `2131c7a` |
+| Phase C | 2026-11-13 | TEETHi-Backend `833fc48`..`d8bf11f` on `phase-c/hardening` |
 
 ## Summary
 
@@ -18,12 +19,12 @@ Findings from the `security-reviewer` passes over the payments rollout (`plans/P
 | S5 | Medium | P2 | `view_invoices` staff get receipt links showing patient names; no PHI access audit | Fixed |
 | S6 | Medium | P3 | Recalculating the total can reopen a refunded invoice or undo an admin-set Paid | Fixed |
 | S7 | Medium (money) | P3 | `refund_due` never clears, and the built-in refund refunds the wrong amount | Fixed |
-| S8 | Medium-low (money) | P3 | A payment started at the same moment can still charge the old balance | Open |
-| S9 | Low | P1 | The fake-gateway guard only recognises `APP_ENV=production` | Open |
-| S10 | Low | P2 | Receipt links: bearer-only for 30 minutes, no rate limit, maybe `http://` behind a proxy | Open |
-| S11 | Low | P3 | Backfill uses today's catalog price, so lines may not add up to the stored total | Open |
-| S12 | Low | P3 | Treatment change, outcome and completion aren't one locked transaction | Open |
-| S13 | Low | P3 | Smaller points: stale primary treatment, billing status shown to the dentist, prices sent to the dentist app | Open |
+| S8 | Medium-low (money) | P3 | A payment started at the same moment can still charge the old balance | Fixed |
+| S9 | Low | P1 | The fake-gateway guard only recognises `APP_ENV=production` | Fixed |
+| S10 | Low | P2 | Receipt links: bearer-only for 30 minutes, no rate limit, maybe `http://` behind a proxy | Fixed |
+| S11 | Low | P3 | Backfill uses today's catalog price, so lines may not add up to the stored total | Fixed |
+| S12 | Low | P3 | Treatment change, outcome and completion aren't one locked transaction | Fixed |
+| S13 | Low | P3 | Smaller points: stale primary treatment, billing status shown to the dentist, prices sent to the dentist app | Partly fixed (prices wait on PR-7) |
 
 ## Details
 
@@ -75,31 +76,47 @@ Findings from the `security-reviewer` passes over the payments rollout (`plans/P
 - **Where:** `Patient/AppointmentController::pay()` (reads `remaining_amount` with no lock); `InvoiceService::confirmTreatments()` (cancels only the PaymentIntents it sees).
 - **Issue:** if the patient starts paying while the dentist lowers the total, the PaymentIntent can be created for the old amount after the cancel loop, and the patient pays the old balance (ending as S7's refund due). Stripe calls also run while the invoice row is locked.
 - **Fix:** lock and re-read the invoice in `pay()` before creating the payment. Better: when a gateway payment completes, refund anything above the current balance automatically.
+- **Fixed: TEETHi-Backend `e04839a` (2026-11-13, on `phase-c/hardening`).** `pay()` reads status and balance under the invoice lock and calls Stripe outside it; `attachIntent()` re-checks under the lock once the intent exists and cancels it with a `409 payments.invoice_changed` if the attempt was replaced, the invoice closed or the balance fell below the amount. The automatic refund of overpayments was not built; S7's refund-due flag covers that case.
 
 ### S9. Low (P1): the fake-gateway guard only recognises `production`
 - **Where:** `TEETHi-Backend/app/Providers/AppServiceProvider.php`.
 - **Issue:** a public staging or pilot server with `APP_ENV=staging` and no Stripe key gets `FakePaymentGateway`, which approves every payment: invoices marked paid with no money taken.
 - **Fix:** allow the fake gateway only in `local` and `testing` (`throw_unless($app->environment('local', 'testing'), ...)`), and update `PaymentGatewayBindingTest`.
+- **Fixed: TEETHi-Backend `833fc48` (2026-11-13).** Only `local` and `testing` may fall back to the fake.
 
 ### S10. Low (P2): receipt links
 - **Where:** `routes/api/v1.php` (`signed` only, no `throttle`); `ReceiptResource` (30 minutes); patient app opens it in the external browser.
 - **Issue:** a forwarded or synced link serves the PDF to anyone for 30 minutes, even after the account is deleted. Each hit renders a PDF with no rate limit. Behind a TLS-terminating proxy without `trustProxies`, links may be issued as `http://` (unverified: depends on hosting).
 - **Fix:** shorten the link to about 5 minutes (the app fetches a fresh one per tap), add `throttle:60,1`, configure `trustProxies` for the host, optionally open in an in-app view.
+- **Fixed: TEETHi-Backend `cc7501e`, `383bbe0` (2026-11-13).** 5-minute links, `throttle:60,1`, 404 once the account is deleted, `TRUSTED_PROXIES` (`config/trustedproxy.php`) with only X-Forwarded-For/-Proto/-Port trusted. In-app viewing not done.
 
 ### S11. Low (P3): backfill prices
 - **Where:** `database/migrations/2026_11_11_000003_create_invoice_items_table.php`.
 - **Issue:** old invoices get lines at today's catalog price. If a price changed since, lines don't add up to the stored total, and the first P3 change re-prices untouched lines. The backfill isn't in a transaction. (On the local database all 21 invoices matched.)
 - **Fix:** when lines don't add up to `standard_amount`, take the line amount from the stored total or add an adjustment line; test that lines sum to the total after migrating.
+- **Fixed: TEETHi-Backend `d2e5d45` (2026-11-13).** Lines are scaled to the stored total (rounding cent on the last line), in a transaction. The migration had only run locally, where every invoice matched.
 
 ### S12. Low (P3): non-atomic completion
 - **Where:** `VisitOutcomeController::store`.
 - **Issue:** the invoice change and the patient push commit before the outcome is saved and the visit completed; if completion fails, the patient was already told. The completed-status check isn't locked, so a second request from the same dentist can change the list just after completion.
 - **Fix:** wrap confirm, outcome and completion in one transaction with the appointment locked, re-check the status inside it, and notify after commit.
+- **Fixed: TEETHi-Backend `d04e0b0` (2026-11-13).** One transaction with the appointment locked; `NotificationService` and the invoice-total push send after commit.
 
 ### S13. Low (P3): smaller points
 - **Stale primary treatment:** `appointments.treatment_id` isn't updated when the list changes, so lists can still show a removed treatment.
 - **Billing status to the dentist:** `409 payments.invoice_closed` tells the dentist the patient's invoice was cancelled or refunded, though doctors are otherwise never shown invoices. Use a generic message.
 - **Prices sent to doctors:** `GET /doctor/services` and `GET /treatments` include `standard_amount`; the dentist app only hides them on screen. Predates P3. If D2 or D6 mean dentists shouldn't see prices, give doctors a shape without the price.
+- **Partly fixed: TEETHi-Backend `8a0778f` (2026-11-13).** The primary treatment follows the list, and dentists get `payments.treatments_closed`. Prices to doctors wait on PR-7.
+
+### Phase C review (2026-11-13)
+`security-reviewer` over the Phase C branch found no PHI leak, cross-account exposure or auth bypass, and 7 issues in the new code, all fixed in TEETHi-Backend `383bbe0`:
+- **Medium:** the refund mirror trusted the event's refund status, so a late `refund.created` could count a refund that had already failed. Now re-read with `retrieveRefund()`.
+- **Medium:** a mirrored refund rebuilt the status from `advance_paid`, reopening a cancelled invoice for payment. Cancelled, refunded and paid invoices now keep their state.
+- **Medium:** `TRUSTED_PROXIES=*` with every forwarded header trusted would let a client spoof its IP (rate limits) and the link host. Only For/Proto/Port are trusted; deploy with the proxy's IP.
+- **Low:** `completeGatewayPayment` and `failRefund` locked payment then invoice, the reverse of every other path (MySQL deadlock). Now invoice first.
+- **Low:** a dashboard refund could attach to an unrelated hand-recorded refund of the same amount. Now only one recorded in the week before.
+- **Low:** the abandoned-attempt sweep paged by offset while changing the filtered column, and never closed attempts with no intent id. Fixed.
+- **Low (process):** S11 edits a migration that already ran; it has only run locally.
 
 ## Checked and found fine
 - Patient receipt list, admin resend and the signed PDF route are scoped correctly; request logs record only parameter names, so signatures don't reach the log.

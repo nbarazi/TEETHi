@@ -181,7 +181,10 @@ Beyond H6, H7 and M4, the pass found and fixed the following. All are merged (ba
 - `CORS_ALLOWED_ORIGINS` set to the dashboard origin
 - a `SANCTUM_TOKEN_EXPIRATION` value (tokens otherwise last until logout)
 - `MAIL_MAILER` set to a real transport (not `log` or `array`); production refuses to boot otherwise (payments security finding S4)
-- `STRIPE_SECRET_KEY` set; production refuses to fall back to the fake gateway otherwise (payments rollout P1)
+- `STRIPE_SECRET_KEY` set; production refuses to fall back to the fake gateway otherwise (payments rollout P1). Since Phase C, every environment except `local` and `testing` refuses (S9)
+- the Stripe webhook endpoint subscribed to `refund.created` as well as the events it already gets, so refunds made in Stripe's dashboard are recorded (Phase C)
+- `TRUSTED_PROXIES` set to the load balancer's IPs or CIDRs (not `*`), so links are https and rate limits key on the patient's IP (S10)
+- the scheduler running (`schedule:run` every minute): reminders, document expiry and the hourly `payments:cancel-abandoned`
 
 ### Merge check (2026-10-19, backend Phase 10)
 `feat/phase-10-hardening` was fast-forwarded into backend `master` (`32fe915`, 8 commits).
