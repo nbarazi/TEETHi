@@ -137,9 +137,9 @@ These need the owner, not code. Several gate phases in §5.
 - [x] **BE** `composer test` stops at `rector --dry-run` (flags ~169 files on `master`). Either run Rector and commit, or drop it from the script. IMP Phase 13, TELE T1.
 
 ### 4.2 Verification debt (built, never run for real)
-- [ ] **BE+PA** Stripe webhook end to end with the Stripe CLI, test mode: pay, cancel the sheet, refund, redelivered event, out-of-order event, dispute created/closed. PAY P1, IMP Phase 11.
+- [x] **BE+PA** Stripe webhook end to end with the Stripe CLI, test mode (done 2026-11-12, E2E_REPORT_2026-11-12): pay, cancel the sheet, refund, redelivered event, out-of-order event, dispute created/closed. PAY P1, IMP Phase 11.
 - [ ] **PA** Android and iOS pass against the Stripe sandbox: success, decline, 3-D Secure (`4000 0025 0000 3155`), a saved card reused, a card removed, the invoice updating after the webhook. PAP Phase 10.
-- [ ] **ALL** Payments P1–P3 "done when" checks in test mode: dispute flag in the dashboard; receipts by email (real mail transport) and in the app; a dentist adds and removes a treatment at completion and the patient, the admin and the invoice all agree. Dashboard P1–P3 and S5/S7 screens were never opened in a browser. PAY P1–P3.
+- [x] **ALL** (done 2026-11-12 on web and API; real mail and the app's receipt View still open) Payments P1–P3 "done when" checks in test mode: dispute flag in the dashboard; receipts by email (real mail transport) and in the app; a dentist adds and removes a treatment at completion and the patient, the admin and the invoice all agree. Dashboard P1–P3 and S5/S7 screens were never opened in a browser. PAY P1–P3.
 - [ ] **PA+DA** Teledentistry T8 leftovers: complete visit 23 after the call and check the call log duration; leave and rejoin; switch camera; an audio call; a call over 15 minutes (token renewal) and an expired token dropping a participant after completion; NCS integer fields (needs NCS on). TELE T8.
 - [ ] **PA+DA** Push on Android and iOS devices (only web was verified; the on-screen pop-up was never seen). CR H4.
 - [ ] **PA+DA** Account deletion, app settings gate and the polish-phase changes on a device. PAP/DAP.
@@ -231,9 +231,9 @@ Each phase lists what to do, what it's waiting on, and when it's done. Phases 2 
 ### Phase B — Verify what's merged (1–2 weeks)
 **Goal:** prove the money and call paths work for real before building on them.
 **Waits on:** Stripe CLI installed; an Android phone (have: SM-A566B and SM-X210); a Mac for the iOS half (can trail).
-- [ ] Stripe CLI webhook run in test mode (§4.2).
-- [ ] Patient app Stripe pass on Android (iOS when a Mac is available).
-- [ ] Payments P1–P3 "done when" checks, dashboard screens opened in a browser.
+- [x] Stripe CLI webhook run in test mode (§4.2). Done 2026-11-12, all scenarios passed: [E2E_REPORT_2026-11-12.md](E2E_REPORT_2026-11-12.md) §2.
+- [x] Patient app Stripe pass on Android (iOS when a Mac is available). Android done 2026-11-12, all checks passed; found B1-05 (cancelled invoice payable) and B1-06 (sheet Confirm under the nav bar, fixed on `fix/sheet-nav-bar`). iOS still open.
+- [x] Payments P1–P3 "done when" checks, dashboard screens opened in a browser. Done 2026-11-12 through the API and the dashboard (mail to the log, not SendGrid); phone parts stay with the item above. Found B1-01 (Medium) to B1-04.
 - [ ] Teledentistry T8 leftovers on the two Android devices; then tick T8.
 - [ ] Push on Android.
 - [ ] Full live E2E scenario on web plus the Android checks above; log new findings with a new prefix in a new E2E report.
@@ -243,7 +243,9 @@ Each phase lists what to do, what it's waiting on, and when it's done. Phases 2 
 ### Phase C — Hardening backlog (1–2 weeks, parallel with D)
 **Goal:** close the known low-severity money and correctness gaps before P4 adds more money movement.
 - [ ] S9, S8, S12, S10, S11, S13 (§4.3). Run `security-reviewer` before merging.
-- [ ] `charge.refunded` mirroring and stale PaymentIntent cleanup.
+- [ ] `charge.refunded` mirroring and stale PaymentIntent cleanup. **B1-01 first:** a pay-later collection (`InvoiceService::reconcile()`) leaves the old card intent open in Stripe; cancel open intents there.
+- [x] **B1-05 (Medium):** refuse payments on cancelled, refunded and paid invoices (backend `409`), and show the app's Pay button only for pending and partially paid invoices. Fixed 2026-11-12 on branches: TEETHi-Backend `f553122` (`fix/b1-05-pay-closed-invoice`), TEETHi-Patient-App `e20fcac` (`fix/sheet-nav-bar`, with the B1-06 sheet fix `e96d4b9`). Not merged yet.
+- [ ] B1-02 to B1-04 (Lows from the 2026-11-12 run; B1-02 needs a product call).
 - [ ] Timezone follow-ups (§4.3).
 - [ ] Server-side login role check.
 - [ ] Update `PAYMENTS_SECURITY_FINDINGS.md` statuses.

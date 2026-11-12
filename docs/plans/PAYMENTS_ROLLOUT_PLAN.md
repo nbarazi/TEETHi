@@ -61,7 +61,7 @@ These are the questions from the business summary. A phase doesn't start until i
 - [ ] Live Stripe account verified for the launch entity. Restricted live key (`rk_live_`) with only the permissions the gateway uses.
 - [ ] Production env: `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`. Register the live webhook endpoint for the events in `StripeWebhookService::EVENTS`.
 - [ ] Run `2026_10_22_000002_add_stripe_payments` in every environment.
-- [ ] Webhook end to end with the Stripe CLI against a test-mode backend: pay, cancel the sheet, refund, a redelivered event, an out-of-order event. Not done yet (Phase 11 note).
+- [x] Webhook end to end with the Stripe CLI against a test-mode backend: pay, cancel the sheet, refund, a redelivered event, an out-of-order event. Verified 2026-11-12, plus dispute created/closed: `docs/E2E_REPORT_2026-11-12.md`.
 - [x] Handle `charge.dispute.created` and `charge.dispute.closed`: record the dispute on the payment and flag the invoice.
 - [x] Fail closed: in production the gateway refuses to fall back to `FakePaymentGateway` when no secret key is set.
 

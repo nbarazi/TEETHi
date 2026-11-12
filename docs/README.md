@@ -16,6 +16,7 @@ The workspace root `D:\Projects\TEETHi Project` is its own git repo (`main`). It
 | File | What it is |
 |---|---|
 | [MASTER_ROADMAP.md](MASTER_ROADMAP.md) | **Start here.** Every open task, pending decision and owner action across the four projects, by category and in phases (2026-11-11) |
+| [E2E_REPORT_2026-11-12.md](E2E_REPORT_2026-11-12.md) | Phase B run 1: Stripe webhook, payments P1–P3 and dashboard money screens verified in test mode; findings B1-01 to B1-04 |
 | [CONSISTENCY_REPORT.md](CONSISTENCY_REPORT.md) | Historical status report (2026-10-17 to 10-19) and the issue IDs (C, H, M, E) the plans refer to |
 | [PAYMENTS_SECURITY_FINDINGS.md](PAYMENTS_SECURITY_FINDINGS.md) | Security review findings for the payments rollout (P1 to P3), ranked, with status |
 | [plans/IMPLEMENTATION_PLAN.md](plans/IMPLEMENTATION_PLAN.md) | Backend plan: data model, API surface, locked decisions, phase tracker |
