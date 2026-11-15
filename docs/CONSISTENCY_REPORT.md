@@ -42,25 +42,25 @@ None open. C2 (mock medical history) is fixed; see §3.
 ### High
 | # | Projects | Issue |
 |---|---|---|
-| H5 | Patient | **Payment and insurance screens show placeholders.** Partly fixed 2026-10-22 (backend Phase 11, Stripe: merged 2026-10-23, backend `5fbc4df`, patient app `66c95e6`): the payment step and the invoice "Pay now" sheet open Stripe's payment sheet instead of sending `mock-token-<timestamp>`, and the option reads "Credit or debit card" instead of the real brand "CareCredit". Still open: no saved-cards screen (the sheet itself lists and saves cards), Settings' payment options are mock (M7), no insurance management screen (Phase 2b). |
+| H5 | Patient | **Payment and insurance screens show placeholders.** Partly fixed 2026-10-22 (backend Phase 11, Stripe: merged 2026-10-23, backend `5fbc4df`, patient app `66c95e6`): the payment step and the invoice "Pay now" sheet open Stripe's payment sheet instead of sending `mock-token-<timestamp>`, and the option reads "Credit or debit card" instead of the real brand "CareCredit". Still open: no saved-cards screen (the sheet itself lists and saves cards), Settings' payment options are mock (M7), no insurance management screen (Phase 2b). **Fixed 2026-11-15** (TEETHi-Patient-App `737073f`): insurance and payment methods screens under Profile; the mock payment options screen is gone. |
 
 ### Medium
 | # | Projects | Issue |
 |---|---|---|
 | ~~M13~~ | Backend, Patient | **Fixed 2026-10-26 by R8-24 (TEETHi-Backend `8671a80`).** Was: **Patients receive private doctor fields.** `DoctorProfileResource`, embedded in a patient's appointments and conversations, includes the doctor's date of birth, mobile number and health-authority registration number. The patient app doesn't show them, but they're on the wire. A patient-facing doctor shape (like `ProviderResource`) would fix it. Found 2026-10-20. |
-| M3 | Dashboard, Patient | **Hardcoded labels.** `GET /enums` exists, but the dashboard (Phase 0) and parts of the patient app hardcode labels, so wording can differ between apps, especially in Arabic. |
-| M5 | Dashboard | **No 429 handling.** The dashboard has no rate-limit (`429`) surface. |
-| M6 | Dashboard | **Missing appointment detail.** The scope promises list **and detail** views for appointments; there's only a list. The backend already serves `GET /appointments/{id}` to admins. The dashboard home page is still a placeholder. |
-| M7 | Patient | **Leftover mock state.** `lib/state/app_state.dart`, `lib/data/mock_data.dart` and `lib/models/models.dart` are still referenced by 29 files: the booking draft, notifications, the payment options and parts of profile. Consent no longer uses them. |
+| M3 | Dashboard, Patient | **Hardcoded labels.** `GET /enums` exists, but the dashboard (Phase 0) and parts of the patient app hardcode labels, so wording can differ between apps, especially in Arabic. **Fixed 2026-11-15**: the dashboard caches `GET /enums` for every label (TEETHi-Frontend `e54c49f`); the remaining patient and dentist labels use it too (TEETHi-Patient-App `8288afa`, TEETHI-Dentist-App `47ea75f`). |
+| M5 | Dashboard | **No 429 handling.** The dashboard has no rate-limit (`429`) surface. **Fixed 2026-11-15** (TEETHi-Frontend `e54c49f`): a global 429 message. |
+| M6 | Dashboard | **Missing appointment detail.** The scope promises list **and detail** views for appointments; there's only a list. The backend already serves `GET /appointments/{id}` to admins. The dashboard home page is still a placeholder. **Fixed 2026-11-15** (TEETHi-Frontend `89718c1`, `81eb5b0`): an appointment detail page (with its invoice) and a real Home page. |
+| M7 | Patient | **Leftover mock state.** `lib/state/app_state.dart`, `lib/data/mock_data.dart` and `lib/models/models.dart` are still referenced by 29 files: the booking draft, notifications, the payment options and parts of profile. Consent no longer uses them. **Fixed 2026-11-15** (TEETHi-Patient-App `ee1f245`): the mock state files are deleted. |
 | M10 | Dentist | **One-commit history.** Phases 0–10 of the dentist app are a single commit, so its plan can't be audited through git history. |
 
 ### Low
 | # | Projects | Issue |
 |---|---|---|
-| E8 | Patient, Dentist | **Relative labels use the device's date, not the visit's zone.** The patient sees "Tomorrow" for a visit two days away in Los Angeles; the dentist header shows the device's date. (The dentist's "Today" tag on an in-progress visit is fixed; it now reads "In progress".) |
-| E9 | Patient | **Booking requires browser geolocation** to confirm the address, with no fallback. |
-| E10 | Patient, Dashboard | **Small UI issues:** "Use profile" in the visit-address step silently does nothing when the profile has no address. The dashboard's Cities column is labelled "State/Emirate". The patient's "Nearby" dentist tab was empty while "All" listed the dentist (cause not investigated). The consent list briefly shows the previous list before it reloads. |
-| M11 | Mobile apps | **Lint debt.** Info-level only: `withOpacity` deprecations, `prefer_initializing_formals`, `prefer_const`. |
+| E8 | Patient, Dentist | **Relative labels use the device's date, not the visit's zone.** The patient sees "Tomorrow" for a visit two days away in Los Angeles; the dentist header shows the device's date. (The dentist's "Today" tag on an in-progress visit is fixed; it now reads "In progress".) **Patient half fixed 2026-11-15** (TEETHi-Patient-App `2940a92`): "Today"/"Tomorrow" are judged in the visit's zone. The dentist header's date still uses the device. |
+| E9 | Patient | **Booking requires browser geolocation** to confirm the address, with no fallback. **Fixed 2026-11-15** (TEETHi-Patient-App `a6afe6d`): "Pin on map" confirms the address without device location. |
+| E10 | Patient, Dashboard | **Small UI issues:** "Use profile" in the visit-address step silently does nothing when the profile has no address. The dashboard's Cities column is labelled "State/Emirate". The patient's "Nearby" dentist tab was empty while "All" listed the dentist (cause not investigated). The consent list briefly shows the previous list before it reloads. **Fixed 2026-11-15**: "Use profile" with no address says so (TEETHi-Patient-App `a6afe6d`), the consent list no longer flashes (`a4bf969`), the dashboard column reads "State" (TEETHi-Frontend `94acbf6`). |
+| M11 | Mobile apps | **Lint debt.** Info-level only: `withOpacity` deprecations, `prefer_initializing_formals`, `prefer_const`. **Fixed 2026-11-15**: no analyzer infos left in either app (TEETHi-Patient-App `7cc0c9f`, TEETHI-Dentist-App `6650bbe`). |
 | M12 | All | **Housekeeping.** Merged feature branches (`fix/*`, `feat/*` from 2026-10-17/18) can be deleted. `TEETHi-Backend/.claude/worktrees/mystifying-rhodes-2e8412` is a stale worktree. Crash logs (`hs_err_pid*.log`, `flutter_01.log`) sit in the patient app's root. Unused CoreUI demo views remain in the dashboard. |
 
 ---
