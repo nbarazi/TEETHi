@@ -5078,6 +5078,175 @@
                 }
             }
         },
+        "/v1/admin/doctors/{doctor}/services": {
+            "get": {
+                "operationId": "admin.doctors.services",
+                "summary": "The services the dentist offers, with each treatment and its\ncategory (ADP R8-19), in the dentist app's own shape",
+                "tags": [
+                    "Doctor"
+                ],
+                "parameters": [
+                    {
+                        "name": "doctor",
+                        "in": "path",
+                        "required": true,
+                        "description": "The doctor ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "null"
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/DoctorTreatmentExpertiseResource"
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "links": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data",
+                                        "meta",
+                                        "links"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/admin/doctors/{doctor}/availability": {
+            "get": {
+                "operationId": "admin.doctors.availability",
+                "summary": "The dentist's weekly windows (every visit type, active or not) and\ntheir exceptions from their local today (ADP R8-19). Not paginated:\nboth lists are short",
+                "tags": [
+                    "Doctor"
+                ],
+                "parameters": [
+                    {
+                        "name": "doctor",
+                        "in": "path",
+                        "required": true,
+                        "description": "The doctor ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "null"
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "timezone": {
+                                                    "type": "string"
+                                                },
+                                                "slots": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/components/schemas/DoctorAvailabilitySlotResource"
+                                                    }
+                                                },
+                                                "exceptions": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/components/schemas/DoctorAvailabilityExceptionResource"
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "timezone",
+                                                "slots",
+                                                "exceptions"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/v1/admin/doctors/{doctor}/status": {
             "patch": {
                 "operationId": "admin.doctors.status.update",
@@ -7043,6 +7212,108 @@
                 }
             }
         },
+        "/v1/doctor/patients/{patient}/reports": {
+            "get": {
+                "operationId": "doctor.patients.reports",
+                "summary": "Reports the patient uploaded (Phase D), for a dentist who has\ntreated them, under the same rule as the chart above",
+                "tags": [
+                    "Patient"
+                ],
+                "parameters": [
+                    {
+                        "name": "patient",
+                        "in": "path",
+                        "required": true,
+                        "description": "The patient ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "null"
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/PatientReportResource"
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "links": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data",
+                                        "meta",
+                                        "links"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "example": ""
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/v1/doctor/patients/{patient}/notes": {
             "post": {
                 "operationId": "doctor.patients.notes.store",
@@ -7568,6 +7839,88 @@
                 }
             }
         },
+        "/v1/admin/patients/{patient}/reports": {
+            "get": {
+                "operationId": "admin.patients.reports",
+                "summary": "Reports the patient uploaded themselves (Phase D)",
+                "tags": [
+                    "Patient"
+                ],
+                "parameters": [
+                    {
+                        "name": "patient",
+                        "in": "path",
+                        "required": true,
+                        "description": "The patient ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "null"
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/PatientReportResource"
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "links": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data",
+                                        "meta",
+                                        "links"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/v1/admin/patients/{patient}/invoices": {
             "get": {
                 "operationId": "admin.patients.invoices",
@@ -7746,6 +8099,194 @@
                 }
             }
         },
+        "/v1/patient/reports": {
+            "get": {
+                "operationId": "patient.reports.index",
+                "tags": [
+                    "PatientReport"
+                ],
+                "parameters": [
+                    {
+                        "name": "patient_profile_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "default": 0
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "null"
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/PatientReportResource"
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        },
+                                        "links": {
+                                            "type": [
+                                                "string",
+                                                "null"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data",
+                                        "meta",
+                                        "links"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "patient.reports.store",
+                "tags": [
+                    "PatientReport"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StorePatientReportRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "null"
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/PatientReportResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    },
+                    "500": {
+                        "description": "An error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "description": "Error overview.",
+                                            "example": ""
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/patient/reports/{report}": {
+            "delete": {
+                "operationId": "patient.reports.destroy",
+                "tags": [
+                    "PatientReport"
+                ],
+                "parameters": [
+                    {
+                        "name": "report",
+                        "in": "path",
+                        "required": true,
+                        "description": "The report ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No content"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/v1/patient/payment-methods": {
             "get": {
                 "operationId": "patient.payment-methods.index",
@@ -7902,6 +8443,74 @@
                                 }
                             }
                         }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "/v1/patient/payment-methods/{paymentMethod}/default": {
+            "post": {
+                "operationId": "patient.payment-methods.default",
+                "summary": "Makes this card the default; the account's other cards stop being",
+                "tags": [
+                    "PaymentMethod"
+                ],
+                "parameters": [
+                    {
+                        "name": "paymentMethod",
+                        "in": "path",
+                        "required": true,
+                        "description": "The payment method ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "null"
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/PaymentMethodResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "$ref": "#/components/responses/AuthorizationException"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
@@ -13352,9 +13961,12 @@
                             "null"
                         ]
                     },
+                    "reviewed": {
+                        "type": "boolean",
+                        "description": "Teledentistry only (null for home visits): how the call is\nheld, what it is about, and the US state the patient is in.\nWhether the patient already reviewed this visit (PAP Phase 6),\nonly where the endpoint asked: the patient's list and detail."
+                    },
                     "call_mode": {
-                        "type": "string",
-                        "description": "Teledentistry only (null for home visits): how the call is\nheld, what it is about, and the US state the patient is in."
+                        "type": "string"
                     },
                     "consult_topic": {
                         "type": "string"
@@ -14274,6 +14886,13 @@
                     "appointment_id": {
                         "type": "integer"
                     },
+                    "patient_name": {
+                        "type": "string",
+                        "description": "Staff lists only (ADP R8-19): the dentist's name always, the\npatient's only where the endpoint loaded it, which the admin\nlist does for staff who may see patients (SEC S5)."
+                    },
+                    "doctor_name": {
+                        "type": "string"
+                    },
                     "treatment_description": {
                         "type": "string"
                     },
@@ -14778,6 +15397,47 @@
                     "other"
                 ],
                 "title": "PatientRelationship"
+            },
+            "PatientReportResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "patient_profile_id": {
+                        "type": "integer"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "mime_type": {
+                        "type": "string"
+                    },
+                    "size_bytes": {
+                        "type": "integer"
+                    },
+                    "file_url": {
+                        "type": "string",
+                        "description": "Private disk, like insurance cards and credentials: a signed\nlink that expires; ask the list again for a fresh one."
+                    },
+                    "uploaded_by_patient": {
+                        "type": "boolean"
+                    },
+                    "created_at": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "patient_profile_id",
+                    "title",
+                    "mime_type",
+                    "size_bytes",
+                    "file_url",
+                    "uploaded_by_patient",
+                    "created_at"
+                ],
+                "title": "PatientReportResource"
             },
             "PayAppointmentRequest": {
                 "type": "object",
@@ -16193,6 +16853,33 @@
                     }
                 },
                 "title": "StoreMessageRequest"
+            },
+            "StorePatientReportRequest": {
+                "type": "object",
+                "description": "`patient_profile_id` is optional (the account's own profile) and must be\none the account manages; the controller checks that.",
+                "properties": {
+                    "patient_profile_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ]
+                    },
+                    "title": {
+                        "type": "string",
+                        "maxLength": 120
+                    },
+                    "file": {
+                        "type": "string",
+                        "format": "binary",
+                        "contentMediaType": "application/octet-stream",
+                        "maxLength": 10240
+                    }
+                },
+                "required": [
+                    "title",
+                    "file"
+                ],
+                "title": "StorePatientReportRequest"
             },
             "StorePostVisitRecommendationRequest": {
                 "type": "object",

@@ -94,36 +94,6 @@
       ],
       "cwd": "TEETHI-Dentist-App",
       "port": 8765
-    },
-    {
-      "name": "patient-app-8001",
-      "runtimeExecutable": "flutter",
-      "runtimeArgs": [
-        "run",
-        "-d",
-        "web-server",
-        "--web-port",
-        "8918",
-        "--dart-define=API_BASE_URL=http://127.0.0.1:8001/api/v1"
-      ],
-      "cwd": "TEETHi-Patient-App",
-      "port": 8918,
-      "autoPort": false
-    },
-    {
-      "name": "dentist-app-8001",
-      "runtimeExecutable": "flutter",
-      "runtimeArgs": [
-        "run",
-        "-d",
-        "web-server",
-        "--web-port",
-        "8919",
-        "--dart-define=API_BASE_URL=http://127.0.0.1:8001/api/v1"
-      ],
-      "cwd": "TEETHI-Dentist-App",
-      "port": 8919,
-      "autoPort": false
     }
   ]
 }
