@@ -185,6 +185,8 @@ Beyond H6, H7 and M4, the pass found and fixed the following. All are merged (ba
 - the Stripe webhook endpoint subscribed to `refund.created` as well as the events it already gets, so refunds made in Stripe's dashboard are recorded (Phase C)
 - `TRUSTED_PROXIES` set to the load balancer's IPs or CIDRs (not `*`), so links are https and rate limits key on the patient's IP (S10)
 - the scheduler running (`schedule:run` every minute): reminders, document expiry and the hourly `payments:cancel-abandoned`
+- clamd running next to the API and `UPLOAD_SCANNER=clamav` (`CLAMAV_HOST`, `CLAMAV_PORT`); every environment except `local` and `testing` refuses uploads without it (Phase D upload hardening)
+- the web server's access log leaving out the query string for `/api/v1/files`: it carries a working 30-minute signature and a path with the patient profile id (Phase D security review, low)
 
 ### Merge check (2026-10-19, backend Phase 10)
 `feat/phase-10-hardening` was fast-forwarded into backend `master` (`32fe915`, 8 commits).
