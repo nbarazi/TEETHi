@@ -339,7 +339,7 @@ Top-level and public, next to `/register` and `/login`, behind `throttle:auth`.
 
 | Endpoint | Purpose |
 |---|---|
-| `POST /auth/social` | Sign in or register with a provider ID token. Returns `{ user: UserResource, token, is_new_user }`: `201` with `auth.registered` for a new account, `200` with `auth.login_successful` otherwise |
+| `POST /auth/social` | Sign in or register with a provider ID token. Returns `{ user: UserResource, token, is_new_user }`: `201` with `auth.social_registered` for a new account, `200` with `auth.login_successful` otherwise |
 | `POST /auth/apple/callback/{app}` | Apple's return URL for Android, where Sign in with Apple runs in a Custom Tab. `{app}` is `patient` or `doctor`. Answers with a redirect into that app's Android package; never called by the apps themselves |
 
 **Request body for `POST /auth/social`:**
@@ -362,12 +362,17 @@ Top-level and public, next to `/register` and `/login`, behind `throttle:auth`.
 | `401` | `auth.social_token_invalid` | Bad signature, wrong issuer or audience, expired, or nonce mismatch |
 | `403` | `auth.account_inactive` | The account is inactive (same as `/login`) |
 | `409` | `auth.social_role_mismatch` | The account belongs to the other app, or is an admin account. The message names the right app |
+| `409` | `auth.social_link_requires_password` | An account has this email, but Google doesn't vouch for it today (not Gmail, no matching `hd`). Sign in with the password |
+| `409` | `auth.social_already_linked` | The account with this email is already linked to a different Google account |
+| `409` | `auth.social_link_needs_support` | An unverified account with this email already holds visits, saved cards or family profiles |
 | `422` | `auth.social_email_unverified` | Google says the email isn't verified |
 | `422` | `auth.social_email_missing` | No linked account and no email in the token |
 | `422` | (validation) | Missing or malformed fields |
 | `503` | `auth.social_provider_unavailable` | The provider's client IDs aren't configured on this server |
 
 **`UserResource` gains two fields:** `has_password` (bool) and `sign_in_providers` (for example `["google"]`). Clients use them to offer "Set a password" instead of "Change password".
+
+**`DELETE /account` for an account with no password** takes `provider` and `id_token` (and `nonce` for Apple) instead of `password`. The token must be unexpired and from the linked provider account; otherwise `422` on `id_token` with `auth.social_reauth_failed`. An account with a password still sends `password`.
 
 ---
 
@@ -727,7 +732,18 @@ Merged into TEETHi-Backend `master` (`6cf2a8c`); 586 Pest tests, PHPStan max and
 - Noticed, not changed: `DoctorProfileResource` gives a patient the doctor's date of birth, mobile number and registration number wherever it's embedded (appointments, conversations). A patient-facing doctor shape (like `ProviderResource`) would fix that minimum-necessary gap.
 
 ### Phase 16 — Sign in with Google and Apple (decision #15)
-Not started. The contract is in §5.6 and the data model in §4.1. Client work: patient plan Phase 11, dentist plan Phase 12.
+**Google built 2026-11-19, Apple not started.** Branch `phase-g/google-sign-in` in TEETHi-Backend (`3c7c926`, `b2f3e4a`, `2ce4909`, `42c96b5`), not merged yet. The contract is in §5.6 and the data model in §4.1. Client work: patient plan Phase 11, dentist plan Phase 12. Dependency approved and added: `firebase/php-jwt` ^7.2. Keep `APPLE_CLIENT_IDS` empty until the Apple items below exist (CONSISTENCY_REPORT §5).
+
+**Changed from the plan below, after a security review:**
+- **Linking by email needs an email Google vouches for today.** Google's `email_verified` only says the address was proven when the Google account was made. So an existing account is opened only for `@gmail.com` / `@googlemail.com`, or when the `hd` claim matches the email's domain (`SocialIdentity::emailIsCurrent()`). Any other address gets `409 auth.social_link_requires_password`: sign in with the password instead. A brand-new account with such an email is still created.
+- **No swapping:** an account already linked to one Google account can't be linked to another with the same email (`409 auth.social_already_linked`).
+- **Taking over an unverified account** also clears its phone and `phone_verified_at` and deletes its push devices. If it already holds records (a dentist with any visit; a patient with visits, saved cards or more than one care profile) it isn't taken over: `409 auth.social_link_needs_support`.
+- **A new account's message is `auth.social_registered`** (`201`); a returning one gets `auth.login_successful`.
+- **Account deletion without a password:** `DELETE /account` takes `provider` + `id_token` (`nonce` for Apple) instead. The token must verify, be unexpired, and belong to the linked `sub`; otherwise `422 id_token` → `auth.social_reauth_failed`. A "signed in within 5 minutes" rule was tried and dropped: Android's sheet hands back the ID token it cached at sign-in for up to its hour (seen at 55 minutes on device). Refusals are logged with the reason, never the token. Deletion also removes the `social_accounts` rows, so the Google account is free to sign up again.
+- **Key set refetch** for an unknown `kid` happens at most once a minute per provider. The email lookup uses the index on MySQL (`LOWER()` only on SQLite).
+- The verifier is injected into `SocialAuthController::store` as a method parameter: the route caches its controller, so a constructor dependency would outlive a test's fake.
+
+**Verified 2026-11-19** (backend serving the branch, patient app on the SM-A566B phone, dentist app on the SM-X210 tablet): a Gmail address that already had a password account landed in it and linked Google; new Google accounts in both apps (patient Finish signing up, dentist onboarding with name and mobile); deleting an account with Google in both apps. 1069 Pest tests, PHPStan and Pint clean. Not yet tried on a device: the cross-app `409`, Set a password, and iOS.
 
 **Needed from the project owner before building** (none of these are secrets except the Apple key):
 - **Google** (Google Cloud project `teethi-508df`, the same one Firebase uses):
@@ -744,37 +760,37 @@ Not started. The contract is in §5.6 and the data model in §4.1. Client work: 
 - **Approval for one dependency:** `firebase/php-jwt`, required explicitly in `composer.json`. It's already installed as a dependency of `google/auth`, but code shouldn't rely on a package it doesn't declare.
 
 **Build checklist:**
-- [ ] Migrations: `users.password` nullable; the `social_accounts` table (§4.1). Enum `SocialProvider` with en/ar labels; model `SocialAccount` (`refresh_token` cast `encrypted`); `User::socialAccounts()`.
-- [ ] Config and environment:
+- [x] Migrations: `users.password` nullable; the `social_accounts` table (§4.1). Enum `SocialProvider` with en/ar labels; model `SocialAccount` (`refresh_token` cast `encrypted`); `User::socialAccounts()`.
+- [ ] Config and environment (Google part done: `google.client_ids`, `apple.client_ids`, `GOOGLE_CLIENT_IDS`, `APPLE_CLIENT_IDS`; the Apple team, key and package settings wait for the Apple half):
   - `config/services.php`: `google.client_ids` and `apple.client_ids` (comma-separated lists), `apple.team_id`, `apple.key_id`, `apple.private_key_path`, `apple.android_packages` (`patient` → `com.teethi.teethi_patient_app`, `doctor` → `com.teethi.teethi_dentist_app`).
   - `.env.example`: `GOOGLE_CLIENT_IDS` (the Web-application client, which Android tokens carry, and both iOS clients), `APPLE_CLIENT_IDS` (both bundle IDs and both Services IDs), `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY_PATH`.
-- [ ] Token verification: contract `App\Contracts\SocialTokenVerifier`, `verify(SocialProvider, string $idToken, ?string $nonce): SocialIdentity`. `SocialIdentity` is a readonly value object: `provider`, `subject`, `email`, `emailVerified`, `givenName`, `familyName`.
+- [x] Token verification: contract `App\Contracts\SocialTokenVerifier`, `verify(SocialProvider, string $idToken, ?string $nonce): SocialIdentity`. `SocialIdentity` is a readonly value object: `provider`, `subject`, `email`, `emailVerified`, `givenName`, `familyName`.
   - One implementation, `JwksSocialTokenVerifier`, for both providers. It fetches the provider's key set (Google `https://www.googleapis.com/oauth2/v3/certs`, Apple `https://appleid.apple.com/auth/keys`) over `Http` and caches it per the response's `Cache-Control` max-age. It re-fetches once when a token names an unknown `kid`, because the providers rotate keys. It decodes with `firebase/php-jwt` (RS256 only, with a small clock leeway).
   - Google checks: `iss` is `accounts.google.com` or `https://accounts.google.com`; `aud` is one of `GOOGLE_CLIENT_IDS`; `exp` is in the future; `email_verified` is true.
   - Apple checks: `iss` is `https://appleid.apple.com`; `aud` is one of `APPLE_CLIENT_IDS`; `exp`; `nonce` equals `hash('sha256', $rawNonce)`. `email_verified` may arrive as the string `"true"`.
   - Any failure throws one exception that renders as `401 auth.social_token_invalid`. The reason goes to the log; the token never does.
-- [ ] `SocialAuthService::resolve(SocialIdentity, UserRole $appRole, array $names): array{user: User, isNew: bool}`, in one transaction:
+- [x] `SocialAuthService::resolve(SocialIdentity, UserRole $appRole, array $names): array{user: User, isNew: bool}`, in one transaction:
   1. Find the `social_accounts` row by (`provider`, `subject`) and use its user.
   2. Otherwise, if the identity has a verified email and a user has that email (case-insensitive), use that user. If that user's `email_verified_at` is null, set it, set `password` to null and delete all their tokens before linking.
   3. Check the user before linking or signing in. An admin, or a role other than the app's, gets `409 auth.social_role_mismatch`; an inactive user gets `403 auth.account_inactive`.
   4. If there's still no user: `422 auth.social_email_missing` without an email, otherwise create one. The new user gets `role` from the request, `email_verified_at` now and no password. The name comes from the token (Google) or `given_name`/`family_name` (Apple), falling back to the email's local part. The existing `User::created` hook creates the profile and splits the name (decision #10). No email code is sent.
   5. Create the `social_accounts` row. A unique-constraint race (two taps) is retried once as step 1.
-- [ ] `SocialAuthController::store` with `SocialLoginRequest` (`provider` enum; `id_token` required; `role` in patient/doctor; `nonce` required when the provider is Apple; the optional Apple fields). It issues `createToken('auth-token')` exactly like `login` and returns `is_new_user`. Without configured client IDs for the provider it returns `503 auth.social_provider_unavailable`.
+- [x] `SocialAuthController::store` with `SocialLoginRequest` (`provider` enum; `id_token` required; `role` in patient/doctor; `nonce` required when the provider is Apple; the optional Apple fields). It issues `createToken('auth-token')` exactly like `login` and returns `is_new_user`. Without configured client IDs for the provider it returns `503 auth.social_provider_unavailable`.
 - [ ] Apple refresh token: when `authorization_code` is present, `AppleTokenClient` exchanges it at `https://appleid.apple.com/auth/token`. The client secret is a short-lived ES256 JWT signed with the `.p8` key (`iss` team ID, `sub` the client ID the token was issued to, `aud` `https://appleid.apple.com`). The returned refresh token is stored encrypted. A failed exchange is logged by error code only and doesn't fail the sign-in. Add `revoke()` (`/auth/revoke`) now, unused until account deletion exists.
 - [ ] `POST /auth/apple/callback/{app}`: Apple posts the result here as a form. Answer with a `303` to `intent://callback?<the posted fields, URL-encoded>#Intent;package=<android package for {app}>;scheme=signinwithapple;end`, which is what the `sign_in_with_apple` Flutter package expects. An unknown `{app}` gets `404`. Nothing is stored or verified here; the app sends the resulting ID token to `POST /auth/social` like iOS does.
-- [ ] Password handling for accounts with no password:
+- [x] Password handling for accounts with no password:
   - `/login` must answer `401 auth.invalid_credentials` for them, never an error from hashing a null value.
   - "Forgot password" / "Reset password" already work for any email, so they double as "Set a password". No new endpoint is needed.
   - `change-password` keeps requiring `current_password`. The apps hide it when `has_password` is false.
-- [ ] `UserResource`: `has_password`, `sign_in_providers`.
-- [ ] en/ar messages for every new key in §5.6. The role-mismatch message names the right app ("This account uses TEETHi for Dentists").
-- [ ] Logging: the request body is never logged. `LogApiRequests` already logs only the path and query parameter names; add a test that `id_token` and `authorization_code` never reach a log line.
-- [ ] Tests:
+- [x] `UserResource`: `has_password`, `sign_in_providers`.
+- [x] en/ar messages for every new key in §5.6. The role-mismatch message names the right app ("This account uses TEETHi for Dentists").
+- [x] Logging: the request body is never logged. `LogApiRequests` already logs only the path and query parameter names; add a test that `id_token` and `authorization_code` never reach a log line.
+- [ ] Tests (everything but the Apple code exchange and callback is covered in `SocialAuthTest`, 44 tests):
   - Verifier: a locally generated RSA key, with the key sets served through `Http::fake`. Cover a valid token for each provider, expired, wrong issuer, wrong audience, bad signature, an unknown `kid` that appears after one re-fetch, an Apple nonce mismatch, and Google `email_verified: false`.
   - Endpoint, with the verifier faked: a new patient and a new doctor (`201`, profile created, email verified, no OTP sent); a returning user by `sub`; linking to a verified existing account (password kept); linking to an unverified one (password cleared, other tokens revoked, email verified); a patient in the dentist app and an admin (`409`, nothing linked); inactive (`403`); no email (`422`); no client IDs configured (`503`).
   - Password: `/login` on an account with no password gives `401`; reset then sets one, and `has_password` becomes true.
   - Apple: code exchange stores an encrypted refresh token; a failed exchange still signs in; the callback redirects to each app's intent URL.
-- [ ] Regenerate `api.json` and refresh `docs/api/openapi.json`. Update the patient, dentist and admin plans' auth sections in the same root commit (docs rule 3).
+- [x] Regenerate `api.json` and refresh `docs/api/openapi.json`. Update the patient, dentist and admin plans' auth sections in the same root commit (docs rule 3).
 
 **For production:** HTTPS on the API's real domain (Apple's return URL), the release SHA-1s on the Android clients, and the `.p8` key available to the server outside the repo.
 

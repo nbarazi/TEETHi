@@ -81,8 +81,8 @@ Nothing in a phase that depends on one of these should start until the answer is
 | PR-12 | Older open questions: one shared treatment catalog (Q1), city as browse filter only vs jurisdiction (Q3), admin token abilities/scopes (Q4) | — | IMP §7 |
 
 ### 2.3 Engineering approvals
-- `firebase/php-jwt` as an explicit backend dependency (Phase 16). IMP Phase 16.
-- Flutter packages `google_sign_in` 7.x, `sign_in_with_apple`, `crypto` (both apps). PAP Phase 11.
+- ~~`firebase/php-jwt` as an explicit backend dependency (Phase 16).~~ Approved and added 2026-11-19. IMP Phase 16.
+- Flutter packages: `google_sign_in` 7.x and `crypto` approved 2026-11-19 (`google_sign_in` added to both apps; `crypto` waits for Apple, which needs it for the nonce). `sign_in_with_apple` still needs approval. PAP Phase 11.
 - Optional `timezone` package for real zone abbreviations (PDT) in the patient app. PAP timezone section.
 
 ---
@@ -114,7 +114,7 @@ These need the owner, not code. Several gate phases in §5.
 - [ ] **OPS** Release signing keys for Android (and their SHA-1s for Google sign-in).
 
 **Before Google/Apple sign-in (Phase 16)**
-- [ ] **OPS** Google Cloud `teethi-508df`: OAuth consent screen, one Web-application client, two iOS clients, two Android clients (debug SHA-1 now, release later). IMP Phase 16.
+- [x] **OPS** Google Cloud `teethi-508df`: OAuth consent screen, one Web-application client, two iOS clients, two Android clients with this PC's debug SHA-1 (done 2026-11-19; the release SHA-1s are still to add). IMP Phase 16.
 - [ ] **OPS** Apple Developer: Team ID, Sign in with Apple on both App IDs, two Services IDs with the HTTPS return URLs, a `.p8` key and Key ID (outside every repo), private email relay registration with SPF/DKIM. IMP Phase 16.
 
 ---
@@ -324,9 +324,9 @@ Each phase lists what to do, what it's waiting on, and when it's done. Phases 2 
 
 ### Phase G — Sign in with Google and Apple (2–3 weeks)
 **Waits on:** §3 Google/Apple setup, HTTPS domain or tunnel, dependency approvals (§2.3), an Android device; a Mac for iOS.
-- [ ] Backend Phase 16, including `AppleTokenClient::revoke()` in account deletion.
-- [ ] Patient Phase 11 and dentist Phase 12 (shared pieces built the same way in both).
-- [ ] Verify live on Android and iOS per each plan's "Verify live" list.
+- [ ] Backend Phase 16, including `AppleTokenClient::revoke()` in account deletion. **Google built 2026-11-19** on `phase-g/google-sign-in` (not merged); Apple not started.
+- [ ] Patient Phase 11 and dentist Phase 12 (shared pieces built the same way in both). **Google built 2026-11-19** on each app's `phase-g/google-sign-in`; Apple not started.
+- [ ] Verify live on Android and iOS per each plan's "Verify live" list. Android, Google: new accounts, linking an existing Gmail account and deleting with Google pass on the phone and tablet. Still to do: the cross-app `409`, Set a password, Apple, and iOS (needs a Mac).
 
 **Done when:** all "Verify live" checks in PAP Phase 11 and DAP Phase 12 pass.
 

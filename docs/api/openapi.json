@@ -2051,6 +2051,16 @@
                                                         "email_verified_at": {
                                                             "type": "string"
                                                         },
+                                                        "has_password": {
+                                                            "type": "boolean",
+                                                            "description": "Phase 16: without a password the apps offer \"Set a password\"."
+                                                        },
+                                                        "sign_in_providers": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "string"
+                                                            }
+                                                        },
                                                         "created_at": {
                                                             "type": "string"
                                                         },
@@ -2071,6 +2081,8 @@
                                                         "phone_number",
                                                         "phone_verified_at",
                                                         "email_verified_at",
+                                                        "has_password",
+                                                        "sign_in_providers",
                                                         "created_at",
                                                         "updated_at",
                                                         "otp_code"
@@ -2140,6 +2152,16 @@
                                                         "email_verified_at": {
                                                             "type": "string"
                                                         },
+                                                        "has_password": {
+                                                            "type": "boolean",
+                                                            "description": "Phase 16: without a password the apps offer \"Set a password\"."
+                                                        },
+                                                        "sign_in_providers": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "type": "string"
+                                                            }
+                                                        },
                                                         "created_at": {
                                                             "type": "string"
                                                         },
@@ -2157,6 +2179,8 @@
                                                         "phone_number",
                                                         "phone_verified_at",
                                                         "email_verified_at",
+                                                        "has_password",
+                                                        "sign_in_providers",
                                                         "created_at",
                                                         "updated_at"
                                                     ]
@@ -11389,6 +11413,219 @@
                 }
             }
         },
+        "/v1/auth/social": {
+            "post": {
+                "operationId": "v1.auth.social",
+                "description": "`201` with `is_new_user: true` when the account was just created (its\nemail is already verified; it has no password or phone yet), `200`\notherwise.",
+                "summary": "Sign in or register with a Google or Apple ID token",
+                "tags": [
+                    "SocialAuth"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SocialLoginRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "null"
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "user": {
+                                                    "$ref": "#/components/schemas/UserResource"
+                                                },
+                                                "token": {
+                                                    "type": "string"
+                                                },
+                                                "is_new_user": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "user",
+                                                "token",
+                                                "is_new_user"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "success": {
+                                                    "type": "boolean"
+                                                },
+                                                "message": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "null"
+                                                        },
+                                                        {
+                                                            "type": "array",
+                                                            "items": {}
+                                                        },
+                                                        {
+                                                            "type": "string"
+                                                        }
+                                                    ]
+                                                },
+                                                "data": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "user": {
+                                                            "$ref": "#/components/schemas/UserResource"
+                                                        },
+                                                        "token": {
+                                                            "type": "string"
+                                                        },
+                                                        "is_new_user": {
+                                                            "type": "boolean"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "user",
+                                                        "token",
+                                                        "is_new_user"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "success",
+                                                "message",
+                                                "data"
+                                            ]
+                                        },
+                                        {
+                                            "type": "string"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "null"
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "errors": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "errors"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "null"
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "errors": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "errors"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                },
+                "security": []
+            }
+        },
         "/v1/specializations": {
             "get": {
                 "operationId": "specializations.index",
@@ -16209,6 +16446,69 @@
                 ],
                 "title": "SignDocumentRequest"
             },
+            "SocialLoginRequest": {
+                "type": "object",
+                "description": "`POST /auth/social` (Phase 16, \u00a75.6). `role` is the app making the call.\nApple sends the raw `nonce` it hashed into the token, and the name it\nwas given on the first authorization (Apple never puts it in the token).",
+                "properties": {
+                    "provider": {
+                        "$ref": "#/components/schemas/SocialProvider"
+                    },
+                    "id_token": {
+                        "type": "string",
+                        "maxLength": 8192
+                    },
+                    "role": {
+                        "type": "string",
+                        "enum": [
+                            "patient",
+                            "doctor"
+                        ]
+                    },
+                    "nonce": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    },
+                    "authorization_code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 2048
+                    },
+                    "given_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 100
+                    },
+                    "family_name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 100
+                    }
+                },
+                "required": [
+                    "provider",
+                    "id_token",
+                    "role"
+                ],
+                "title": "SocialLoginRequest"
+            },
+            "SocialProvider": {
+                "type": "string",
+                "description": "Sign-in providers for `POST /auth/social` (Phase 16, decision #15).\n",
+                "enum": [
+                    "google",
+                    "apple"
+                ],
+                "title": "SocialProvider"
+            },
             "SpecializationResource": {
                 "type": "object",
                 "properties": {
@@ -18719,6 +19019,16 @@
                     "email_verified_at": {
                         "type": "string"
                     },
+                    "has_password": {
+                        "type": "boolean",
+                        "description": "Phase 16: without a password the apps offer \"Set a password\"."
+                    },
+                    "sign_in_providers": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
                     "created_at": {
                         "type": "string"
                     },
@@ -18736,6 +19046,8 @@
                     "phone_number",
                     "phone_verified_at",
                     "email_verified_at",
+                    "has_password",
+                    "sign_in_providers",
                     "created_at",
                     "updated_at"
                 ],

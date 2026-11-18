@@ -130,7 +130,7 @@ None open. C2 (mock medical history) is fixed; see §3.
 - **#12 Admin access to shared routes (H6):** only staff with the matching dashboard permission; new `manage_appointments` and `view_messages` (2026-10-19).
 - **#13 Password reset responses (H7):** the same answer whether or not the email has an account (2026-10-19).
 - **#14 Push content (H4):** pushes say what happened, never to whom or what; sent from the queue (2026-10-19).
-- **#15 Sign in with Google and Apple:** the apps get the provider's ID token and the backend verifies it (`POST /auth/social`, sign-in and sign-up in one). One email is one account, with automatic linking by verified email. The role must match the app, and never admin. Android and iOS only, no web (2026-10-20). Planned as backend Phase 16, patient Phase 11, dentist Phase 12; not built.
+- **#15 Sign in with Google and Apple:** the apps get the provider's ID token and the backend verifies it (`POST /auth/social`, sign-in and sign-up in one). One email is one account, with automatic linking by verified email. The role must match the app, and never admin. Android and iOS only, no web (2026-10-20). Planned as backend Phase 16, patient Phase 11, dentist Phase 12. Google built 2026-11-19 (not merged); Apple not built.
 
 **Still needed:**
 1. ~~**M1:** Arabic on mobile~~ — done: both apps ship English and Arabic with a language switch.
@@ -187,6 +187,8 @@ Beyond H6, H7 and M4, the pass found and fixed the following. All are merged (ba
 - the scheduler running (`schedule:run` every minute): reminders, document expiry and the hourly `payments:cancel-abandoned`
 - clamd running next to the API and `UPLOAD_SCANNER=clamav` (`CLAMAV_HOST`, `CLAMAV_PORT`); every environment except `local` and `testing` refuses uploads without it (Phase D upload hardening)
 - the web server's access log leaving out the query string for `/api/v1/files`: it carries a working 30-minute signature and a path with the patient profile id (Phase D security review, low)
+- `GOOGLE_CLIENT_IDS` set to the Web-application client and both iOS clients, and the release (or Play App Signing) SHA-1s added to both Android OAuth clients (Phase 16)
+- `APPLE_CLIENT_IDS` left **empty** until the Apple half of Phase 16 exists: Apple's code exchange and token revocation aren't built, so deleting an Apple-linked account couldn't revoke Apple's grant (Phase 16 security review)
 
 ### Merge check (2026-10-19, backend Phase 10)
 `feat/phase-10-hardening` was fast-forwarded into backend `master` (`32fe915`, 8 commits).
