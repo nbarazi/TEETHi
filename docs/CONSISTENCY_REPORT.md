@@ -130,7 +130,7 @@ None open. C2 (mock medical history) is fixed; see §3.
 - **#12 Admin access to shared routes (H6):** only staff with the matching dashboard permission; new `manage_appointments` and `view_messages` (2026-10-19).
 - **#13 Password reset responses (H7):** the same answer whether or not the email has an account (2026-10-19).
 - **#14 Push content (H4):** pushes say what happened, never to whom or what; sent from the queue (2026-10-19).
-- **#15 Sign in with Google and Apple:** the apps get the provider's ID token and the backend verifies it (`POST /auth/social`, sign-in and sign-up in one). One email is one account, with automatic linking by verified email. The role must match the app, and never admin. Android and iOS only, no web (2026-10-20). Planned as backend Phase 16, patient Phase 11, dentist Phase 12. Google built 2026-11-19 (not merged); Apple not built.
+- **#15 Sign in with Google and Apple:** the apps get the provider's ID token and the backend verifies it (`POST /auth/social`, sign-in and sign-up in one). One email is one account, with automatic linking by verified email. The role must match the app, and never admin. Android and iOS only, no web (2026-10-20). Planned as backend Phase 16, patient Phase 11, dentist Phase 12. Google built and merged 2026-11-19; Apple not built.
 
 **Still needed:**
 1. ~~**M1:** Arabic on mobile~~ — done: both apps ship English and Arabic with a language switch.

@@ -749,7 +749,7 @@ On every start the app calls the public `GET /app-settings/patient` (`lib/core/a
 **Verified (2026-10-29):** TEETHi-Patient-App `e8a2463`, merged to `master` (fast-forward) 2026-10-30; 164 tests pass on `master`. `test/widgets/remove_photo_dialog_test.dart` (3: Cancel, confirm, tap outside). 164 tests pass, analyzer unchanged at 17 infos. Not checked in the browser (the pane stopped rendering) or on a device. Still open: the Android/iOS Stripe pass above.
 
 ### Phase 11 — Sign in with Google and Apple (backend Phase 16, decision #15)
-**Google built 2026-11-19, Apple not started.** Branch `phase-g/google-sign-in` in TEETHi-Patient-App (`3ad68a3`, `001afe2`, `36b1903`), not merged yet. The contract is in §2.1. The dentist plan's Phase 12 is the same work; build the shared pieces the same way in both apps. The unticked items below are done for Google and wait only on their Apple half.
+**Google built 2026-11-19, Apple not started.** Branch `phase-g/google-sign-in` in TEETHi-Patient-App (`3ad68a3`, `001afe2`, `36b1903`), merged into `master` and pushed 2026-11-19. The contract is in §2.1. The dentist plan's Phase 12 is the same work; build the shared pieces the same way in both apps. The unticked items below are done for Google and wait only on their Apple half.
 
 **What was built for Google:**
 - `google_sign_in` ^7.2.0 (approved). `crypto` was approved too but isn't added: only the Apple nonce needs it.

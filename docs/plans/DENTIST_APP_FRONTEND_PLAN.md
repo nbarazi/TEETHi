@@ -532,7 +532,7 @@ On every start the app calls the public `GET /app-settings/doctor` (`lib/core/ap
 **Verified (2026-10-29):** TEETHI-Dentist-App `fb434ca`, merged to `master` (fast-forward) 2026-10-30; 218 tests pass on `master`. `test/widgets/remove_photo_dialog_test.dart` (3). 218 tests pass (the 10 contract tests skip without a backend); analyzer unchanged at 47 infos. Not checked in the browser or on a device.
 
 ### Phase 12 — Sign in with Google and Apple (backend Phase 16, decision #15)
-**Google built 2026-11-19, Apple not started.** Branch `phase-g/google-sign-in` in TEETHI-Dentist-App (`bc74c39`, `e3508c9`, `8b90886`, `4705faf`), not merged yet. Built as in the patient plan's Phase 11 notes (same button, Set a password, Delete account with Google, log redaction). The two unticked items are done for Google and wait only on Apple. Dentist-specific:
+**Google built 2026-11-19, Apple not started.** Branch `phase-g/google-sign-in` in TEETHI-Dentist-App (`bc74c39`, `e3508c9`, `8b90886`, `4705faf`), merged into `master` and pushed 2026-11-19. Built as in the patient plan's Phase 11 notes (same button, Set a password, Delete account with Google, log redaction). The two unticked items are done for Google and wait only on Apple. Dentist-specific:
 - A Google sign-up goes to onboarding with first and last name (split from the Google name) and mobile. Its submit button reads **Continue** without a mobile and **Text me a code** with one; it never sends an email code. "Skip for now" goes into the app, not to verify-email.
 - Tests: `test/features/social_sign_in_test.dart` (18). 328 tests, analyze clean.
 

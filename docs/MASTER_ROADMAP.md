@@ -324,8 +324,8 @@ Each phase lists what to do, what it's waiting on, and when it's done. Phases 2 
 
 ### Phase G — Sign in with Google and Apple (2–3 weeks)
 **Waits on:** §3 Google/Apple setup, HTTPS domain or tunnel, dependency approvals (§2.3), an Android device; a Mac for iOS.
-- [ ] Backend Phase 16, including `AppleTokenClient::revoke()` in account deletion. **Google built 2026-11-19** on `phase-g/google-sign-in` (not merged); Apple not started.
-- [ ] Patient Phase 11 and dentist Phase 12 (shared pieces built the same way in both). **Google built 2026-11-19** on each app's `phase-g/google-sign-in`; Apple not started.
+- [ ] Backend Phase 16, including `AppleTokenClient::revoke()` in account deletion. **Google built and merged 2026-11-19** (backend `42c96b5`); Apple not started.
+- [ ] Patient Phase 11 and dentist Phase 12 (shared pieces built the same way in both). **Google built and merged 2026-11-19** (patient `36b1903`, dentist `4705faf`); Apple not started.
 - [ ] Verify live on Android and iOS per each plan's "Verify live" list. Android, Google: new accounts, linking an existing Gmail account and deleting with Google pass on the phone and tablet. Still to do: the cross-app `409`, Set a password, Apple, and iOS (needs a Mac).
 
 **Done when:** all "Verify live" checks in PAP Phase 11 and DAP Phase 12 pass.
