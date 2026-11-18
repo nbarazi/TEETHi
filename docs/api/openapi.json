@@ -5525,6 +5525,29 @@
                 }
             }
         },
+        "/v1/files": {
+            "get": {
+                "operationId": "files.show",
+                "tags": [
+                    "FileDownload"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    }
+                }
+            }
+        },
         "/v1/patient/insurance": {
             "get": {
                 "operationId": "patient.insurance.index",
@@ -8230,26 +8253,6 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
-                    },
-                    "500": {
-                        "description": "An error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "description": "Error overview.",
-                                            "example": ""
-                                        }
-                                    },
-                                    "required": [
-                                        "message"
-                                    ]
-                                }
-                            }
-                        }
                     },
                     "401": {
                         "$ref": "#/components/responses/AuthenticationException"
@@ -15200,7 +15203,7 @@
                             "string",
                             "null"
                         ],
-                        "description": "Never a public path \u2014 a short-lived signed URL onto the\nprivate `local` disk, regenerated on every read (same\npattern as InsuranceDetailResource)."
+                        "description": "Never a public path \u2014 a short-lived signed link onto the\nprivate `local` disk, regenerated on every read; each open\nis logged as a PHI download (FileLinkService)."
                     },
                     "read_at": {
                         "type": "string"
@@ -15418,7 +15421,7 @@
                     },
                     "file_url": {
                         "type": "string",
-                        "description": "Private disk, like insurance cards and credentials: a signed\nlink that expires; ask the list again for a fresh one."
+                        "description": "Private disk: a signed link that expires (ask the list again\nfor a fresh one); each open is logged as a PHI download."
                     },
                     "uploaded_by_patient": {
                         "type": "boolean"
