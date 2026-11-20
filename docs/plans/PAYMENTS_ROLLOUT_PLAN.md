@@ -238,7 +238,7 @@ Tests: backend 1107 (`PayAfterVisitTest` 24, `PayAfterVisitHardeningTest` 14), P
 
 Found in the run, still open:
 - No push reached either device: the backend logged "FCM credentials unavailable; push skipped" on every notification. The in-app notifications were all recorded. Fix the local Firebase credentials and re-check the four payment pushes.
-- Dashboard: after a declined Retry hold the invoice panel isn't reloaded, so the new failed payment row only shows after reopening it (`invoice-detail.component.ts` `retryPayment` error branch). Deferred.
+- ~~Dashboard: after a declined Retry hold the invoice panel isn't reloaded, so the new failed payment row only shows after reopening it.~~ **Fixed 2026-11-21:** new `GET /admin/invoices/{invoice}` (`view_invoices`, patient name only with `view_patients`); the modal re-reads the invoice after a declined retry and updates the list row.
 
 Still to do before merge: Apple Pay in setup mode on an iPhone.
 
