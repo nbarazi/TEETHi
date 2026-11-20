@@ -215,7 +215,7 @@ These are the questions from the business summary. A phase doesn't start until i
 
 **Done when:** in Stripe test mode, a visit booked two days ahead gets its hold on time, the completed visit captures the final amount, an added treatment produces a second charge, a declined card (Stripe's decline test cards) shows up for the patient, the dentist and staff, and a reschedule moves the hold.
 
-**Built 2026-11-20, not merged and not yet run in Stripe test mode.** Branch `phase-e/pay-after-visit` in each repo: TEETHi-Backend `54356b2`, `1e8064b`; TEETHi-Frontend `9042cc7`; TEETHi-Patient-App `4eb82a9`; TEETHI-Dentist-App `59f7980`. `docs/api/openapi.json` refreshed.
+**Built 2026-11-20, run in Stripe test mode 2026-11-21 (below), not merged.** Branch `phase-e/pay-after-visit` in each repo: TEETHi-Backend `54356b2`, `1e8064b`; TEETHi-Frontend `9042cc7`; TEETHi-Patient-App `4eb82a9`; TEETHI-Dentist-App `59f7980`. `docs/api/openapi.json` refreshed.
 
 Differences from the checklist above:
 - **No `422` "needs a saved card" at booking.** Choosing pay after the visit opens the sheet that saves the card, so there is nothing to refuse. A patient who closes the sheet leaves the visit at `card_needed`: the visit card asks them to add one, and the dentist sees "Payment not secured yet" within the day.
@@ -230,7 +230,17 @@ Tests: backend 1107 (`PayAfterVisitTest` 24, `PayAfterVisitHardeningTest` 14), P
 
 **Reviewed 2026-11-20.** `security-reviewer`: 8 money issues (2 high), all fixed in TEETHi-Backend `c525c34` (PAYMENTS_SECURITY_FINDINGS.md, "P4 review"). Since then the balance moves on Stripe's own answer, re-read with the secret key, as well as on the webhook. `contract-reviewer`: no mismatches between the backend and the three clients; the spec's types for the new fields and the pay call's `201` were fixed in the same commit. The dentist's "Payment secured" refreshes when the dentist reloads the list (no push to the dentist for holds), which follows the no-polling rule.
 
-Still to do before merge: the "done when" run in Stripe test mode on the Android devices (Stripe CLI forwarding, decline test cards); Apple Pay in setup mode on an iPhone.
+**Verified 2026-11-21 (Stripe test mode, Android devices).** Patient app on the phone (SM-A566B), dentist app on the tablet, dashboard in a browser, backend on `phase-e/pay-after-visit` with the Stripe CLI forwarding all handled events (every delivery `200`). Visit times were moved into the 24-hour window in the database and `payments:place-holds` run by hand, in place of waiting for the hourly run.
+- Hold on time: visit 30, booked two days ahead, saved the card only (`setup_intent.succeeded`); moved inside 24 hours, the command placed an off-session $150 hold (`amount_capturable_updated`, payment `authorized`, `payment_hold_placed` notification).
+- Final amount and second charge: the dentist added two treatments ($430 total) and completed the visit. The hold was captured for $150 and $280 charged off-session as a second payment; invoice Paid, `visit_charged` notification.
+- Declined card: visit 31 with `4000 0000 0000 0341` (saves, then declines). The hold failed (`payment_intent.payment_failed`), invoice flagged `hold_failed`, `payment_hold_failed` notification, the visit stayed accepted. The dashboard's Payment problems filter listed only that invoice with the Hold failed badge and the alert; Retry hold declined again with "The card was declined again…" (`422`). Updating the card to `4242…` in the app placed the hold through the sheet and cleared the flag.
+- Reschedule: the dentist moved visit 31 from 09:00 to 11:00 (LA). The standing hold was cancelled in Stripe (`payment_intent.canceled`); the command placed a new $200 hold for 11:00, leaving one live hold.
+
+Found in the run, still open:
+- No push reached either device: the backend logged "FCM credentials unavailable; push skipped" on every notification. The in-app notifications were all recorded. Fix the local Firebase credentials and re-check the four payment pushes.
+- Dashboard: after a declined Retry hold the invoice panel isn't reloaded, so the new failed payment row only shows after reopening it (`invoice-detail.component.ts` `retryPayment` error branch). Deferred.
+
+Still to do before merge: Apple Pay in setup mode on an iPhone.
 
 ---
 

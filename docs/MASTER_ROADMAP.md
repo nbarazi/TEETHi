@@ -310,7 +310,7 @@ Each phase lists what to do, what it's waiting on, and when it's done. Phases 2 
 
 ### Phase E — Payments P4: card on file, hold, charge on completion (3–4 weeks)
 **Waits on:** Phase B (Stripe proven), Phase C (S8/S12 fixed), and D6-R reconsidered (kept 2026-11-20). **Started 2026-11-20.**
-- [ ] Build P4 across all four repos per PAY P4. **Built 2026-11-20 on `phase-e/pay-after-visit`** (backend `1e8064b`, dashboard `9042cc7`, patient `4eb82a9`, dentist `59f7980`), not merged; the Stripe test-mode "done when" run is still to do.
+- [ ] Build P4 across all four repos per PAY P4. **Built 2026-11-20 on `phase-e/pay-after-visit`** (backend `1e8064b`, dashboard `9042cc7`, patient `4eb82a9`, dentist `59f7980`), not merged. **Stripe test-mode "done when" run passed 2026-11-21** on the Android devices (PAY P4, "Verified"); open from it: payment pushes not delivered (local FCM credentials), dashboard panel not reloaded after a declined retry.
 - [x] Confirm whether wallet cards can be saved for off-session charges; if not, pay-after-visit is card-only. **Yes (Stripe docs, 2026-11-20)**; Apple Pay in setup mode still to check on an iPhone.
 - [x] `security-reviewer` and `contract-reviewer` before merge. Done 2026-11-20: 8 security findings (2 high) fixed in TEETHi-Backend `c525c34`; no contract mismatches.
 
