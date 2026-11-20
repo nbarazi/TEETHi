@@ -215,7 +215,7 @@ These are the questions from the business summary. A phase doesn't start until i
 
 **Done when:** in Stripe test mode, a visit booked two days ahead gets its hold on time, the completed visit captures the final amount, an added treatment produces a second charge, a declined card (Stripe's decline test cards) shows up for the patient, the dentist and staff, and a reschedule moves the hold.
 
-**Built 2026-11-20, run in Stripe test mode 2026-11-21 (below), not merged.** Branch `phase-e/pay-after-visit` in each repo: TEETHi-Backend `54356b2`, `1e8064b`; TEETHi-Frontend `9042cc7`; TEETHi-Patient-App `4eb82a9`; TEETHI-Dentist-App `59f7980`. `docs/api/openapi.json` refreshed.
+**Built 2026-11-20, run in Stripe test mode 2026-11-21 (below), merged to `master` and pushed 2026-11-21** (TEETHi-Backend `2a08386`, TEETHi-Frontend `5887736`, TEETHi-Patient-App `4e49100`, TEETHI-Dentist-App `6bbc368`). Branch `phase-e/pay-after-visit` in each repo: TEETHi-Backend `54356b2`, `1e8064b`; TEETHi-Frontend `9042cc7`; TEETHi-Patient-App `4eb82a9`; TEETHI-Dentist-App `59f7980`. `docs/api/openapi.json` refreshed.
 
 Differences from the checklist above:
 - **No `422` "needs a saved card" at booking.** Choosing pay after the visit opens the sheet that saves the card, so there is nothing to refuse. A patient who closes the sheet leaves the visit at `card_needed`: the visit card asks them to add one, and the dentist sees "Payment not secured yet" within the day.
