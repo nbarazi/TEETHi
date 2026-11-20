@@ -38,7 +38,7 @@ These are the questions from the business summary. A phase doesn't start until i
 | D3 | Dentists paid per visit, or on salary or fixed fees | P7 (salary: P7 shrinks to an earnings view, P8 is dropped) | _open_ |
 | D4 | Seller to the patient: TEETHi or the dentist | P8 | **TEETHi** (decided 2026-11-11, "for now"). TEETHi's name is on the card statement and TEETHi owns refunds and disputes. The lawyer must confirm a non-dentist company can be the seller of dental care in California |
 | D5 | Who absorbs Stripe's processing fees and lost card disputes | P7 | _open_ |
-| D6 | Patients pay before or after the visit; can the price change during the visit | P3, P4 | **After the visit; yes, the price can change** (decided 2026-11-11, "for now"). No cap on the rise for now: the patient is notified, no in-app approval (decided 2026-11-11) |
+| D6 | Patients pay before or after the visit; can the price change during the visit | P3, P4 | **After the visit; yes, the price can change** (decided 2026-11-11, "for now"). No cap on the rise for now: the patient is notified, no in-app approval (decided 2026-11-11). **Revisited for P4 (D6-R) on 2026-11-20 and kept:** a rise is charged off-session to the saved card after the visit, with no cap and no approval; the patient is notified |
 | D7 | Late-cancellation and no-show policy: window, fee amount, who can waive it | P6 | _open_ |
 | D8 | Keep pay later? Allow cash at the door? | P5 | _open_ |
 
@@ -175,31 +175,60 @@ These are the questions from the business summary. A phase doesn't start until i
 4. When the dentist completes the visit (P3), the backend captures the final amount. Less than the hold: the rest is released. More than the hold: a second off-session charge for the difference.
 5. If the hold fails, the patient is told to fix their card. Staff see it. The visit is not cancelled automatically.
 
+**Decided 2026-11-20 (owner):**
+- **Price rise (D6-R):** kept as decided for P3. Any rise is charged off-session to the saved card after the visit, with no cap and no approval; the patient is notified.
+- **Hold amount:** exactly the invoice total at the time of the hold, no buffer. A rise is a second off-session charge.
+- **Hold still failed at the visit:** the visit goes ahead. The dentist sees "Payment not secured", staff see it under Payment problems, and the charge is tried again at completion. Starting the visit is never blocked and nothing is cancelled.
+- **Payment options:** "Pay after the visit" (recommended) is added beside the existing Pay now and Pay later. Limiting or removing Pay later stays with P5 (D8).
+- **Emergency (open-pool) requests:** at booking the patient only saves a card (Pay after the visit, nothing charged). The hold is placed the moment a dentist claims the request. Pay now and Pay later are offered only once a dentist is assigned. This also fixes a bug found 2026-11-20: paying for an unclaimed open-pool request answered `500`, because its invoice needs a dentist and is only created on claim.
+
+**Backend design (2026-11-20):**
+- The choice and the card belong to the booking, so they live on `appointments`: `pays_after_visit`, `payment_card_token` (encrypted Stripe payment method id), `card_saved_at`. An unclaimed open-pool request has no invoice yet, so they can't live on the invoice.
+- `POST /patient/appointments/{id}/payment` with `method: pay_after_visit` returns a sheet in one of two modes: a **SetupIntent** (`usage: off_session`) when the visit is more than 24 hours away or has no dentist yet, or a **manual-capture PaymentIntent** (`setup_future_usage: off_session`) when it is within 24 hours. The second is the hold itself, confirmed by the patient in the sheet. The same call is the patient's "Update card".
+- The card is recorded from `setup_intent.succeeded` (or from the hold's payment method), never from the app.
+- A hold is a `payments` row: card method, `status` `authorized` once Stripe says `requires_capture`, `authorized_at`, `capture_before`, `off_session`. Capture moves it to `succeeded` through `payment_intent.succeeded`, with the amount Stripe actually received.
+- `invoices.payment_problem` (`hold_failed`, `capture_failed`) and `payment_problem_at` drive the dashboard's badges and Payment problems view.
+
 **Backend**
-- [ ] `PaymentMethodType::PayAfterVisit` (name to confirm), offered beside pay now.
-- [ ] `PaymentStatus::Authorized`; `payments.authorized_at`, `capture_before`.
-- [ ] Gateway: `createHold()` (manual capture, off-session, saved payment method), `capture(amount)`, `releaseHold()`. Same methods on `FakePaymentGateway`.
-- [ ] `payments:place-holds` command, hourly: visits starting within 24 hours with pay-after-visit and no live hold. Idempotency key per appointment and scheduled time.
-- [ ] Reschedule releases the hold; the job places a new one for the new time. Cancel releases it (the fee is P6).
-- [ ] Webhook: `payment_intent.amount_capturable_updated` (hold placed), `payment_intent.payment_failed` for off-session attempts (today deliberately ignored), `payment_intent.canceled` (hold released or expired).
-- [ ] Capture inside the complete-visit transaction's after-commit hook. A failed capture or a failed extra charge leaves the invoice partly paid and flags it for staff.
-- [ ] Booking rule: pay-after-visit needs a usable saved card (`422` otherwise). Removing the last card with an upcoming pay-after-visit booking is refused.
-- [ ] Pushes: hold placed, hold failed (with a "fix your card" action), charged after the visit.
-- [ ] Confirm Apple Pay and Google Pay cards can be saved for later off-session charges in our setup. If not, pay-after-visit is card-only.
+- [x] `PaymentMethodType::PayAfterVisit` (name to confirm), offered beside pay now.
+- [x] `PaymentStatus::Authorized`; `payments.authorized_at`, `capture_before`.
+- [x] Gateway: `createHold()` (manual capture, off-session, saved payment method), `capture(amount)`, `releaseHold()`. Same methods on `FakePaymentGateway`.
+- [x] `payments:place-holds` command, hourly: visits starting within 24 hours with pay-after-visit and no live hold. Idempotency key per appointment and scheduled time.
+- [x] Reschedule releases the hold; the job places a new one for the new time. Cancel releases it (the fee is P6).
+- [x] Webhook: `payment_intent.amount_capturable_updated` (hold placed), `payment_intent.payment_failed` for off-session attempts (today deliberately ignored), `payment_intent.canceled` (hold released or expired).
+- [x] Capture inside the complete-visit transaction's after-commit hook. A failed capture or a failed extra charge leaves the invoice partly paid and flags it for staff.
+- [x] Booking rule: pay-after-visit needs a usable saved card (`422` otherwise). Removing the last card with an upcoming pay-after-visit booking is refused.
+- [x] Pushes: hold placed, hold failed (with a "fix your card" action), charged after the visit.
+- [x] Confirm Apple Pay and Google Pay cards can be saved for later off-session charges in our setup. **Checked 2026-11-20 (Stripe docs): yes.** A wallet saved through a SetupIntent can be charged for off-session payments the merchant starts, which is what the hold and the charge after the visit are; Apple's terms forbid reusing a saved Apple Pay method on-session, and Stripe gives it `allow_redisplay=limited`. So pay-after-visit is not card-only. Still to check on an iPhone: Apple Pay in setup mode should use a deferred payment request (Stripe's Apple Pay recurring/deferred support), which needs a Mac.
 
 **Admin dashboard**
-- [ ] Invoice list filter and badges: Card saved, Hold placed, Hold failed, Capture failed.
-- [ ] A "Payment problems" view of failed holds and captures for upcoming and recent visits, with Retry hold and Retry charge (`manage_invoices`).
+- [x] Invoice list filter and badges: Card saved, Hold placed, Hold failed, Capture failed.
+- [x] A "Payment problems" view of failed holds and captures for upcoming and recent visits, with Retry hold and Retry charge (`manage_invoices`).
 
 **Patient app**
-- [ ] Payment step: "Pay after the visit" (recommended) and "Pay now". The first opens the sheet in setup mode; copy says the card is held 24 hours before and charged after.
-- [ ] Visit detail shows the payment state: card saved, hold placed, charged.
-- [ ] A hold-failed push opens the visit with "Update card", which reopens the sheet and retries the hold.
+- [x] Payment step: "Pay after the visit" (recommended) and "Pay now". The first opens the sheet in setup mode; copy says the card is held 24 hours before and charged after.
+- [x] Visit detail shows the payment state: card saved, hold placed, charged.
+- [x] A hold-failed push opens the visit with "Update card", which reopens the sheet and retries the hold.
 
 **Dentist app**
-- [ ] Visit card and visit detail show "Payment secured" or "Payment not secured" for visits in the next 24 hours. No amounts.
+- [x] Visit card and visit detail show "Payment secured" or "Payment not secured" for visits in the next 24 hours. No amounts.
 
 **Done when:** in Stripe test mode, a visit booked two days ahead gets its hold on time, the completed visit captures the final amount, an added treatment produces a second charge, a declined card (Stripe's decline test cards) shows up for the patient, the dentist and staff, and a reschedule moves the hold.
+
+**Built 2026-11-20, not merged and not yet run in Stripe test mode.** Branch `phase-e/pay-after-visit` in each repo: TEETHi-Backend `54356b2`, `1e8064b`; TEETHi-Frontend `9042cc7`; TEETHi-Patient-App `4eb82a9`; TEETHI-Dentist-App `59f7980`. `docs/api/openapi.json` refreshed.
+
+Differences from the checklist above:
+- **No `422` "needs a saved card" at booking.** Choosing pay after the visit opens the sheet that saves the card, so there is nothing to refuse. A patient who closes the sheet leaves the visit at `card_needed`: the visit card asks them to add one, and the dentist sees "Payment not secured yet" within the day.
+- **Removing the card is refused only through `DELETE /patient/payment-methods/{id}` (`409 payments.card_in_use`).** Stripe's own sheet can still remove it; then the hold fails and the hold-failed path takes over.
+- **The capture runs in a queued job (`SettleVisitPayment`) dispatched after the completion commits,** not in the request, so the dentist never waits on Stripe. Each Stripe call carries an idempotency key and a second run charges nothing.
+- **A declined hold isn't retried hourly.** The job tries again only after the patient saves a card (or staff press Retry hold).
+- **The Payment problems view is the invoice list's "Payment problems" filter** (`filter[payment_state]=problems`), with Retry hold / Retry charge in the invoice detail (`POST /admin/invoices/{id}/retry-payment`, `manage_invoices`).
+
+API added: `pay_after_visit` on the pay call (`payment_mode` `setup` or `hold`); appointment `pays_after_visit`, `card_saved`, `payment_state` (patient) and `payment_secured` (dentist); invoice `payment_problem`, `payment_state`; payment `is_hold`, `authorized_at`, status `authorized`; notification types `payment_hold_placed`, `payment_hold_failed`, `visit_charged`, `visit_charge_failed`; webhook events `payment_intent.amount_capturable_updated`, `payment_intent.payment_failed`, `setup_intent.succeeded` (**add these three to the live and test webhook endpoints**).
+
+Tests: backend 1093 (`PayAfterVisitTest`, 24), PHPStan max and Pint clean; dashboard 109 spec files pass and it builds; patient app 325; dentist app 331. Analyzers clean.
+
+Still to do before merge: `security-reviewer` and `contract-reviewer`; the "done when" run in Stripe test mode on the Android devices (Stripe CLI forwarding, decline test cards); Apple Pay in setup mode on an iPhone.
 
 ---
 

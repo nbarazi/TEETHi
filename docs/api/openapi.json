@@ -1038,7 +1038,7 @@
         "/v1/patient/appointments/{appointment}/payment": {
             "post": {
                 "operationId": "patient.appointments.pay",
-                "description": "A card payment answers with an `initiated` payment and a\n`payment_sheet` for the app to present; the invoice changes once\nStripe's webhook confirms it. The paying account's own profile is\nthe Stripe customer, so cards saved in the sheet work for every\nprofile the account manages, not just the one this visit is for.\n\nOnly a `pending` or `partially_paid` invoice takes a payment. A paid,\nrefunded or cancelled one answers `409` (Phase B finding B1-05).",
+                "description": "A card payment answers with an `initiated` payment and a\n`payment_sheet` for the app to present; the invoice changes once\nStripe's webhook confirms it. The paying account's own profile is\nthe Stripe customer, so cards saved in the sheet work for every\nprofile the account manages, not just the one this visit is for.\n\nOnly a `pending` or `partially_paid` invoice takes a payment. A paid,\nrefunded or cancelled one answers `409` (Phase B finding B1-05).\n\n`pay_after_visit` (payments rollout P4) charges nothing now. It\nanswers with `payment_mode` `setup` and a sheet that saves the card,\nor, when the visit starts within 24 hours, `hold` and a sheet that\nplaces the hold. The same call updates the card. An emergency with\nno dentist yet takes only `pay_after_visit` (`409` otherwise).",
                 "summary": "Card/Apple Pay through Stripe's payment sheet, or pay-later (\u00a75.1).\nNot `LogsPhiAccess` \u2014 invoices/payments are billing records, not\none of the PHI categories \u00a74.12 lists (patient profiles, medical\nhistory, clinical notes, treatment plans/tooth charts,\nprescriptions, insurance, legal documents, messages)",
                 "tags": [
                     "Appointment"
@@ -1106,15 +1106,6 @@
                     "403": {
                         "$ref": "#/components/responses/AuthorizationException"
                     },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
-                    },
-                    "401": {
-                        "$ref": "#/components/responses/AuthenticationException"
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    },
                     "409": {
                         "description": "The invoice is paid, refunded or cancelled, or its amount changed while paying.",
                         "content": {
@@ -1136,6 +1127,15 @@
                                 }
                             }
                         }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
                     }
                 }
             }
@@ -6199,6 +6199,115 @@
                 }
             }
         },
+        "/v1/admin/invoices/{invoice}/retry-payment": {
+            "post": {
+                "operationId": "admin.invoices.retry-payment",
+                "summary": "Retry hold / Retry charge for a pay-after-the-visit invoice under\nPayment problems (payments rollout P4): before the visit is complete\nit places the hold again, after it charges the card again. `409`\nfor an invoice that isn't paid after the visit or has nothing to\ncollect; `422` when the card is declined again (the invoice keeps\nits problem, and the patient is asked to update the card)",
+                "tags": [
+                    "Invoice"
+                ],
+                "parameters": [
+                    {
+                        "name": "invoice",
+                        "in": "path",
+                        "required": true,
+                        "description": "The invoice ID",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "null"
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                {
+                                                    "type": "string"
+                                                }
+                                            ]
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/InvoiceResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "The card was declined again.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "The invoice is not paid after the visit, or has nothing left to collect.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/AuthenticationException"
+                    }
+                }
+            }
+        },
         "/v1/legal-documents/{legalDocument}": {
             "get": {
                 "operationId": "legal-documents.show",
@@ -8548,6 +8657,7 @@
         "/v1/patient/payment-methods/{paymentMethod}": {
             "delete": {
                 "operationId": "patient.payment-methods.destroy",
+                "summary": "A card an upcoming visit will be charged to after the fact can't be\nremoved (`409`, payments rollout P4); the patient saves another card\nfor that visit first",
                 "tags": [
                     "PaymentMethod"
                 ],
@@ -8565,6 +8675,28 @@
                 "responses": {
                     "204": {
                         "description": "No content"
+                    },
+                    "409": {
+                        "description": "An upcoming pay-after-the-visit visit uses this card.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message"
+                                    ]
+                                }
+                            }
+                        }
                     },
                     "403": {
                         "$ref": "#/components/responses/AuthorizationException"
@@ -14266,6 +14398,27 @@
                             }
                         ]
                     },
+                    "pays_after_visit": {
+                        "type": "boolean",
+                        "description": "Pay after the visit (payments rollout P4): the patient chose it,\nand whether the card to charge is saved. Not for the dentist.\nA row just created holds no column defaults yet, hence `=== true`."
+                    },
+                    "card_saved": {
+                        "type": "string"
+                    },
+                    "payment_state": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "`card_needed`, `card_saved`, `hold_placed`, `paid`, `hold_failed`\nor `capture_failed`; null when not paid after the visit."
+                    },
+                    "payment_secured": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ],
+                        "description": "The dentist's only view of payment: within 24 hours of the\nvisit, whether the money is secured (a hold, or nothing left\nto pay). Null otherwise. No amounts."
+                    },
                     "consent_confirmed_at": {
                         "type": "string"
                     },
@@ -15168,6 +15321,16 @@
                         "type": "boolean",
                         "description": "A cardholder disputed a payment and it is still open, or was\nlost. Staff follow it up in Stripe's dashboard."
                     },
+                    "payment_problem": {
+                        "type": "string",
+                        "description": "Pay after the visit (payments rollout P4). `payment_problem`\nis what staff must follow up (`hold_failed`, `capture_failed`).\n`payment_state` adds the steps before it, for the dashboard's\nbadges: `card_saved`, then `hold_placed`; null for an invoice\nnot paid after the visit."
+                    },
+                    "payment_state": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
                     "payments": {
                         "type": "array",
                         "items": {
@@ -15195,6 +15358,7 @@
                     "status",
                     "due_at",
                     "refund_due",
+                    "payment_problem",
                     "created_at"
                 ],
                 "title": "InvoiceResource"
@@ -15732,11 +15896,12 @@
             },
             "PaymentMethodType": {
                 "type": "string",
-                "description": "\"PaymentMethodType\", not \"PaymentMethod\" \u2014 that name is taken by the `PaymentMethod` model (a *saved* card/wallet), which this enum is itself a column on (`payments.method` and `payment_methods.provider` both describe which of these a row used).\n",
+                "description": "\"PaymentMethodType\", not \"PaymentMethod\" \u2014 that name is taken by the `PaymentMethod` model (a *saved* card/wallet), which this enum is itself a column on (`payments.method` and `payment_methods.provider` both describe which of these a row used).\n| |\n|---|\n| `apple_pay` <br/>  |\n| `credit_card` <br/>  |\n| `pay_later` <br/>  |\n| `pay_after_visit` <br/> The patient's choice at booking (payments rollout P4): save a card now, a hold before the visit, the charge after it. Never a payment's method: the hold and the charge are card payments. |",
                 "enum": [
                     "apple_pay",
                     "credit_card",
-                    "pay_later"
+                    "pay_later",
+                    "pay_after_visit"
                 ],
                 "title": "PaymentMethodType"
             },
@@ -15767,6 +15932,13 @@
                     "paid_at": {
                         "type": "string"
                     },
+                    "is_hold": {
+                        "type": "boolean",
+                        "description": "A hold before a pay-after-the-visit visit (payments rollout P4)."
+                    },
+                    "authorized_at": {
+                        "type": "string"
+                    },
                     "dispute_status": {
                         "type": "string"
                     },
@@ -15785,6 +15957,8 @@
                     "provider_reference",
                     "status",
                     "paid_at",
+                    "is_hold",
+                    "authorized_at",
                     "dispute_status",
                     "disputed_at",
                     "created_at"

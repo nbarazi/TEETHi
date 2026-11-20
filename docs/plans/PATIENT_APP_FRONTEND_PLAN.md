@@ -418,6 +418,8 @@ Response: `{ "invoice": InvoiceResource, "payment": PaymentResource, "payment_sh
 
 ---
 
+
+**Pay after the visit (payments rollout P4, built 2026-11-20 on `phase-e/pay-after-visit`, not merged).** `POST /patient/appointments/{id}/payment` with `method: pay_after_visit` charges nothing. It answers `payment_mode: setup` with a `setup_intent_client_secret` sheet that saves the card, or, when the visit starts within 24 hours, `payment_mode: hold` with a `payment_intent_client_secret` sheet that places the hold. The same call is **Update card**. An emergency no dentist has claimed takes only `pay_after_visit` (`409 payments.pay_after_claim` otherwise). Appointments carry `pays_after_visit`, `card_saved` and `payment_state` (`card_needed`, `card_saved`, `hold_placed`, `paid`, `hold_failed`, `capture_failed`). New push types: `payment_hold_placed` and `payment_hold_failed` (open the visit), `visit_charged` and `visit_charge_failed` (open the invoice). `DELETE /patient/payment-methods/{id}` answers `409 payments.card_in_use` for the card an upcoming visit will be charged to. Built in the app: the Recommended option in the booking payment step (the only one for an unclaimed emergency), a payment line with Update card on the visit card, and the push routing. See PAY P4.
 ## 10. Messaging (shared with the doctor/admin apps)
 
 | Endpoint | Purpose |

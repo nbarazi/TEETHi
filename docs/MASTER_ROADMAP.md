@@ -54,7 +54,7 @@ Nothing in a phase that depends on one of these should start until the answer is
 | D5 | Who absorbs Stripe fees and lost disputes; the refund hold period before earnings become payable | P7 | PAY §2 |
 | D7 | Late-cancellation and no-show policy: window, fee, who can waive | P6 | PAY §2 |
 | D8 | Keep pay later (option A: needs a saved card; option B: remove)? Allow cash at the door? | P5 | PAY P5 |
-| D6-R | Revisit before P4: price can rise during the visit with **no cap and no patient approval**. P4 turns that straight into card charges (SEC S3 note) | P4 | PAY §2, SEC S3 |
+| D6-R | ~~Revisit before P4: price can rise during the visit with no cap and no patient approval.~~ **Decided 2026-11-20: kept.** A rise is charged off-session to the saved card after the visit; the patient is notified | P4 | PAY §2, SEC S3 |
 | BAA-1 | **Agora BAA signed** (blocks any real patient call) | Teledentistry launch | TELE T0 |
 | BAA-2 | Agora region pinning (`areaCode`), decide together with the BAA | Teledentistry launch | TELE T8 |
 | BAA-3 | Confirm BAAs (or a no-PHI guarantee) for SendGrid and Twilio. The receipt email no longer carries PHI (S1), but confirm the agreement anyway | Go-live | SEC S1 |
@@ -309,9 +309,9 @@ Each phase lists what to do, what it's waiting on, and when it's done. Phases 2 
 **Done when:** H5, M3, M5, M6, M7, E8–E10 are closed in `CONSISTENCY_REPORT.md` and every client suite passes.
 
 ### Phase E — Payments P4: card on file, hold, charge on completion (3–4 weeks)
-**Waits on:** Phase B (Stripe proven), Phase C (S8/S12 fixed), and D6-R reconsidered.
-- [ ] Build P4 across all four repos per PAY P4.
-- [ ] Confirm whether wallet cards can be saved for off-session charges; if not, pay-after-visit is card-only.
+**Waits on:** Phase B (Stripe proven), Phase C (S8/S12 fixed), and D6-R reconsidered (kept 2026-11-20). **Started 2026-11-20.**
+- [ ] Build P4 across all four repos per PAY P4. **Built 2026-11-20 on `phase-e/pay-after-visit`** (backend `1e8064b`, dashboard `9042cc7`, patient `4eb82a9`, dentist `59f7980`), not merged; the Stripe test-mode "done when" run is still to do.
+- [x] Confirm whether wallet cards can be saved for off-session charges; if not, pay-after-visit is card-only. **Yes (Stripe docs, 2026-11-20)**; Apple Pay in setup mode still to check on an iPhone.
 - [ ] `security-reviewer` and `contract-reviewer` before merge.
 
 **Done when:** PAY P4's "done when" passes in Stripe test mode.

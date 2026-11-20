@@ -184,6 +184,8 @@ Actions:
 
 ---
 
+
+**Payment secured (payments rollout P4, built 2026-11-20 on `phase-e/pay-after-visit`, not merged).** For the dentist, appointments carry `payment_secured`: `true` or `false` within 24 hours of the visit (a hold on the patient's card, or nothing left to pay), `null` otherwise. No amounts. The request card and request detail show "Payment secured" or "Payment not secured yet"; a visit that isn't secured still goes ahead. See PAY P4.
 ## 8. Visit workflow & clinical documentation
 
 All of these are scoped to **the assigned doctor** for that appointment (`403` otherwise) and write a PHI audit row.

@@ -396,6 +396,8 @@ Backend Phase 7 built the payment/invoicing domain. Most of it is patient-facing
 - **Money is always a decimal string** (`"450.00"`), not a JS number — parse it deliberately, don't `+` it.
 - **Invoices/payments are not PHI-access-logged** — §4.12's PHI category list is explicit and doesn't include billing records, so viewing an invoice writes no `phi_access_logs` row (unlike the patient clinical tabs in §4.9).
 
+
+**Pay after the visit (payments rollout P4, built 2026-11-20 on `phase-e/pay-after-visit`, not merged).** `GET /admin/invoices` takes `filter[payment_state]=card_saved|hold_placed|hold_failed|capture_failed|problems`. Each invoice carries `payment_problem` (`hold_failed`, `capture_failed`, or `null`) and, with its payments, `payment_state`. Payments add the status `authorized` (a hold), `is_hold` and `authorized_at`. `POST /admin/invoices/{id}/retry-payment` (`manage_invoices`) places the hold again before the visit is completed and charges the card again after it: `422 payments.retry_failed` when declined again, `409 payments.retry_not_applicable` when the invoice isn't paid after the visit or has nothing to collect. Built in the dashboard: the list's badges and filter (including "Payment problems"), and the detail's explanation with Retry hold / Retry charge. See PAY P4.
 ### 4.8 Appointments directory (backend Phase 9) — `permission: view_appointments`
 
 A single **read-only** platform-wide appointment list. The admin dashboard cannot change an appointment's state (accept/decline/reschedule/cancel/complete all stay in the doctor and patient workflow endpoints) — this is a monitoring/search view only.
