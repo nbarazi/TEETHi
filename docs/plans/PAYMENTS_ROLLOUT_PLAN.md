@@ -150,7 +150,7 @@ These are the questions from the business summary. A phase doesn't start until i
 - [x] Invoice detail shows the item list and the final total. The invoice view model refreshes on the push. The visit detail shows the final treatments (the appointment's list follows), not the invoice lines.
 
 **Dentist app**
-- [x] The complete-visit step in `visit_workflow` gets a "Confirm treatments" list (in the Complete section, not a separate screen): booked treatments pre-ticked, add from the dentist's own expertise, remove what wasn't done. The dentist sees treatments, not prices or the invoice.
+- [x] The complete-visit step in `visit_workflow` gets a "Confirm treatments" list (in the Complete section, not a separate screen): booked treatments pre-ticked, add from the dentist's own expertise, remove what wasn't done. The dentist sees treatments, not prices or the invoice. **Changed 2026-11-21 (PR-7):** each treatment shows its price, and Complete visit first shows a summary of the treatments with prices and the total (TEETHI-Dentist-App `52fe790`). Still no invoice or payment amounts.
 
 **Done when:** a dentist adds one treatment and removes another at completion, and the patient, the admin and the invoice total all agree.
 

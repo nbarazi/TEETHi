@@ -24,7 +24,7 @@ Findings from the `security-reviewer` passes over the payments rollout (`plans/P
 | S10 | Low | P2 | Receipt links: bearer-only for 30 minutes, no rate limit, maybe `http://` behind a proxy | Fixed |
 | S11 | Low | P3 | Backfill uses today's catalog price, so lines may not add up to the stored total | Fixed |
 | S12 | Low | P3 | Treatment change, outcome and completion aren't one locked transaction | Fixed |
-| S13 | Low | P3 | Smaller points: stale primary treatment, billing status shown to the dentist, prices sent to the dentist app | Partly fixed (prices wait on PR-7) |
+| S13 | Low | P3 | Smaller points: stale primary treatment, billing status shown to the dentist, prices sent to the dentist app | Fixed; prices to dentists are intended (PR-7, 2026-11-21) |
 
 ## Details
 
@@ -106,7 +106,7 @@ Findings from the `security-reviewer` passes over the payments rollout (`plans/P
 - **Stale primary treatment:** `appointments.treatment_id` isn't updated when the list changes, so lists can still show a removed treatment.
 - **Billing status to the dentist:** `409 payments.invoice_closed` tells the dentist the patient's invoice was cancelled or refunded, though doctors are otherwise never shown invoices. Use a generic message.
 - **Prices sent to doctors:** `GET /doctor/services` and `GET /treatments` include `standard_amount`; the dentist app only hides them on screen. Predates P3. If D2 or D6 mean dentists shouldn't see prices, give doctors a shape without the price.
-- **Partly fixed: TEETHi-Backend `8a0778f` (2026-11-13).** The primary treatment follows the list, and dentists get `payments.treatments_closed`. Prices to doctors wait on PR-7.
+- **Partly fixed: TEETHi-Backend `8a0778f` (2026-11-13).** The primary treatment follows the list, and dentists get `payments.treatments_closed`. **Prices to doctors: decided 2026-11-21 (PR-7), dentists see treatment prices,** so `standard_amount` stays in the doctor responses and the dentist app now shows it (TEETHI-Dentist-App `52fe790`).
 
 ### Phase C review (2026-11-13)
 `security-reviewer` over the Phase C branch found no PHI leak, cross-account exposure or auth bypass, and 7 issues in the new code, all fixed in TEETHi-Backend `383bbe0`:
