@@ -226,9 +226,11 @@ Differences from the checklist above:
 
 API added: `pay_after_visit` on the pay call (`payment_mode` `setup` or `hold`); appointment `pays_after_visit`, `card_saved`, `payment_state` (patient) and `payment_secured` (dentist); invoice `payment_problem`, `payment_state`; payment `is_hold`, `authorized_at`, status `authorized`; notification types `payment_hold_placed`, `payment_hold_failed`, `visit_charged`, `visit_charge_failed`; webhook events `payment_intent.amount_capturable_updated`, `payment_intent.payment_failed`, `setup_intent.succeeded` (**add these three to the live and test webhook endpoints**).
 
-Tests: backend 1093 (`PayAfterVisitTest`, 24), PHPStan max and Pint clean; dashboard 109 spec files pass and it builds; patient app 325; dentist app 331. Analyzers clean.
+Tests: backend 1107 (`PayAfterVisitTest` 24, `PayAfterVisitHardeningTest` 14), PHPStan max and Pint clean; dashboard 109 spec files pass and it builds; patient app 325; dentist app 331. Analyzers clean.
 
-Still to do before merge: `security-reviewer` and `contract-reviewer`; the "done when" run in Stripe test mode on the Android devices (Stripe CLI forwarding, decline test cards); Apple Pay in setup mode on an iPhone.
+**Reviewed 2026-11-20.** `security-reviewer`: 8 money issues (2 high), all fixed in TEETHi-Backend `c525c34` (PAYMENTS_SECURITY_FINDINGS.md, "P4 review"). Since then the balance moves on Stripe's own answer, re-read with the secret key, as well as on the webhook. `contract-reviewer`: no mismatches between the backend and the three clients; the spec's types for the new fields and the pay call's `201` were fixed in the same commit. The dentist's "Payment secured" refreshes when the dentist reloads the list (no push to the dentist for holds), which follows the no-polling rule.
+
+Still to do before merge: the "done when" run in Stripe test mode on the Android devices (Stripe CLI forwarding, decline test cards); Apple Pay in setup mode on an iPhone.
 
 ---
 

@@ -118,6 +118,17 @@ Findings from the `security-reviewer` passes over the payments rollout (`plans/P
 - **Low:** the abandoned-attempt sweep paged by offset while changing the filtered column, and never closed attempts with no intent id. Fixed.
 - **Low (process):** S11 edits a migration that already ran; it has only run locally.
 
+### P4 review (2026-11-20)
+`security-reviewer` over the pay-after-the-visit branches found authorization and data exposure fine, and 8 money issues in the new code, all fixed in TEETHi-Backend `c525c34` with a regression test each (`PayAfterVisitHardeningTest`):
+- **High:** a capture call that failed after Stripe had captured (lost answer, two runs at once) led to charging the whole balance on top. A failed capture now asks Stripe what happened and stops when it can't tell; a confirmed capture is recorded at once; settlement runs one at a time per visit.
+- **High:** a charge or hold retried after an unknown error used a fresh idempotency key, so the card could be charged or held twice. Retries now reuse the row and its key.
+- **Medium:** an off-session charge's webhook could arrive before the row knew its intent and be dropped. Webhooks now find the row through the intent's metadata, and the charge is recorded from Stripe's answer at once.
+- **Medium:** the patient's own Update card inside the 24 hours cancelled the standing hold before a new one existed. A standing hold is kept; a sheet hold replaces the old one only once approved.
+- **Low-medium:** a hold whose row was cancelled while Stripe was placing it stayed live with no record. It is now released as soon as Stripe answers.
+- **Low-medium:** staff settling the invoice, or a release failing when the visit was cancelled, left the hold on the card. Reconcile releases it, and the hourly run sweeps stranded holds.
+- **Low:** Pay now after a failed extra charge could collect the captured part again. Fixed with the immediate recording above.
+- **Low:** the hold job logged Stripe's message, which quotes card and customer ids. It logs the error code now.
+
 ## Checked and found fine
 - Patient receipt list, admin resend and the signed PDF route are scoped correctly; request logs record only parameter names, so signatures don't reach the log.
 - Dispute webhooks are signature-checked and idempotent; only ids go to Stripe as metadata.

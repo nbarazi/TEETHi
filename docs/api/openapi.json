@@ -1066,7 +1066,7 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "",
+                        "description": "The payment started. `pay_after_visit` adds `payment_mode` and leaves out `payment`; `invoice` is missing for an emergency no dentist has claimed yet.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1076,22 +1076,57 @@
                                             "type": "boolean"
                                         },
                                         "message": {
-                                            "anyOf": [
-                                                {
-                                                    "type": "null"
-                                                },
-                                                {
-                                                    "type": "array",
-                                                    "items": {}
-                                                },
-                                                {
-                                                    "type": "string"
-                                                }
-                                            ]
+                                            "type": "string"
                                         },
                                         "data": {
-                                            "type": "array",
-                                            "items": {}
+                                            "type": "object",
+                                            "properties": {
+                                                "invoice": {
+                                                    "$ref": "#/components/schemas/InvoiceResource"
+                                                },
+                                                "payment": {
+                                                    "$ref": "#/components/schemas/PaymentResource"
+                                                },
+                                                "payment_mode": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "setup",
+                                                        "hold"
+                                                    ]
+                                                },
+                                                "payment_sheet": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "payment_intent_client_secret": {
+                                                            "type": "string"
+                                                        },
+                                                        "setup_intent_client_secret": {
+                                                            "type": "string"
+                                                        },
+                                                        "customer_id": {
+                                                            "type": "string"
+                                                        },
+                                                        "customer_session_client_secret": {
+                                                            "type": "string"
+                                                        },
+                                                        "publishable_key": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "merchant_display_name": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "customer_id",
+                                                        "customer_session_client_secret",
+                                                        "publishable_key",
+                                                        "merchant_display_name"
+                                                    ]
+                                                }
+                                            }
                                         }
                                     },
                                     "required": [
@@ -14399,25 +14434,31 @@
                         ]
                     },
                     "pays_after_visit": {
-                        "type": "boolean",
-                        "description": "Pay after the visit (payments rollout P4): the patient chose it,\nand whether the card to charge is saved. Not for the dentist.\nA row just created holds no column defaults yet, hence `=== true`."
+                        "type": "boolean"
                     },
                     "card_saved": {
-                        "type": "string"
+                        "type": "boolean"
                     },
                     "payment_state": {
                         "type": [
                             "string",
                             "null"
                         ],
-                        "description": "`card_needed`, `card_saved`, `hold_placed`, `paid`, `hold_failed`\nor `capture_failed`; null when not paid after the visit."
+                        "enum": [
+                            "card_needed",
+                            "card_saved",
+                            "hold_placed",
+                            "paid",
+                            "hold_failed",
+                            "capture_failed",
+                            null
+                        ]
                     },
                     "payment_secured": {
                         "type": [
                             "boolean",
                             "null"
-                        ],
-                        "description": "The dentist's only view of payment: within 24 hours of the\nvisit, whether the money is secured (a hold, or nothing left\nto pay). Null otherwise. No amounts."
+                        ]
                     },
                     "consent_confirmed_at": {
                         "type": "string"
@@ -15322,13 +15363,27 @@
                         "description": "A cardholder disputed a payment and it is still open, or was\nlost. Staff follow it up in Stripe's dashboard."
                     },
                     "payment_problem": {
-                        "type": "string",
-                        "description": "Pay after the visit (payments rollout P4). `payment_problem`\nis what staff must follow up (`hold_failed`, `capture_failed`).\n`payment_state` adds the steps before it, for the dashboard's\nbadges: `card_saved`, then `hold_placed`; null for an invoice\nnot paid after the visit."
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "hold_failed",
+                            "capture_failed",
+                            null
+                        ]
                     },
                     "payment_state": {
                         "type": [
                             "string",
                             "null"
+                        ],
+                        "enum": [
+                            "card_saved",
+                            "hold_placed",
+                            "hold_failed",
+                            "capture_failed",
+                            null
                         ]
                     },
                     "payments": {
