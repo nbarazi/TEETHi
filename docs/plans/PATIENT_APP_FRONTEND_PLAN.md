@@ -765,7 +765,7 @@ On every start the app calls the public `GET /app-settings/patient` (`lib/core/a
 
 **Verified 2026-11-19** on the SM-A566B phone against the branch backend: a new Google account → Finish signing up → Home; a Gmail address that already had a password account landed in it; Delete account confirmed with Google. Not yet tried: the cross-app `409`, Set a password, iOS.
 
-**Apple built 2026-11-21, merged into `master` as `4913f57` (not pushed), not yet tried on a device.** Branch `phase-g/apple-sign-in` in TEETHi-Patient-App (`120763c`); backend merge `aa294a0`.
+**Apple built 2026-11-21, merged into `master` as `4913f57` (pushed 2026-11-21), not yet tried on a device.** Branch `phase-g/apple-sign-in` in TEETHi-Patient-App (`120763c`); backend merge `aa294a0`.
 - Packages `sign_in_with_apple` ^8.2.0 (approved 2026-11-21) and `crypto` ^3.0.8.
 - `AppleSignInConfig`: the Services ID (`--dart-define=APPLE_SERVICES_ID`, default `com.teethi.signin.patient`) and the return URL `<API_BASE_URL>/auth/apple/callback/patient`.
 - `AppleIdentitySource`: a fresh nonce per sign-in (32 random bytes, base64url), its SHA-256 to Apple, the raw nonce, the one-time code and the name Apple gives once to the backend. iOS uses the system sheet; Android uses the Custom Tab, and is offered **only when `API_BASE_URL` is HTTPS**, so the button stays hidden against the local `http://127.0.0.1` backend.

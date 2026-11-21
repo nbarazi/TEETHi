@@ -140,11 +140,11 @@ These need the owner, not code. Several gate phases in §5.
 
 ### 4.2 Verification debt (built, never run for real)
 - [x] **BE+PA** Stripe webhook end to end with the Stripe CLI, test mode (done 2026-11-12, E2E_REPORT_2026-11-12): pay, cancel the sheet, refund, redelivered event, out-of-order event, dispute created/closed. PAY P1, IMP Phase 11.
-- [ ] **PA** Android and iOS pass against the Stripe sandbox: success, decline, 3-D Secure (`4000 0025 0000 3155`), a saved card reused, a card removed, the invoice updating after the webhook. PAP Phase 10.
+- [ ] **PA** Android and iOS pass against the Stripe sandbox: success, decline, 3-D Secure (`4000 0025 0000 3155`), a saved card reused, a card removed, the invoice updating after the webhook. PAP Phase 10. Android passed 2026-11-12 (Phase B) and again with the P4 run 2026-11-21; iOS still open (needs a Mac).
 - [x] **ALL** (done 2026-11-12 on web and API; real mail and the app's receipt View still open) Payments P1–P3 "done when" checks in test mode: dispute flag in the dashboard; receipts by email (real mail transport) and in the app; a dentist adds and removes a treatment at completion and the patient, the admin and the invoice all agree. Dashboard P1–P3 and S5/S7 screens were never opened in a browser. PAY P1–P3.
 - [x] **PA+DA** (done 2026-11-12 except NCS, which waits on T0) Teledentistry T8 leftovers: complete visit 23 after the call and check the call log duration; leave and rejoin; switch camera; an audio call; a call over 15 minutes (token renewal) and an expired token dropping a participant after completion; NCS integer fields (needs NCS on). TELE T8.
 - [ ] **PA+DA** Push on Android and iOS devices (only web was verified; the on-screen pop-up was never seen). CR H4.
-- [ ] **PA+DA** Account deletion, app settings gate and the polish-phase changes on a device. PAP/DAP.
+- [ ] **PA+DA** Account deletion, app settings gate and the polish-phase changes on a device. PAP/DAP. Deleting a Google account passed on the phone and tablet 2026-11-19; password deletion, the settings gate and the polish changes are still unchecked.
 - [ ] **ALL** Re-run the full live E2E scenario (CR §7) after the `fix/r8-medium` merge (never re-run live) and again after each phase below. Several Low fixes were only covered by tests.
 - [ ] **PA** Map pins: one blank pin at the Santa Monica fallback hides whether doctor photos show on pins. PAP dentist photos.
 
@@ -172,41 +172,41 @@ Other:
 - [ ] Admin-side API gaps: an action on city requests (and wire `pending → notified` when the city is enabled); `filter[treatment_category_id]` on `GET /admin/treatments`; `AppointmentResource.invoice` is never populated; expose `account_deleted_at` (PR-10). ADP §7. All but `account_deleted_at` (waits on PR-10) done 2026-11-13 (TEETHi-Backend, merged to `master` and pushed 2026-11-15): `96f758e` (city requests: `PATCH`, `dismissed`, notify on enable), `472d4fe` (category filter), `df044b4` (invoice on the appointment detail).
 
 ### 4.4 Admin dashboard backlog
-- [ ] Phase 0 leftovers: global `429` surface (string already exists), `GET /enums` cache feeding every label, typed envelope union. CR M5, M3; ADP Phase 0.
-- [ ] Appointment detail view (backend already serves `GET /appointments/{id}` to admins) and a real Home page instead of the placeholder. CR M6.
-- [ ] R8-19 leftovers: doctor detail shows documents, appointments, services and availability; Invoices list gets patient and dentist columns; Appointments shows all treatments, not the first.
-- [ ] "Cities" column labelled "State/Emirate". CR E10.
+- [x] Phase 0 leftovers: global `429` surface (string already exists), `GET /enums` cache feeding every label, typed envelope union. CR M5, M3; ADP Phase 0. Done 2026-11-15 (TEETHi-Frontend `e54c49f`, Phase D).
+- [x] Appointment detail view (backend already serves `GET /appointments/{id}` to admins) and a real Home page instead of the placeholder. CR M6. Done 2026-11-15 (TEETHi-Frontend `89718c1`, `81eb5b0`).
+- [x] R8-19 leftovers: doctor detail shows documents, appointments, services and availability; Invoices list gets patient and dentist columns; Appointments shows all treatments, not the first. Done 2026-11-15 and 2026-11-18 (Phase D; services, availability and invoice names needed the 2026-11-18 API gaps).
+- [x] "Cities" column labelled "State/Emirate". CR E10. Fixed 2026-11-15 (TEETHi-Frontend `94acbf6`).
 - [ ] "Deleted" badge (after PR-10).
 
 ### 4.5 Patient app backlog
-- [ ] **Phase 2b / H5:** insurance management screen (list, add, edit, delete, card photos) outside the booking flow; a payment methods screen (`GET/POST/DELETE /patient/payment-methods`, SetupIntent sheet). CR H5, PAP Phase 2.
-- [ ] **M7:** remove leftover mock state. `lib/state/app_state.dart` and `lib/data/mock_data.dart` are still referenced by 27 files (booking draft, payment options, parts of profile).
-- [ ] **R8-01 leftover:** handle the new `404` on a dentist's profile, reviews and slots (dentist no longer listed).
-- [ ] **E8:** relative labels ("Tomorrow") use the device date, not the visit's zone.
-- [ ] **E9:** booking requires device geolocation to confirm the address, with no fallback (no geocoder exists).
-- [ ] **E10:** "Use profile" in the visit-address step does nothing when the profile has no address; the consent list briefly shows the previous list.
-- [ ] Teledentistry: the Consent forms banner counts an unsigned teledentistry consent as blocking all visits; Join call only on Visits (not Home's next-visit card); Android foreground service for a call in the background; keep the screen awake. TELE T3/T4.
-- [ ] "Already reviewed" signal for completed visits (hidden only per session today). PAP Phase 6.
-- [ ] Finish the swap to `GET /enums` labels where screens still hardcode them. PAP Phase 0, CR M3.
-- [ ] Lint debt (17 infos: `withOpacity` etc.). CR M11.
+- [x] **Phase 2b / H5:** insurance management screen (list, add, edit, delete, card photos) outside the booking flow; a payment methods screen (`GET/POST/DELETE /patient/payment-methods`, SetupIntent sheet). CR H5, PAP Phase 2. Done 2026-11-15 (TEETHi-Patient-App `737073f`); "Make default" added 2026-11-18.
+- [x] **M7:** remove leftover mock state. `lib/state/app_state.dart` and `lib/data/mock_data.dart` are still referenced by 27 files (booking draft, payment options, parts of profile). Fixed 2026-11-15 (TEETHi-Patient-App `ee1f245`): mock state files deleted.
+- [x] **R8-01 leftover:** handle the new `404` on a dentist's profile, reviews and slots (dentist no longer listed). Done 2026-11-15 (Phase D).
+- [x] **E8:** relative labels ("Tomorrow") use the device date, not the visit's zone. Fixed 2026-11-15 (TEETHi-Patient-App `2940a92`).
+- [x] **E9:** booking requires device geolocation to confirm the address, with no fallback (no geocoder exists). Fixed 2026-11-15 (TEETHi-Patient-App `a6afe6d`): "Pin on map".
+- [x] **E10:** "Use profile" in the visit-address step does nothing when the profile has no address; the consent list briefly shows the previous list. Fixed 2026-11-15 (TEETHi-Patient-App `a6afe6d`, `a4bf969`).
+- [x] Teledentistry: the Consent forms banner counts an unsigned teledentistry consent as blocking all visits; Join call only on Visits (not Home's next-visit card); Android foreground service for a call in the background; keep the screen awake. TELE T3/T4. Done 2026-11-15 (Phase D); background call checked on the phone 2026-11-18.
+- [x] "Already reviewed" signal for completed visits (hidden only per session today). PAP Phase 6. Done 2026-11-18: `reviewed` on the appointment API, per-session memory dropped.
+- [x] Finish the swap to `GET /enums` labels where screens still hardcode them. PAP Phase 0, CR M3. Fixed 2026-11-15 (TEETHi-Patient-App `8288afa`).
+- [x] Lint debt (17 infos: `withOpacity` etc.). CR M11. Fixed 2026-11-15 (TEETHi-Patient-App `7cc0c9f`); `flutter analyze` clean 2026-11-21.
 
 ### 4.6 Dentist app backlog
-- [ ] **R8-01 leftover:** show `bookable` / `bookability_gaps` from `GET /doctor/dashboard` so a dentist knows why patients can't see them.
-- [ ] Teledentistry: Android foreground service, keep the screen awake, and the schedule note should actually check that Virtual Consultation is in the dentist's services. TELE T5.
-- [ ] Change-password screen (the view model already has it; no screen offers it). DAP Phase 12 lists it, but it doesn't depend on social sign-in.
+- [x] **R8-01 leftover:** show `bookable` / `bookability_gaps` from `GET /doctor/dashboard` so a dentist knows why patients can't see them. Done 2026-11-15 (Phase D).
+- [x] Teledentistry: Android foreground service, keep the screen awake, and the schedule note should actually check that Virtual Consultation is in the dentist's services. TELE T5. Done 2026-11-15 (Phase D); background call checked on the tablet 2026-11-18.
+- [x] Change-password screen (the view model already has it; no screen offers it). DAP Phase 12 lists it, but it doesn't depend on social sign-in. Done 2026-11-15 (Phase D).
 - [ ] Phase 1 "finish your profile" routing (after PR-5).
-- [ ] Smaller gaps: open message attachments and uploaded credentials (`url_launcher` + fresh signed URL); Home bell dot after reading notifications; reset per-account view models on a `401` sign-out; visit workflow forgets what was saved when reopened. DAP Phases 2, 3, 8, 10.
-- [ ] Finish the swap to `GET /enums` labels; lint debt (46 infos). DAP Phase 0, CR M11.
+- [x] Smaller gaps: open message attachments and uploaded credentials (`url_launcher` + fresh signed URL); Home bell dot after reading notifications; reset per-account view models on a `401` sign-out; visit workflow forgets what was saved when reopened. DAP Phases 2, 3, 8, 10. Done 2026-11-15 (Phase D).
+- [x] Finish the swap to `GET /enums` labels; lint debt (46 infos). DAP Phase 0, CR M11. Fixed 2026-11-15 (TEETHI-Dentist-App `47ea75f`, `6650bbe`); `flutter analyze` clean 2026-11-21.
 
 ### 4.7 Feature roadmap (new builds)
 | Feature | Gated by | Source |
 |---|---|---|
-| **Payments P4:** card on file, 24-hour hold, charge on completion | D6 decided; D6-R revisit; Stripe test-mode run first | PAY P4 |
+| **Payments P4:** card on file, 24-hour hold, charge on completion. **Done 2026-11-21** (Phase E) | D6 decided; D6-R revisit; Stripe test-mode run first | PAY P4 |
 | **Payments P5:** pay later limited or removed, optional cash | D8 | PAY P5 |
 | **Payments P6:** cancellation and no-show fees, partial refunds, waive fee | D7, P4 | PAY P6 |
 | **Payments P7:** dentist earnings ledger, statements, bank-transfer payouts (closes E2E R8-25) | D2, D3, D5 | PAY P7 |
 | **Payments P8:** Stripe Connect payouts | D4-L, P7, when manual payouts hurt | PAY P8 |
-| **Sign in with Google and Apple:** backend Phase 16, patient Phase 11, dentist Phase 12 (plus Apple token revocation in account deletion) | §3 Google/Apple setup, HTTPS, Android/iOS devices | IMP Phase 16, PAP Phase 11, DAP Phase 12 |
+| **Sign in with Google and Apple:** backend Phase 16, patient Phase 11, dentist Phase 12 (plus Apple token revocation in account deletion). **Built and pushed 2026-11-21**; live checks for Apple, iOS and the rest of Phase G still open | §3 Google/Apple setup, HTTPS, Android/iOS devices | IMP Phase 16, PAP Phase 11, DAP Phase 12 |
 | Dashboard Phase 12: read-only messaging viewer | PR-6 | ADP Phase 12 |
 | Teledentistry CallKit / VoIP ring | PR-11 | TELE T10 |
 | Claim-ready receipts (CDT codes, NPI, tax ID); insurance; BNPL / financing | Later, out of scope today | PAY §4 |
@@ -324,8 +324,8 @@ Each phase lists what to do, what it's waiting on, and when it's done. Phases 2 
 
 ### Phase G — Sign in with Google and Apple (2–3 weeks)
 **Waits on:** §3 Google/Apple setup, HTTPS domain or tunnel, dependency approvals (§2.3), an Android device; a Mac for iOS.
-- [x] Backend Phase 16, including `AppleTokenClient::revoke()` in account deletion. **Google built and merged 2026-11-19** (backend `42c96b5`). **Apple built 2026-11-21** on `phase-g/apple-sign-in` (backend `0947b4f`, review fixes `a6df5ea`), merged into `master` as `aa294a0`, not pushed: code exchange, revocation at deletion, Android return URL.
-- [x] Patient Phase 11 and dentist Phase 12 (shared pieces built the same way in both). **Google built and merged 2026-11-19** (patient `36b1903`, dentist `4705faf`). **Apple built 2026-11-21** on `phase-g/apple-sign-in` (patient `120763c`, dentist `9b16ac0`), merged as patient `4913f57` and dentist `e223da2`, not pushed.
+- [x] Backend Phase 16, including `AppleTokenClient::revoke()` in account deletion. **Google built and merged 2026-11-19** (backend `42c96b5`). **Apple built 2026-11-21** on `phase-g/apple-sign-in` (backend `0947b4f`, review fixes `a6df5ea`), merged into `master` as `aa294a0` and pushed 2026-11-21: code exchange, revocation at deletion, Android return URL.
+- [x] Patient Phase 11 and dentist Phase 12 (shared pieces built the same way in both). **Google built and merged 2026-11-19** (patient `36b1903`, dentist `4705faf`). **Apple built 2026-11-21** on `phase-g/apple-sign-in` (patient `120763c`, dentist `9b16ac0`), merged as patient `4913f57` and dentist `e223da2`, pushed 2026-11-21.
 - [ ] Verify live on Android and iOS per each plan's "Verify live" list. Android, Google: new accounts, linking an existing Gmail account and deleting with Google pass on the phone and tablet. Still to do: the cross-app `409`, Set a password, Apple, and iOS (needs a Mac).
 
 **Done when:** all "Verify live" checks in PAP Phase 11 and DAP Phase 12 pass.
