@@ -246,7 +246,7 @@ Each phase lists what to do, what it's waiting on, and when it's done. Phases 2 
     - Pushes went to Firebase's generic "Miscellaneous" channel at default importance, so they never popped up. Both apps now create a high-importance "TEETHi updates" channel (English and Arabic) and name it as Firebase's default.
     - Tapping a message push opened the dentist Inbox on Alerts, where messages aren't listed; it now opens on Messages.
   - Rechecked after the fixes: the toast shows on the phone, the tablet's push lands in `teethi_updates` at high importance, and the tap opens the Inbox on Messages.
-  - **Not investigated:** the patient Home bell showed 28 while the account had 41 unread notifications, and didn't change on a later push.
+  - **Found and fixed** (TEETHi-Patient-App `d0fc953`, same branch): the patient bell counted unread notices only among the newest 30 the inbox loads, so 42 unread showed as 28 and a new push didn't move it. The Home and shell bells now use the dashboard's `unread_notifications_count`, adjusted as notices are marked read until the next load (as the dentist app does), and Mark all read always calls the server. Checked on the phone: the bell showed 44 for 44 unread.
   - Test data: four "New message" notifications (conversation 2) added for patient@teethi.test and three for dr.michael@teethi.test.
   - Running `gcloud` on this PC needs `PYTHONHOME` cleared first (`$env:PYTHONHOME = ''`): it is set system-wide to the ZKBioTime Python, which breaks gcloud's bundled one.
 - [ ] Full live E2E scenario on web plus the Android checks above; log new findings with a new prefix in a new E2E report.
