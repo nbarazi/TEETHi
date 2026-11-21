@@ -73,6 +73,9 @@ Update the Claude Design project to match §3.1: remove "Next available", "Remin
 | T10 | Incoming-call ring | **v1: a high-priority generic push** ("Your consultation is ready") that opens the visit. **Later: CallKit / ConnectionService** with APNs VoIP pushes. |
 | T11 | Licensure | **Dentists list the states they are licensed in. Tele booking shows only dentists licensed in the patient's state. The patient confirms their current state at Join.** |
 | T12 | Teledentistry consent | **A new consent document** in the existing legal documents flow, required before the first tele booking. |
+| T13 | Licensure check (MR PR-1) | **Accepted as self-declared** (2026-11-21): no admin verification of licensed states. The dentist is responsible for listing only states they hold a licence in. |
+| T14 | Call screen privacy (MR PR-2) | **Block screenshots and the app-switcher preview on the call screen** (`FLAG_SECURE` on Android; a covered app-switcher snapshot on iOS), **and show an ongoing-call notification** (2026-11-21). The notification already exists (the call's foreground service, TELE T4/T5); the screenshot block is still to build. |
+| T15 | Call joins and the PHI log (MR PR-3) | **`tele_session_participants` is enough** (2026-11-21). Token issues stay in `PhiAccessLog`; joins and leaves are not copied there. |
 | Q4 | Cancel | **Patients can cancel a tele visit with the same reasons and rules as a home visit.** |
 | Q5 | Dentist screens | **Reuse the dentist app's existing patient/request page design. The call screen matches the patient app's.** |
 | — | Payment | **The same payment step as the other visit types** (Stripe sheet or pay later). |
@@ -116,7 +119,7 @@ Update the Claude Design project to match §3.1: remove "Next available", "Remin
 - Agora BAA signed **before any real patient call** (T0).
 - Media encryption on, with a key for each session, never logged.
 - No names, treatments or reasons in channel names, uids or pushes (decision #14).
-- Each token issue and each join writes `PhiAccessLog`.
+- Each token issue writes `PhiAccessLog`. Joins and leaves are recorded in `tele_session_participants` only (decision T15).
 - No recording, chat or sharing (T7–T9).
 - Run the `security-reviewer` agent before merge.
 
@@ -306,9 +309,9 @@ T3 can start once T1's contract is fixed, in parallel with T2. In total, about *
     - 206 patient and 246 dentist Flutter tests pass; both debug APKs build.
   - **Dashboard:** nothing to fix (no `innerHTML`, guards unchanged, the call log has no channel or key fields).
   - **Left for a decision (not fixed):**
-    - Licensed states are self-declared by the dentist with no admin check (decision T11). A dentist can list every state.
-    - Joins are recorded in `tele_session_participants`, not in the PHI access log; §5.3 says "each token issue and each join". Token issues are in the access log.
-    - The call screen can be screenshotted and shows in the app switcher (no `FLAG_SECURE`); there is still no Android foreground service or ongoing-call notification.
+    - ~~Licensed states are self-declared by the dentist with no admin check (decision T11). A dentist can list every state.~~ Accepted 2026-11-21 (decision T13).
+    - ~~Joins are recorded in `tele_session_participants`, not in the PHI access log; §5.3 says "each token issue and each join". Token issues are in the access log.~~ Enough as is, decided 2026-11-21 (decision T15).
+    - The call screen can be screenshotted and shows in the app switcher (no `FLAG_SECURE`); there is still no Android foreground service or ongoing-call notification. Decided 2026-11-21 (decision T14): block both. The foreground service and ongoing-call notification were built in Phase D (2026-11-15); the screenshot and app-switcher block is still to build.
     - Agora's region isn't pinned (`areaCode`), so relays are global. Media is encrypted with the visit key either way. Decide with the BAA.
   - [ ] **Live run on two devices** — first call run 2026-11-10; a few checks are still open.
     - Setup: patient app on a Galaxy A56 (SM-A566B), dentist app on a Galaxy Tab A9+ (SM-X210), both Android 16, debug builds with the T8 fixes, the dev backend over `adb reverse` with the real Agora provider. Test visit 23, a video call.
