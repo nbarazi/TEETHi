@@ -188,7 +188,7 @@ Beyond H6, H7 and M4, the pass found and fixed the following. All are merged (ba
 - clamd running next to the API and `UPLOAD_SCANNER=clamav` (`CLAMAV_HOST`, `CLAMAV_PORT`); every environment except `local` and `testing` refuses uploads without it (Phase D upload hardening)
 - the web server's access log leaving out the query string for `/api/v1/files`: it carries a working 30-minute signature and a path with the patient profile id (Phase D security review, low)
 - `GOOGLE_CLIENT_IDS` set to the Web-application client and both iOS clients, and the release (or Play App Signing) SHA-1s added to both Android OAuth clients (Phase 16)
-- `APPLE_CLIENT_IDS` (both bundle IDs and both Services IDs), `APPLE_TEAM_ID`, `APPLE_KEY_ID` and `APPLE_PRIVATE_KEY_PATH` (the `.p8` outside the repo) set together: without the key, Apple sign-in works but no refresh token is kept, so deleting an Apple-linked account can't revoke Apple's grant. The code exchange and revocation were built 2026-11-21 (Phase 16)
+- `APPLE_CLIENT_IDS` (both bundle IDs and both Services IDs), `APPLE_TEAM_ID`, `APPLE_KEY_ID` and `APPLE_PRIVATE_KEY_PATH` (the `.p8` outside the repo) set together: without the key, Apple sign-in works but no refresh token is kept, so deleting an Apple-linked account can't revoke Apple's grant. The code exchange and revocation were built 2026-11-21 (Phase 16); outside `local` and `testing` the app now refuses to boot with `APPLE_CLIENT_IDS` set and the key missing. Also: the queue worker must run, since a refused revocation is retried by `RevokeAppleAuthorization`
 
 ### Merge check (2026-10-19, backend Phase 10)
 `feat/phase-10-hardening` was fast-forwarded into backend `master` (`32fe915`, 8 commits).

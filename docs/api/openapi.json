@@ -1611,20 +1611,46 @@
         "/v1/account": {
             "delete": {
                 "operationId": "v1.account.destroy",
+                "description": "The body depends on the account: one with a password sends\n`password`; one made with Google or Apple and no password sends\n`provider`, `id_token` and, for Apple, `nonce` from a new sign-in\nwith the linked provider account (`422` on `id_token`,\n`auth.social_reauth_failed`, otherwise).",
                 "summary": "`DELETE /account`: the patient or dentist deletes their own account\n(App Store guideline 5.1.1(v)). Care and billing records are kept;\nsee `AccountDeletionService`. Dashboard staff are managed in the\ndashboard instead",
                 "tags": [
                     "Auth"
                 ],
-                "parameters": [
-                    {
-                        "name": "password",
-                        "in": "query",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "password": {
+                                        "type": "string",
+                                        "description": "Accounts with a password: the current password."
+                                    },
+                                    "provider": {
+                                        "type": "string",
+                                        "description": "Accounts without a password: the linked provider, `google` or `apple`.",
+                                        "enum": [
+                                            "google",
+                                            "apple"
+                                        ]
+                                    },
+                                    "id_token": {
+                                        "type": "string",
+                                        "description": "Accounts without a password: an unexpired ID token from the linked provider account."
+                                    },
+                                    "nonce": {
+                                        "type": "string",
+                                        "description": "Apple only: the raw nonce whose SHA-256 is in the token."
+                                    },
+                                    "authorization_code": {
+                                        "type": "string",
+                                        "description": "Apple only, optional: the one-time code from the same sign-in, used to revoke the authorization."
+                                    }
+                                }
+                            }
                         }
                     }
-                ],
+                },
                 "responses": {
                     "200": {
                         "description": "",
@@ -11871,24 +11897,44 @@
                         "name": "app",
                         "in": "path",
                         "required": true,
+                        "description": "Which app the result is for.",
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "enum": [
+                                "patient",
+                                "doctor"
+                            ]
                         }
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "",
+                    "404": {
+                        "description": "Any other app.",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object"
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "message"
+                                    ]
                                 }
                             }
                         }
                     },
-                    "404": {
-                        "$ref": "#/components/responses/ModelNotFoundException"
+                    "303": {
+                        "description": "Redirects to `intent://callback?<Apple's fields>#Intent;package=<the app>;scheme=signinwithapple;end`; no body.",
+                        "content": {
+                            "text/html": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": []

@@ -740,7 +740,16 @@ Merged into TEETHi-Backend `master` (`6cf2a8c`); 586 Pest tests, PHPStan max and
 - `AccountDeletionService` calls `revokeFor()` first, outside the transaction; a refused revocation is logged and deletion goes on.
 - `POST /auth/apple/callback/{patient|doctor}` (`throttle:api`) answers with a `303` to `intent://callback?<code, id_token, state, user, error>#Intent;package=<app>;scheme=signinwithapple;end`. Other posted fields are dropped; any other `{app}` is `404`. Packages come from `services.apple.android_packages`.
 - Tests: `AppleSignInTest` (13): the signed secret's claims and key id, revoke, error-code-only logging, nothing called when unconfigured, refresh token stored encrypted with its client, a failed exchange still signs in, no call without a code, the verifier's audience, revocation at deletion (and deletion when Apple refuses), the callback for both apps and `404`. 1123 Pest tests, PHPStan and Pint clean.
-- To switch it on: `APPLE_CLIENT_IDS` (both bundle IDs and both Services IDs), `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY_PATH` (outside the repo), and the API on HTTPS for Android's return URL.
+- To switch it on: `APPLE_CLIENT_IDS` (both bundle IDs and both Services IDs), `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY_PATH` (outside the repo), and the API on HTTPS for Android's return URL. Set `APPLE_SERVICES_ID_PATIENT` / `APPLE_SERVICES_ID_DOCTOR` if the Services IDs aren't `com.teethi.signin.patient` / `com.teethi.signin.dentist`.
+
+**Reviewed 2026-11-21, fixed in TEETHi-Backend `a6df5ea`.** `security-reviewer` found 5 (1 high); `contract-reviewer` found 3 doc/wording mismatches.
+- **High:** web-flow codes (Android, a Services ID) are now exchanged with that app's return URL as `redirect_uri`, which Apple requires. Without it Android users would never have had a refresh token, so their deletion couldn't revoke.
+- Deletion now also accepts `authorization_code` from the confirming Apple sign-in and uses it when no token was kept. A revocation Apple refuses goes to `RevokeAppleAuthorization`, an encrypted queued job (5 tries, up to 2 hours apart), instead of being lost with the row. An Apple account deleted with nothing to revoke is logged.
+- A refresh token is kept only if the ID token in Apple's own response has the same `sub` and `aud` as the verified sign-in.
+- Outside `local` and `testing` the app refuses to boot with `APPLE_CLIENT_IDS` set but the team, key ID or a readable key missing.
+- The kept token is cleared after a successful revocation.
+- Spec: `DELETE /account` now shows its JSON body (an operation transformer in `AppServiceProvider`, since Scramble assumes a DELETE has none), and the return URL shows only `303`/`404` with `app` `patient|doctor`. `auth.social_already_linked` names Google or Apple.
+- Tests: `AppleSignInTest` 20; 1130 Pest tests, PHPStan and Pint clean. Still unverified against Apple itself: the exchange with `redirect_uri` needs a real Android web-flow code.
 
 **Changed from the plan below, after a security review:**
 - **Linking by email needs an email Google vouches for today.** Google's `email_verified` only says the address was proven when the Google account was made. So an existing account is opened only for `@gmail.com` / `@googlemail.com`, or when the `hd` claim matches the email's domain (`SocialIdentity::emailIsCurrent()`). Any other address gets `409 auth.social_link_requires_password`: sign in with the password instead. A brand-new account with such an email is still created.
