@@ -41,7 +41,7 @@ Already wired: `POST /register` (`role: "doctor"`), `POST /login` (a non-doctor 
 - **Profile completeness is tracked server-side**: `DoctorProfileResource.missing_fields` lists what's still absent among `first_name, last_name, date_of_birth, city_id, mobile_no, health_authority_registration_no`; `profile_completed_at` is set once none are missing. **`date_of_birth` is required for completeness but the Register screen never collects it** — add it to onboarding or the profile screen (`PATCH /doctor/profile { date_of_birth: "1985-04-12" }`, must be before today) or the profile will never complete.
 - **There is no approval gate in the API**: a registered doctor is `active` immediately. Whether an admin should approve a doctor before they see requests is a product question (§16).
 
-### 2.1 Sign in with Google and Apple (backend decision #15, Phase 16; Google built, Apple not yet)
+### 2.1 Sign in with Google and Apple (backend decision #15, Phase 16; Google built and verified, Apple built and not yet tried on a device)
 
 Same endpoint and rules as `docs/plans/PATIENT_APP_FRONTEND_PLAN.md` §2.1, with `role: "doctor"`:
 
@@ -535,15 +535,17 @@ On every start the app calls the public `GET /app-settings/doctor` (`lib/core/ap
 **Verified (2026-10-29):** TEETHI-Dentist-App `fb434ca`, merged to `master` (fast-forward) 2026-10-30; 218 tests pass on `master`. `test/widgets/remove_photo_dialog_test.dart` (3). 218 tests pass (the 10 contract tests skip without a backend); analyzer unchanged at 47 infos. Not checked in the browser or on a device.
 
 ### Phase 12 — Sign in with Google and Apple (backend Phase 16, decision #15)
-**Google built 2026-11-19, Apple not started.** Branch `phase-g/google-sign-in` in TEETHI-Dentist-App (`bc74c39`, `e3508c9`, `8b90886`, `4705faf`), merged into `master` and pushed 2026-11-19. Built as in the patient plan's Phase 11 notes (same button, Set a password, Delete account with Google, log redaction). The two unticked items are done for Google and wait only on Apple. Dentist-specific:
+**Google built 2026-11-19; Apple built 2026-11-21 (see below).** Branch `phase-g/google-sign-in` in TEETHI-Dentist-App (`bc74c39`, `e3508c9`, `8b90886`, `4705faf`), merged into `master` and pushed 2026-11-19. Built as in the patient plan's Phase 11 notes (same button, Set a password, Delete account with Google, log redaction). Dentist-specific:
 - A Google sign-up goes to onboarding with first and last name (split from the Google name) and mobile. Its submit button reads **Continue** without a mobile and **Text me a code** with one; it never sends an email code. "Skip for now" goes into the app, not to verify-email.
 - Tests: `test/features/social_sign_in_test.dart` (18). 328 tests, analyze clean.
 
 **Verified 2026-11-19** on the SM-X210 tablet against the branch backend: a new Google account → onboarding with names and mobile → Home; Delete account confirmed with Google. Not yet tried: the cross-app `409`, Set a password, the dashboard's Doctors list, iOS.
 
+**Apple built 2026-11-21, not merged, not yet tried on a device.** Branch `phase-g/apple-sign-in` in TEETHI-Dentist-App (`9b16ac0`); backend `0947b4f`. The same as the patient plan's Apple notes (Phase 11), with this app's values: Services ID default `com.teethi.signin.dentist` (`--dart-define=APPLE_SERVICES_ID`), return URL `<API_BASE_URL>/auth/apple/callback/doctor`, and the entitlement on `com.teethi.teethiDentistApp`. An Apple sign-up goes to onboarding like a Google one. Tests: 6 more in `social_sign_in_test.dart`; 341 tests, analyze clean, debug APK builds.
+
 Needs backend Phase 16 and the Google/Apple setup listed there. The contract is in §2.1. This is the same work as the patient plan's Phase 11, whose checklist has the full detail (packages, nonce, cancel handling, brand rules, hiding the buttons in a browser, logout, tests, platform setup). Only the differences are listed here.
 
-- [ ] **Shared with the patient app, built the same way:**
+- [x] **Shared with the patient app, built the same way:**
   - `SocialCredential`, `SocialIdentitySource` with Google and Apple implementations, `AuthRemoteDataSource.socialLogin` with `role: "doctor"`, `SocialSignInUseCase` and `AuthViewModel.continueWith(provider)`.
   - The brand-compliant buttons, shown on Android and iOS only (hidden under `kIsWeb`, which this app uses for local dev).
   - Google sign-out on logout, and parsing `has_password` / `sign_in_providers`.
@@ -561,7 +563,7 @@ Needs backend Phase 16 and the Google/Apple setup listed there. The contract is 
   - `has_password` false → **Set a password** (forgot/reset with the email filled in).
 
   Show "Signed in with Google/Apple" for the listed providers.
-- [ ] **Platform setup:** as in the patient plan, with this app's values:
+- [x] **Platform setup:** as in the patient plan, with this app's values:
   - Android package `com.teethi.teethi_dentist_app`, and this app's own Android OAuth client with the debug SHA-1. This app is already on AGP 9.1 / Gradle 9.3, so no upgrade is needed.
   - iOS bundle `com.teethi.teethiDentistApp`, with its own iOS client and the Apple capability.
   - Apple Services ID for the dentist app (used by Android), and return URL `https://<api-host>/api/v1/auth/apple/callback/doctor`.

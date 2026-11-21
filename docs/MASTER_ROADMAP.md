@@ -15,7 +15,7 @@
 
 ### 1.1 What's done
 - **Core visit lifecycle works end to end in all four apps:** sign-up and verification, dentist onboarding and vetting (bookable gate), booking (home, emergency open pool, teledentistry), consent, insurance, accept / reschedule (rule A) / start / document / complete, reports, prescriptions, recommendations, reviews, invoices, messaging, push (web verified), account deletion, app settings (maintenance / forced update).
-- **Backend:** plan phases 0–15, 17, 18, the photo and account-deletion addenda, Stripe Payment Sheet (Phase 11), teledentistry T1–T2, payments P1–P3, and security fixes S1–S7 are merged. Only **Phase 16 (Google/Apple sign-in)** is unbuilt.
+- **Backend:** plan phases 0–15, 17, 18, the photo and account-deletion addenda, Stripe Payment Sheet (Phase 11), teledentistry T1–T2, payments P1–P4, and security fixes S1–S7 are merged. Phase 16 (Google/Apple sign-in): Google merged, Apple built on a branch and waiting for the Apple Developer setup to test.
 - **Dashboard:** phases 0–11 (with Phase 0 leftovers), timezone, currency, app settings, teledentistry T6, payments P1–P3 and S5/S7 merged. Optional Phase 12 (messaging viewer) not built.
 - **Patient app:** phases 0–10 (Phase 2b and Phase 10's device Stripe pass open), teledentistry T3–T4, payments P2–P3, Arabic.
 - **Dentist app:** phases 0–11, teledentistry T5, payments P3, Arabic. Phase 12 (social sign-in) not built.
@@ -82,7 +82,7 @@ Nothing in a phase that depends on one of these should start until the answer is
 
 ### 2.3 Engineering approvals
 - ~~`firebase/php-jwt` as an explicit backend dependency (Phase 16).~~ Approved and added 2026-11-19. IMP Phase 16.
-- Flutter packages: `google_sign_in` 7.x and `crypto` approved 2026-11-19 (`google_sign_in` added to both apps; `crypto` waits for Apple, which needs it for the nonce). `sign_in_with_apple` still needs approval. PAP Phase 11.
+- Flutter packages: `google_sign_in` 7.x and `crypto` approved 2026-11-19, `sign_in_with_apple` approved 2026-11-21; all three are in both apps. PAP Phase 11.
 - Optional `timezone` package for real zone abbreviations (PDT) in the patient app. PAP timezone section.
 
 ---
@@ -324,8 +324,8 @@ Each phase lists what to do, what it's waiting on, and when it's done. Phases 2 
 
 ### Phase G — Sign in with Google and Apple (2–3 weeks)
 **Waits on:** §3 Google/Apple setup, HTTPS domain or tunnel, dependency approvals (§2.3), an Android device; a Mac for iOS.
-- [ ] Backend Phase 16, including `AppleTokenClient::revoke()` in account deletion. **Google built and merged 2026-11-19** (backend `42c96b5`); Apple not started.
-- [ ] Patient Phase 11 and dentist Phase 12 (shared pieces built the same way in both). **Google built and merged 2026-11-19** (patient `36b1903`, dentist `4705faf`); Apple not started.
+- [x] Backend Phase 16, including `AppleTokenClient::revoke()` in account deletion. **Google built and merged 2026-11-19** (backend `42c96b5`). **Apple built 2026-11-21** on `phase-g/apple-sign-in` (backend `0947b4f`), not merged: code exchange, revocation at deletion, Android return URL.
+- [x] Patient Phase 11 and dentist Phase 12 (shared pieces built the same way in both). **Google built and merged 2026-11-19** (patient `36b1903`, dentist `4705faf`). **Apple built 2026-11-21** on `phase-g/apple-sign-in` (patient `120763c`, dentist `9b16ac0`), not merged.
 - [ ] Verify live on Android and iOS per each plan's "Verify live" list. Android, Google: new accounts, linking an existing Gmail account and deleting with Google pass on the phone and tablet. Still to do: the cross-app `409`, Set a password, Apple, and iOS (needs a Mac).
 
 **Done when:** all "Verify live" checks in PAP Phase 11 and DAP Phase 12 pass.

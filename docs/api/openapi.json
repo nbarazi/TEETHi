@@ -11858,6 +11858,42 @@
                 "security": []
             }
         },
+        "/v1/auth/apple/callback/{app}": {
+            "post": {
+                "operationId": "v1.auth.apple-callback",
+                "description": "Android has no native Sign in with Apple, so the app opens Apple's\npage in a Custom Tab; Apple posts the result here as a form. This\nanswers with a `303` into the app (`{app}` is `patient` or\n`doctor`), carrying Apple's fields unchanged. Nothing is verified or\nstored here: the app sends the ID token to `POST /auth/social`, like\niOS. The apps never call this themselves.",
+                "summary": "Apple's return URL for Sign in with Apple on Android",
+                "tags": [
+                    "SocialAuth"
+                ],
+                "parameters": [
+                    {
+                        "name": "app",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    }
+                },
+                "security": []
+            }
+        },
         "/v1/specializations": {
             "get": {
                 "operationId": "specializations.index",

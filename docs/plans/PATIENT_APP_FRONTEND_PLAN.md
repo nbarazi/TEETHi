@@ -66,7 +66,7 @@ This document tells a Flutter engineer/agent **what exists in the Teethi backend
 
 **Verified**: _(fill in once wired — note the Flutter/http-client version used, and confirm the OTP round-trip works against a real inbox/phone once Twilio is configured, not just the dev "log channel" fallback)_
 
-### 2.1 Sign in with Google and Apple (backend decision #15, Phase 16; Google built, Apple not yet)
+### 2.1 Sign in with Google and Apple (backend decision #15, Phase 16; Google built and verified, Apple built and not yet tried on a device)
 
 | Endpoint | Purpose | Body | Auth |
 |---|---|---|---|
@@ -751,7 +751,7 @@ On every start the app calls the public `GET /app-settings/patient` (`lib/core/a
 **Verified (2026-10-29):** TEETHi-Patient-App `e8a2463`, merged to `master` (fast-forward) 2026-10-30; 164 tests pass on `master`. `test/widgets/remove_photo_dialog_test.dart` (3: Cancel, confirm, tap outside). 164 tests pass, analyzer unchanged at 17 infos. Not checked in the browser (the pane stopped rendering) or on a device. Still open: the Android/iOS Stripe pass above.
 
 ### Phase 11 — Sign in with Google and Apple (backend Phase 16, decision #15)
-**Google built 2026-11-19, Apple not started.** Branch `phase-g/google-sign-in` in TEETHi-Patient-App (`3ad68a3`, `001afe2`, `36b1903`), merged into `master` and pushed 2026-11-19. The contract is in §2.1. The dentist plan's Phase 12 is the same work; build the shared pieces the same way in both apps. The unticked items below are done for Google and wait only on their Apple half.
+**Google built 2026-11-19; Apple built 2026-11-21 (see below).** Branch `phase-g/google-sign-in` in TEETHi-Patient-App (`3ad68a3`, `001afe2`, `36b1903`), merged into `master` and pushed 2026-11-19. The contract is in §2.1. The dentist plan's Phase 12 is the same work; build the shared pieces the same way in both apps. The unticked items below are done for Google and wait only on their Apple half.
 
 **What was built for Google:**
 - `google_sign_in` ^7.2.0 (approved). `crypto` was approved too but isn't added: only the Apple nonce needs it.
@@ -765,6 +765,15 @@ On every start the app calls the public `GET /app-settings/patient` (`lib/core/a
 
 **Verified 2026-11-19** on the SM-A566B phone against the branch backend: a new Google account → Finish signing up → Home; a Gmail address that already had a password account landed in it; Delete account confirmed with Google. Not yet tried: the cross-app `409`, Set a password, iOS.
 
+**Apple built 2026-11-21, not merged, not yet tried on a device.** Branch `phase-g/apple-sign-in` in TEETHi-Patient-App (`120763c`); backend `0947b4f`.
+- Packages `sign_in_with_apple` ^8.2.0 (approved 2026-11-21) and `crypto` ^3.0.8.
+- `AppleSignInConfig`: the Services ID (`--dart-define=APPLE_SERVICES_ID`, default `com.teethi.signin.patient`) and the return URL `<API_BASE_URL>/auth/apple/callback/patient`.
+- `AppleIdentitySource`: a fresh nonce per sign-in (32 random bytes, base64url), its SHA-256 to Apple, the raw nonce, the one-time code and the name Apple gives once to the backend. iOS uses the system sheet; Android uses the Custom Tab, and is offered **only when `API_BASE_URL` is HTTPS**, so the button stays hidden against the local `http://127.0.0.1` backend.
+- Login and Register show Apple's own `SignInWithAppleButton` ("Continue with Apple", black, 52 high, pill) above Google's.
+- Delete account without a password confirms with the account's own provider (`AuthViewModel.deletionProvider`, Apple first); the note, the button and the sheet-failed message name the provider.
+- Tests: 6 more in `social_sign_in_test.dart` (nonce hash, a new nonce each time, cancel, failure, where the button shows, deletion provider). 331 tests, analyze clean, debug APK builds.
+- To try it: on iOS (needs a Mac), set `APPLE_CLIENT_IDS` on the backend to include `com.teethi.teethiPatientApp`. On Android, build with `--dart-define=API_BASE_URL=https://<host>/api/v1` and register that host and return URL on the Services ID.
+
 **Packages** (each needs approval before adding):
 - `google_sign_in` 7.x. Its API changed in 7.0: `GoogleSignIn.instance.initialize(...)`, then `authenticate()`, then `account.authentication.idToken`. Older guides using `signIn()` no longer apply.
 - `sign_in_with_apple`: `SignInWithApple.getAppleIDCredential(...)` gives `identityToken`, `authorizationCode`, `givenName`, `familyName`.
@@ -772,7 +781,7 @@ On every start the app calls the public `GET /app-settings/patient` (`lib/core/a
 
 **Code** (inside `features/auth`, same layering as the rest of the feature):
 - [x] `SocialCredential` entity: `provider`, `idToken`, `nonce?`, `authorizationCode?`, `givenName?`, `familyName?`.
-- [ ] `SocialIdentitySource` interface with `GoogleIdentitySource` and `AppleIdentitySource`, registered in `features/auth/injector.dart` and replaced by fakes in tests. Each returns a `SocialCredential`, or `null` when the user cancelled (Google `GoogleSignInExceptionCode.canceled`, Apple `AuthorizationErrorCode.canceled`).
+- [x] `SocialIdentitySource` interface with `GoogleIdentitySource` and `AppleIdentitySource`, registered in `features/auth/injector.dart` and replaced by fakes in tests. Each returns a `SocialCredential`, or `null` when the user cancelled (Google `GoogleSignInExceptionCode.canceled`, Apple `AuthorizationErrorCode.canceled`).
   - **Google**: `initialize(clientId: <iOS client ID, on iOS only>, serverClientId: <Web-application client ID>)` once at startup. Then `authenticate()` and read `authentication.idToken`. The `serverClientId` is what makes Android's token carry the audience the backend accepts.
   - **Apple**: make a random nonce (32 bytes from `Random.secure()`, base64url) and pass `sha256(nonce)` as `nonce:` with scopes `email` and `fullName`. Return the raw nonce in the credential. On Android, also pass `webAuthenticationOptions` (see platform setup).
 - [x] `AuthRemoteDataSource.socialLogin(SocialCredential)` → `POST /auth/social` with `role: "patient"`; `AuthRepository.signInWithProvider`, `SocialSignInUseCase`.
@@ -780,13 +789,13 @@ On every start the app calls the public `GET /app-settings/patient` (`lib/core/a
   - `is_new_user: false` → `AuthPhase.app`.
   - `is_new_user: true` → a new `AuthPhase.completeAccount`.
 - [x] **Finish signing up** screen (`completeAccount`). It asks for what the email Register screen collects and the provider doesn't give: first and last name (pre-filled from `GET /patient/profile`, editable), mobile number and city. Save names and `city_id` with `PATCH /patient/profile`, then the number with `PUT /phone`, then go to the existing verify-phone step and on to the app. There's no verify-email step and no password. If the app restarts before this is finished, the restored session goes straight to the app. That's acceptable, because "Before we book" already asks for the name and phone (H3/E4).
-- [ ] Buttons on Login and Register call `continueWith`; the "not available yet" toast goes. Follow each brand's rules, which the current hand-drawn "G" and the "Apple" label don't:
+- [x] Buttons on Login and Register call `continueWith`; the "not available yet" toast goes. Follow each brand's rules, which the current hand-drawn "G" and the "Apple" label don't:
   - Google: the official "G" logo, with "Continue with Google" or the plain "Google" label.
   - Apple: Apple's style (black or white, Apple logo, "Continue with Apple"). The package's `SignInWithAppleButton` already follows it.
   - **Android and iOS only.** When the app runs in a browser (`kIsWeb`, the local dev setup), hide the buttons and the "or continue with email" divider, and don't initialize Google sign-in. No web setup is needed.
 - [x] Logout also calls `GoogleSignIn.instance.signOut()`, best effort, so the next tap offers the account chooser again. Don't call `disconnect()`. Apple has no sign-out.
 - [x] `UserModel` parses `has_password` and `sign_in_providers`. Settings shows **Set a password** when `has_password` is false (the forgot-password screens with the email filled in). It shows "Signed in with Google/Apple" for the providers listed.
-- [ ] Tests:
+- [x] Tests:
   - View model with a fake identity source and repository: new user → `completeAccount`; returning user → `app`; cancel → no error and no call; `409` → the server's message; logout calls Google sign-out.
   - The request body, including the Apple fields.
   - The nonce: the hash sent to Apple matches the raw nonce sent to the backend.
@@ -794,12 +803,12 @@ On every start the app calls the public `GET /app-settings/patient` (`lib/core/a
 
 **Platform setup** (values from backend Phase 16's list):
 - [x] **Android (Google):** nothing in code beyond `serverClientId`. The Android OAuth client must carry this machine's debug SHA-1 (`keytool -list -v -keystore %USERPROFILE%\.android\debug.keystore -alias androiddebugkey -storepass android`). Check each new plugin's minimum SDK. This app still needs its Gradle 7.5 / AGP 7.3 upgrade (Phase 9 note) before any Android run.
-- [ ] **Android (Apple):** there's no native Apple sign-in, so the package opens Apple's web page in a Custom Tab.
+- [x] **Android (Apple):** there's no native Apple sign-in, so the package opens Apple's web page in a Custom Tab.
   - `webAuthenticationOptions(clientId: <patient Services ID>, redirectUri: https://<api-host>/api/v1/auth/apple/callback/patient)`.
   - Add the package's `SignInWithAppleCallback` activity to `AndroidManifest.xml`, with an intent filter for scheme `signinwithapple` and path `callback`.
   - The phone must reach that URL over HTTPS. Locally, that means a tunnel to `php artisan serve`, with the tunnel's domain registered on the Services ID.
 - [x] **iOS (Google):** `GIDClientID` (iOS client) and `GIDServerClientID` (the Web-application client) in `Info.plist`, plus a URL type with the reversed iOS client ID.
-- [ ] **iOS (Apple):** the "Sign in with Apple" capability, which creates `Runner.entitlements` with `com.apple.developer.applesignin` = `Default`. Needs a Mac and Xcode.
+- [x] **iOS (Apple):** the "Sign in with Apple" capability: `ios/Runner/Runner.entitlements` with `com.apple.developer.applesignin` = `Default`, set as `CODE_SIGN_ENTITLEMENTS` on the Runner target (written by hand on Windows; open the project in Xcode once to confirm the capability shows under Signing & Capabilities).
 
 **Verify live** (on an Android device or emulator with Google Play services, and on an iOS device or simulator):
 - Google: new account → Finish signing up → phone code → Home.
