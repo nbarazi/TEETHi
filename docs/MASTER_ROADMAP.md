@@ -126,7 +126,7 @@ These need the owner, not code. Several gate phases in §5.
 - [x] **DOCS** Commit or revert the root `.claude/launch.json` change. Decide about the untracked `TEETHi-Frontend/CLAUDE.md`.
 - [x] **ALL** Delete merged feature branches; `git worktree prune` the backend's `claude/mystifying-rhodes-2e8412`; remove the four `D:/Projects/TEETHi-worktrees/*` worktrees whose branches are merged. CR M12.
 - [x] **PA** Delete `hs_err_pid*.log` and `flutter_01.log` from the repo root (and gitignore them). CR M12.
-- [x] **DB** Remove unused CoreUI demo views. CR M12. Done 2026-11-21 on `chore/remove-coreui-demo-views` (TEETHi-Frontend `269a7d6`), not merged: the demo views, docs helper components, example and Chart.js styles and the chart.js packages are gone; build clean, 232 tests pass.
+- [x] **DB** Remove unused CoreUI demo views. CR M12. Done 2026-11-21 and merged into `master` (TEETHi-Frontend `269a7d6`, fast-forward, not pushed): the demo views, docs helper components, example and Chart.js styles and the chart.js packages are gone; build clean, 232 tests pass.
 - [x] **DOCS** Fix stale docs:
   - `README.md` "Not yet done" says no repo has a remote. They all do now; it should say "not pushed".
   - `CONSISTENCY_REPORT.md` was last updated 2026-10-19. Its status table and open list are out of date: **M1 (no Arabic on mobile) is done** (both apps have `app_ar.arb` and a language switch); **M13 is fixed** (R8-24); H5 is partly fixed; test counts are old. Refresh it or mark it historical and point here.
