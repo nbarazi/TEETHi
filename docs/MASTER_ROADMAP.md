@@ -143,7 +143,7 @@ These need the owner, not code. Several gate phases in §5.
 - [ ] **PA** Android and iOS pass against the Stripe sandbox: success, decline, 3-D Secure (`4000 0025 0000 3155`), a saved card reused, a card removed, the invoice updating after the webhook. PAP Phase 10. Android passed 2026-11-12 (Phase B) and again with the P4 run 2026-11-21; iOS still open (needs a Mac).
 - [x] **ALL** (done 2026-11-12 on web and API; real mail and the app's receipt View still open) Payments P1–P3 "done when" checks in test mode: dispute flag in the dashboard; receipts by email (real mail transport) and in the app; a dentist adds and removes a treatment at completion and the patient, the admin and the invoice all agree. Dashboard P1–P3 and S5/S7 screens were never opened in a browser. PAY P1–P3.
 - [x] **PA+DA** (done 2026-11-12 except NCS, which waits on T0) Teledentistry T8 leftovers: complete visit 23 after the call and check the call log duration; leave and rejoin; switch camera; an audio call; a call over 15 minutes (token renewal) and an expired token dropping a participant after completion; NCS integer fields (needs NCS on). TELE T8.
-- [ ] **PA+DA** Push on Android and iOS devices (only web was verified; the on-screen pop-up was never seen). CR H4.
+- [ ] **PA+DA** Push on Android and iOS devices (only web was verified; the on-screen pop-up was never seen). CR H4. **Android done 2026-11-21** (Phase B below); iOS still open (needs a Mac).
 - [ ] **PA+DA** Account deletion, app settings gate and the polish-phase changes on a device. PAP/DAP. Deleting a Google account passed on the phone and tablet 2026-11-19; password deletion, the settings gate and the polish changes are still unchecked.
 - [ ] **ALL** Re-run the full live E2E scenario (CR §7) after the `fix/r8-medium` merge (never re-run live) and again after each phase below. Several Low fixes were only covered by tests.
 - [ ] **PA** Map pins: one blank pin at the Santa Monica fallback hides whether doctor photos show on pins. PAP dentist photos.
@@ -239,7 +239,16 @@ Each phase lists what to do, what it's waiting on, and when it's done. Phases 2 
 - [x] Patient app Stripe pass on Android (iOS when a Mac is available). Android done 2026-11-12, all checks passed; found B1-05 (cancelled invoice payable) and B1-06 (sheet Confirm under the nav bar, fixed on `fix/sheet-nav-bar`). iOS still open.
 - [x] Payments P1–P3 "done when" checks, dashboard screens opened in a browser. Done 2026-11-12 through the API and the dashboard (mail to the log, not SendGrid); phone parts stay with the item above. Found B1-01 (Medium) to B1-04.
 - [x] Teledentistry T8 leftovers on the two Android devices; then tick T8. Done 2026-11-12, all passed except the NCS check (waits on T0). Found B1-07 (Low).
-- [ ] Push on Android. Skipped 2026-11-12: the local gcloud application-default sign-in has expired, so the backend skips every push. Re-run `gcloud auth application-default login` first (owner action).
+- [x] Push on Android. Skipped 2026-11-12: the local gcloud application-default sign-in has expired, so the backend skips every push. Re-run `gcloud auth application-default login` first (owner action). **Done 2026-11-21** after renewing the sign-in, on the phone (SM-A566B) and tablet (SM-X210) with "New message" pushes sent through the backend:
+  - Background: the push shows in the system tray. Foreground: the app refreshes its notifications and Home.
+  - **Found and fixed** on `fix/push-toast-and-channel` (TEETHi-Patient-App `0b65ab1`, TEETHI-Dentist-App `c98b2d9`, not merged):
+    - The foreground toast threw "No Overlay widget found" in both apps (it looked above the navigator key's context); it now uses the navigator's overlay, with a widget test.
+    - Pushes went to Firebase's generic "Miscellaneous" channel at default importance, so they never popped up. Both apps now create a high-importance "TEETHi updates" channel (English and Arabic) and name it as Firebase's default.
+    - Tapping a message push opened the dentist Inbox on Alerts, where messages aren't listed; it now opens on Messages.
+  - Rechecked after the fixes: the toast shows on the phone, the tablet's push lands in `teethi_updates` at high importance, and the tap opens the Inbox on Messages.
+  - **Not investigated:** the patient Home bell showed 28 while the account had 41 unread notifications, and didn't change on a later push.
+  - Test data: four "New message" notifications (conversation 2) added for patient@teethi.test and three for dr.michael@teethi.test.
+  - Running `gcloud` on this PC needs `PYTHONHOME` cleared first (`$env:PYTHONHOME = ''`): it is set system-wide to the ZKBioTime Python, which breaks gcloud's bundled one.
 - [ ] Full live E2E scenario on web plus the Android checks above; log new findings with a new prefix in a new E2E report.
 
 **Done when:** PAY P1's "done when" holds in test mode, TELE T8 is ticked, and the new E2E report has no High findings open.
