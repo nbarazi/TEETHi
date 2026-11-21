@@ -68,7 +68,7 @@ Nothing in a phase that depends on one of these should start until the answer is
 | ID | Decision | Blocks | Source |
 |---|---|---|---|
 | PR-1 | ~~Licensed states are self-declared by dentists with no admin check. Add verification, or accept?~~ **Decided 2026-11-21: accept** (TELE T13). | Teledentistry launch | TELE T8 |
-| PR-2 | ~~Call screen: block screenshots / app-switcher preview (`FLAG_SECURE`)? Ongoing-call notification?~~ **Decided 2026-11-21: both** (TELE T14). The ongoing-call notification already exists (Phase D); the screenshot block is in §4.5 and §4.6. | Teledentistry polish | TELE T8 |
+| PR-2 | ~~Call screen: block screenshots / app-switcher preview (`FLAG_SECURE`)? Ongoing-call notification?~~ **Decided 2026-11-21: both** (TELE T14). The ongoing-call notification already exists (Phase D); the screenshot block is built and checked on Android (§4.5, §4.6). | Teledentistry polish | TELE T8 |
 | PR-3 | ~~Tele call joins: write them into the PHI access log too (plan §5.3 says so), or is `tele_session_participants` enough?~~ **Decided 2026-11-21: `tele_session_participants` is enough** (TELE T15). | — | TELE T8 |
 | PR-4 | One combined patient consent form, or several (backend allows one active form per template type) | — | CR §5 |
 | PR-5 | Should an incomplete dentist profile block Requests/Schedule, and should the app route to a "finish your profile" state? (Bookability already hides them from patients) | DA Phase 1 leftover | DAP §16 #8, Phase 1 |
@@ -189,14 +189,14 @@ Other:
 - [x] "Already reviewed" signal for completed visits (hidden only per session today). PAP Phase 6. Done 2026-11-18: `reviewed` on the appointment API, per-session memory dropped.
 - [x] Finish the swap to `GET /enums` labels where screens still hardcode them. PAP Phase 0, CR M3. Fixed 2026-11-15 (TEETHi-Patient-App `8288afa`).
 - [x] Lint debt (17 infos: `withOpacity` etc.). CR M11. Fixed 2026-11-15 (TEETHi-Patient-App `7cc0c9f`); `flutter analyze` clean 2026-11-21.
-- [ ] Teledentistry call screen: block screenshots and the app-switcher preview (`FLAG_SECURE` on Android, a covered snapshot on iOS) while a call is open. PR-2, TELE T14.
+- [x] Teledentistry call screen: block screenshots and the app-switcher preview (`FLAG_SECURE` on Android, a covered snapshot on iOS) while a call is open. PR-2, TELE T14. Built 2026-11-21 on `phase-h/call-screen-privacy` (TEETHi-Patient-App `c354cb2`, TEETHI-Dentist-App `18991b8`), not merged: Android sets `FLAG_SECURE` while the call screen is open (from the first join until the screen closes); iOS covers the window when the app goes inactive (not built or tried: needs a Mac). Checked 2026-11-21 on the phone and tablet during a live call (visit 34): screenshots black, `FLAG_SECURE` on both windows, the tablet's recent-apps card blank; after the screens closed the flag was gone and screenshots showed the app.
 
 ### 4.6 Dentist app backlog
 - [x] **R8-01 leftover:** show `bookable` / `bookability_gaps` from `GET /doctor/dashboard` so a dentist knows why patients can't see them. Done 2026-11-15 (Phase D).
 - [x] Teledentistry: Android foreground service, keep the screen awake, and the schedule note should actually check that Virtual Consultation is in the dentist's services. TELE T5. Done 2026-11-15 (Phase D); background call checked on the tablet 2026-11-18.
 - [x] Change-password screen (the view model already has it; no screen offers it). DAP Phase 12 lists it, but it doesn't depend on social sign-in. Done 2026-11-15 (Phase D).
 - [ ] Phase 1 "finish your profile" routing (after PR-5).
-- [ ] Teledentistry call screen: block screenshots and the app-switcher preview (`FLAG_SECURE` on Android, a covered snapshot on iOS) while a call is open. PR-2, TELE T14.
+- [x] Teledentistry call screen: block screenshots and the app-switcher preview (`FLAG_SECURE` on Android, a covered snapshot on iOS) while a call is open. PR-2, TELE T14. Built 2026-11-21 on `phase-h/call-screen-privacy` (TEETHi-Patient-App `c354cb2`, TEETHI-Dentist-App `18991b8`), not merged: Android sets `FLAG_SECURE` while the call screen is open (from the first join until the screen closes); iOS covers the window when the app goes inactive (not built or tried: needs a Mac). Checked 2026-11-21 on the phone and tablet during a live call (visit 34): screenshots black, `FLAG_SECURE` on both windows, the tablet's recent-apps card blank; after the screens closed the flag was gone and screenshots showed the app.
 - [x] Smaller gaps: open message attachments and uploaded credentials (`url_launcher` + fresh signed URL); Home bell dot after reading notifications; reset per-account view models on a `401` sign-out; visit workflow forgets what was saved when reopened. DAP Phases 2, 3, 8, 10. Done 2026-11-15 (Phase D).
 - [x] Finish the swap to `GET /enums` labels; lint debt (46 infos). DAP Phase 0, CR M11. Fixed 2026-11-15 (TEETHI-Dentist-App `47ea75f`, `6650bbe`); `flutter analyze` clean 2026-11-21.
 
@@ -335,7 +335,7 @@ Each phase lists what to do, what it's waiting on, and when it's done. Phases 2 
 ### Phase H — Go-live readiness
 **Waits on:** the legal and BAA items in §2.1 and the production owner actions in §3.
 - [ ] Legal: D1-L, D4-L, LEG-1, LEG-2, LEG-4; BAAs (BAA-1 to BAA-3).
-- [x] Product: PR-1, PR-2, PR-3 settled for teledentistry. Decided 2026-11-21 (TELE T13–T15); PR-2's screenshot block still to build (§4.5, §4.6).
+- [x] Product: PR-1, PR-2, PR-3 settled for teledentistry. Decided 2026-11-21 (TELE T13–T15); PR-2's screenshot block built and checked on Android 2026-11-21, not merged (§4.5, §4.6).
 - [ ] Production environment, HTTPS, queue worker, FCM, Twilio, SendGrid, Stripe live, Agora NCS (§3).
 - [ ] First iOS builds of both apps; release builds on Android and iOS.
 - [ ] A final `security-reviewer` pass over the whole backend; a final E2E on release builds with live Stripe (a real small charge and refund).
