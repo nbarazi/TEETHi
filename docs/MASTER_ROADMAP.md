@@ -116,7 +116,7 @@ These need the owner, not code. Several gate phases in §5.
 **Before Google/Apple sign-in (Phase 16)**
 - [ ] **OPS** New app IDs `com.teethi.patient` and `com.teethi.dentist` (Android package and iOS bundle, merged into `master` 2026-11-24: TEETHi-Patient-App `91b28bd`, TEETHI-Dentist-App `15f32a7`, TEETHi-Backend `b1f4cd8`, not pushed): Firebase done 2026-11-24: four new apps in `teethi-508df`, configs in TEETHi-Patient-App `91b28bd` and TEETHI-Dentist-App `15f32a7`, both debug APKs build. Google OAuth: the same four clients, their package and bundle changed to the new IDs in Google Cloud (2026-11-24), so the client IDs, `google_sign_in_config.dart`, the URL schemes and `GOOGLE_CLIENT_IDS` stay as they are. Still to do: `APPLE_CLIENT_IDS` with the new bundle IDs when Apple is set up; Google sign-in tried on a device with the new builds. Uninstall the old builds from the test devices.
 - [x] **OPS** Google Cloud `teethi-508df`: OAuth consent screen, one Web-application client, two iOS clients, two Android clients with this PC's debug SHA-1 (done 2026-11-19; the release SHA-1s are still to add). IMP Phase 16.
-- [ ] **OPS** Apple Developer: Team ID, Sign in with Apple on both App IDs, two Services IDs with the HTTPS return URLs, a `.p8` key and Key ID (outside every repo), private email relay registration with SPF/DKIM. IMP Phase 16.
+- [ ] **OPS** Apple Developer: Team ID, Sign in with Apple on both App IDs, two Services IDs with the HTTPS return URLs, a `.p8` key and Key ID per app (done 2026-11-24: both keys created, locally in `TEETHi-Backend/storage/app/private/apple/` (git-ignored) and set in `.env`; the server needs its own copies), private email relay registration with SPF/DKIM. IMP Phase 16.
 
 ---
 
