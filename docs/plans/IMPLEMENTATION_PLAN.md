@@ -772,7 +772,7 @@ Merged into TEETHi-Backend `master` (`6cf2a8c`); 586 Pest tests, PHPStan max and
   - Team ID.
   - "Sign in with Apple" enabled on both App IDs (the bundle IDs above).
   - Two **Services IDs**, one per app (for example `com.teethi.signin.patient` and `com.teethi.signin.dentist`), for Android: Android has no native Apple sign-in, so it uses Apple's web page in a Custom Tab, which needs a Services ID. Each lists the API's domain and the return URL `https://<api-host>/api/v1/auth/apple/callback/patient` (or `/doctor`). Apple accepts only HTTPS on a real domain, never `localhost`.
-  - A **Sign in with Apple key** (`.p8`) and its Key ID for each app (2026-11-24: one per app, each primary on its own App ID; the backend picks the key by the bundle or Services ID, TEETHi-Backend `11be752`). They stay out of git, like the FCM credentials.
+  - A **Sign in with Apple key** (`.p8`) and its Key ID for each app (2026-11-24: one per app, each primary on its own App ID; the backend picks the key by the bundle or Services ID, TEETHi-Backend `11be752`, merged 2026-11-24). They stay out of git, like the FCM credentials.
   - **Private email relay:** register the address or domain the backend sends mail from (Certificates, Identifiers & Profiles → Services → Sign in with Apple for Email Communication), with SPF and DKIM. Without this, verification and reset codes never reach users who chose "Hide my email".
 - **Approval for one dependency:** `firebase/php-jwt`, required explicitly in `composer.json`. It's already installed as a dependency of `google/auth`, but code shouldn't rely on a package it doesn't declare.
 
