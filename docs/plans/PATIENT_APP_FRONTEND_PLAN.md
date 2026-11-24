@@ -773,7 +773,7 @@ On every start the app calls the public `GET /app-settings/patient` (`lib/core/a
 - Login and Register show Apple's own `SignInWithAppleButton` ("Continue with Apple", black, 52 high, pill) above Google's.
 - Delete account without a password confirms with the account's own provider (`AuthViewModel.deletionProvider`, Apple first); the note, the button and the sheet-failed message name the provider.
 - Tests: 6 more in `social_sign_in_test.dart` (nonce hash, a new nonce each time, cancel, failure, where the button shows, deletion provider). 331 tests, analyze clean, debug APK builds.
-- To try it: on iOS (needs a Mac), set `APPLE_CLIENT_IDS` on the backend to include `com.teethi.teethiPatientApp`. On Android, build with `--dart-define=API_BASE_URL=https://<host>/api/v1` and register that host and return URL on the Services ID.
+- To try it: on iOS (needs a Mac), set `APPLE_CLIENT_IDS` on the backend to include `com.teethi.patient`. On Android, build with `--dart-define=API_BASE_URL=https://<host>/api/v1` and register that host and return URL on the Services ID.
 
 **Packages** (each needs approval before adding):
 - `google_sign_in` 7.x. Its API changed in 7.0: `GoogleSignIn.instance.initialize(...)`, then `authenticate()`, then `account.authentication.idToken`. Older guides using `signIn()` no longer apply.

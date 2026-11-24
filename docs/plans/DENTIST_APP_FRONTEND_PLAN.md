@@ -541,7 +541,7 @@ On every start the app calls the public `GET /app-settings/doctor` (`lib/core/ap
 
 **Verified 2026-11-19** on the SM-X210 tablet against the branch backend: a new Google account → onboarding with names and mobile → Home; Delete account confirmed with Google. Not yet tried: the cross-app `409`, Set a password, the dashboard's Doctors list, iOS.
 
-**Apple built 2026-11-21, merged into `master` as `e223da2` (pushed 2026-11-21), not yet tried on a device.** Branch `phase-g/apple-sign-in` in TEETHI-Dentist-App (`9b16ac0`); backend merge `aa294a0`. The same as the patient plan's Apple notes (Phase 11), with this app's values: Services ID default `com.teethi.signin.dentist` (`--dart-define=APPLE_SERVICES_ID`), return URL `<API_BASE_URL>/auth/apple/callback/doctor`, and the entitlement on `com.teethi.teethiDentistApp`. An Apple sign-up goes to onboarding like a Google one. Tests: 6 more in `social_sign_in_test.dart`; 341 tests, analyze clean, debug APK builds.
+**Apple built 2026-11-21, merged into `master` as `e223da2` (pushed 2026-11-21), not yet tried on a device.** Branch `phase-g/apple-sign-in` in TEETHI-Dentist-App (`9b16ac0`); backend merge `aa294a0`. The same as the patient plan's Apple notes (Phase 11), with this app's values: Services ID default `com.teethi.signin.dentist` (`--dart-define=APPLE_SERVICES_ID`), return URL `<API_BASE_URL>/auth/apple/callback/doctor`, and the entitlement on `com.teethi.dentist`. An Apple sign-up goes to onboarding like a Google one. Tests: 6 more in `social_sign_in_test.dart`; 341 tests, analyze clean, debug APK builds.
 
 Needs backend Phase 16 and the Google/Apple setup listed there. The contract is in §2.1. This is the same work as the patient plan's Phase 11, whose checklist has the full detail (packages, nonce, cancel handling, brand rules, hiding the buttons in a browser, logout, tests, platform setup). Only the differences are listed here.
 
@@ -564,8 +564,8 @@ Needs backend Phase 16 and the Google/Apple setup listed there. The contract is 
 
   Show "Signed in with Google/Apple" for the listed providers.
 - [x] **Platform setup:** as in the patient plan, with this app's values:
-  - Android package `com.teethi.teethi_dentist_app`, and this app's own Android OAuth client with the debug SHA-1. This app is already on AGP 9.1 / Gradle 9.3, so no upgrade is needed.
-  - iOS bundle `com.teethi.teethiDentistApp`, with its own iOS client and the Apple capability.
+  - Android package `com.teethi.dentist`, and this app's own Android OAuth client with the debug SHA-1. This app is already on AGP 9.1 / Gradle 9.3, so no upgrade is needed.
+  - iOS bundle `com.teethi.dentist`, with its own iOS client and the Apple capability.
   - Apple Services ID for the dentist app (used by Android), and return URL `https://<api-host>/api/v1/auth/apple/callback/doctor`.
 - [x] **Tests:** as in the patient plan, plus onboarding: a social sign-up sends names and mobile in the `PATCH` and calls `PUT /phone`; an email sign-up still doesn't ask for them twice.
 

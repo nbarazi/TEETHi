@@ -766,8 +766,8 @@ Merged into TEETHi-Backend `master` (`6cf2a8c`); 586 Pest tests, PHPStan max and
 - **Google** (Google Cloud project `teethi-508df`, the same one Firebase uses):
   - OAuth consent screen: app name, support email, logo, privacy policy URL, authorized domain. Scopes `openid`, `email`, `profile` only, which need no Google review.
   - One OAuth client of type **Web application**, even though there's no web sign-in (decision #15 covers Android and iOS only). Android's Google ID tokens are issued for this client: the apps pass it as `serverClientId`, so it's the audience the backend checks. It needs no JavaScript origins or redirect URIs.
-  - Two **iOS** OAuth clients: bundle IDs `com.teethi.teethiPatientApp` and `com.teethi.teethiDentistApp`.
-  - Two **Android** OAuth clients: packages `com.teethi.teethi_patient_app` and `com.teethi.teethi_dentist_app`, each with the SHA-1 of the debug keystore now and of the release (or Play App Signing) key before release.
+  - Two **iOS** OAuth clients: bundle IDs `com.teethi.patient` and `com.teethi.dentist`.
+  - Two **Android** OAuth clients: packages `com.teethi.patient` and `com.teethi.dentist`, each with the SHA-1 of the debug keystore now and of the release (or Play App Signing) key before release.
 - **Apple** (paid Apple Developer account):
   - Team ID.
   - "Sign in with Apple" enabled on both App IDs (the bundle IDs above).
@@ -779,7 +779,7 @@ Merged into TEETHi-Backend `master` (`6cf2a8c`); 586 Pest tests, PHPStan max and
 **Build checklist:**
 - [x] Migrations: `users.password` nullable; the `social_accounts` table (§4.1). Enum `SocialProvider` with en/ar labels; model `SocialAccount` (`refresh_token` cast `encrypted`); `User::socialAccounts()`.
 - [x] Config and environment (Apple settings added 2026-11-21):
-  - `config/services.php`: `google.client_ids` and `apple.client_ids` (comma-separated lists), `apple.team_id`, `apple.key_id`, `apple.private_key_path`, `apple.android_packages` (`patient` → `com.teethi.teethi_patient_app`, `doctor` → `com.teethi.teethi_dentist_app`).
+  - `config/services.php`: `google.client_ids` and `apple.client_ids` (comma-separated lists), `apple.team_id`, `apple.key_id`, `apple.private_key_path`, `apple.android_packages` (`patient` → `com.teethi.patient`, `doctor` → `com.teethi.dentist`).
   - `.env.example`: `GOOGLE_CLIENT_IDS` (the Web-application client, which Android tokens carry, and both iOS clients), `APPLE_CLIENT_IDS` (both bundle IDs and both Services IDs), `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY_PATH`.
 - [x] Token verification: contract `App\Contracts\SocialTokenVerifier`, `verify(SocialProvider, string $idToken, ?string $nonce): SocialIdentity`. `SocialIdentity` is a readonly value object: `provider`, `subject`, `email`, `emailVerified`, `givenName`, `familyName`.
   - One implementation, `JwksSocialTokenVerifier`, for both providers. It fetches the provider's key set (Google `https://www.googleapis.com/oauth2/v3/certs`, Apple `https://appleid.apple.com/auth/keys`) over `Http` and caches it per the response's `Cache-Control` max-age. It re-fetches once when a token names an unknown `kid`, because the providers rotate keys. It decodes with `firebase/php-jwt` (RS256 only, with a small clock leeway).
