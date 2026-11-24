@@ -111,7 +111,7 @@ These need the owner, not code. Several gate phases in §5.
 - [ ] **OPS** FCM in production: attached service account or workload identity federation, `FIREBASE_PROJECT_ID`, **a supervised queue worker** (OTP, push and receipts are queued). IMP Phase 15.
 - [ ] **OPS** Agora: turn on NCS for `https://<api-host>/api/v1/agora/webhook`, events 102–108, put the secret in `AGORA_NCS_SECRET`. TELE T0/T2.
 - [ ] **OPS** A Mac with Xcode and an APNs key: first iOS build of both apps (Podfile gets `PERMISSION_CAMERA=1`, `PERMISSION_MICROPHONE=1`), push on iOS, Apple Pay, Sign in with Apple. TELE T4/T5, CR §5.
-  - iOS push setup in code (2026-11-24, branch `feat/ios-push`, not merged): `aps-environment` entitlement and the `remote-notification` background mode in both apps (TEETHi-Patient-App `238e9d4`, TEETHI-Dentist-App `3f96b52`); the backend asks APNs for the default sound (TEETHi-Backend `57ea71b`). Still needed: Push Notifications on both App IDs, the APNs `.p8` key uploaded to Firebase Cloud Messaging for both iOS apps, and a test on an iPhone.
+  - iOS push setup in code (2026-11-24, merged and pushed 2026-11-25): `aps-environment` entitlement and the `remote-notification` background mode in both apps (TEETHi-Patient-App `238e9d4`, TEETHI-Dentist-App `3f96b52`); the backend asks APNs for the default sound (TEETHi-Backend `57ea71b`). Still needed: Push Notifications on both App IDs, the APNs `.p8` key uploaded to Firebase Cloud Messaging for both iOS apps, and a test on an iPhone.
 - [ ] **OPS** Release signing keys for Android (and their SHA-1s for Google sign-in).
 
 **Before Google/Apple sign-in (Phase 16)**
